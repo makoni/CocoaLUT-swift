@@ -91,6 +91,11 @@ public struct LUT {
                                       inputHigh: inputUpperBound,
                                       outputLow: 0,
                                       outputHigh: Double(size - 1))
+#if DEBUG
+        if !(0...Double(size - 1)).contains(r) || !(0...Double(size - 1)).contains(g) || !(0...Double(size - 1)).contains(b) {
+            fputs("color(at:) normalized out of range size=\(size) r=\(r) g=\(g) b=\(b) input=\(clamped) bounds=\(inputLowerBound)..\(inputUpperBound)\n", stderr)
+        }
+#endif
         return colorInterpolated(r: LUTMath.clamp(r, lower: 0, upper: Double(size - 1)),
                                  g: LUTMath.clamp(g, lower: 0, upper: Double(size - 1)),
                                  b: LUTMath.clamp(b, lower: 0, upper: Double(size - 1)))
@@ -343,6 +348,32 @@ public struct LUT {
         let dg = g - Double(g0)
         let db = b - Double(b0)
 
+        #if DEBUG
+        if !(0..<size).contains(r0) || !(0..<size).contains(g0) || !(0..<size).contains(b0) {
+            fputs("colorInterpolated corner000 out of range size=\(size) r0=\(r0) g0=\(g0) b0=\(b0)\n", stderr)
+        }
+        if !(0..<size).contains(r1) || !(0..<size).contains(g0) || !(0..<size).contains(b0) {
+            fputs("colorInterpolated corner100 out of range size=\(size) r1=\(r1) g0=\(g0) b0=\(b0)\n", stderr)
+        }
+        if !(0..<size).contains(r0) || !(0..<size).contains(g1) || !(0..<size).contains(b0) {
+            fputs("colorInterpolated corner010 out of range size=\(size) r0=\(r0) g1=\(g1) b0=\(b0)\n", stderr)
+        }
+        if !(0..<size).contains(r1) || !(0..<size).contains(g1) || !(0..<size).contains(b0) {
+            fputs("colorInterpolated corner110 out of range size=\(size) r1=\(r1) g1=\(g1) b0=\(b0)\n", stderr)
+        }
+        if !(0..<size).contains(r0) || !(0..<size).contains(g0) || !(0..<size).contains(b1) {
+            fputs("colorInterpolated corner001 out of range size=\(size) r0=\(r0) g0=\(g0) b1=\(b1)\n", stderr)
+        }
+        if !(0..<size).contains(r1) || !(0..<size).contains(g0) || !(0..<size).contains(b1) {
+            fputs("colorInterpolated corner101 out of range size=\(size) r1=\(r1) g0=\(g0) b1=\(b1)\n", stderr)
+        }
+        if !(0..<size).contains(r0) || !(0..<size).contains(g1) || !(0..<size).contains(b1) {
+            fputs("colorInterpolated corner011 out of range size=\(size) r0=\(r0) g1=\(g1) b1=\(b1)\n", stderr)
+        }
+        if !(0..<size).contains(r1) || !(0..<size).contains(g1) || !(0..<size).contains(b1) {
+            fputs("colorInterpolated corner111 out of range size=\(size) r1=\(r1) g1=\(g1) b1=\(b1)\n", stderr)
+        }
+        #endif
         let c000 = colorAt(r: r0, g: g0, b: b0)
         let c100 = colorAt(r: r1, g: g0, b: b0)
         let c010 = colorAt(r: r0, g: g1, b: b0)
@@ -363,7 +394,15 @@ public struct LUT {
     }
 
     private func linearIndex(r: Int, g: Int, b: Int) -> Int {
-        precondition((0..<size).contains(r) && (0..<size).contains(g) && (0..<size).contains(b), "Index out of range")
+        guard (0..<size).contains(r), (0..<size).contains(g), (0..<size).contains(b) else {
+#if DEBUG
+            fputs("linearIndex out of range size=\(size) r=\(r) g=\(g) b=\(b)\n", stderr)
+            Thread.callStackSymbols.forEach { symbol in
+                fputs(symbol + "\n", stderr)
+            }
+#endif
+            preconditionFailure("Index out of range")
+        }
         return ((r * size) + g) * size + b
     }
 

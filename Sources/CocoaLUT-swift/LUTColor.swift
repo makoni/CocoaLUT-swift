@@ -231,9 +231,9 @@ public struct LUTColor: Equatable, Sendable {
         let m10 = matrix.3, m11 = matrix.4, m12 = matrix.5
         let m20 = matrix.6, m21 = matrix.7, m22 = matrix.8
 
-        let redResult = m00 * red + m10 * green + m20 * blue
-        let greenResult = m01 * red + m11 * green + m21 * blue
-        let blueResult = m02 * red + m12 * green + m22 * blue
+    let redResult = m00 * red + m01 * green + m02 * blue
+    let greenResult = m10 * red + m11 * green + m12 * blue
+    let blueResult = m20 * red + m21 * green + m22 * blue
 
         return LUTColor(red: redResult, green: greenResult, blue: blueResult)
     }

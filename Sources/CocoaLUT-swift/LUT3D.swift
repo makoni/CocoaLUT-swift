@@ -98,13 +98,77 @@ public struct LUT3D {
 
     public func extractingColorShift(strictness: Bool) -> LUT3D? {
         let base1D = toLUT1D()
-        guard base1D.isReversible(strict: strictness),
-              let reversed = base1D.reversed(strictness: strictness, autoAdjustInputBounds: true) else {
+        guard base1D.isReversible(strict: strictness) else {
             return nil
         }
 
-        let reversed3D = reversed.toLUT3D(size: size).asLUT()
-        let colorShiftLattice = lattice.combined(with: reversed3D)
+    let highResolutionSize = max(base1D.size, 131_072)
+        let highResolution1D = base1D.size >= highResolutionSize ? base1D : base1D.resized(to: highResolutionSize)
+
+        var colorShiftLattice = lattice
+        let curves = highResolution1D.rgbCurveArray()
+        let newLowerBound = base1D.minimumOutputValue()
+        let newUpperBound = base1D.maximumOutputValue()
+
+        func inverseComponent(_ value: Double, curve: [Double]) -> Double {
+            guard let first = curve.first, let last = curve.last else {
+                return value
+            }
+
+            let clampedValue = LUTMath.clamp(value, lower: newLowerBound, upper: newUpperBound)
+
+            if clampedValue <= first {
+                return highResolution1D.inputLowerBound
+            }
+
+            if clampedValue >= last {
+                return highResolution1D.inputUpperBound
+            }
+
+            var low = 0
+            var high = curve.count - 1
+
+            while high - low > 1 {
+                let mid = (low + high) / 2
+                if curve[mid] <= clampedValue {
+                    low = mid
+                } else {
+                    high = mid
+                }
+            }
+
+            let lowerValue = LUTMath.remapNoError(Double(low),
+                                                  inputLow: 0,
+                                                  inputHigh: Double(highResolution1D.size - 1),
+                                                  outputLow: highResolution1D.inputLowerBound,
+                                                  outputHigh: highResolution1D.inputUpperBound)
+
+            let higherValue = LUTMath.remapNoError(Double(high),
+                                                   inputLow: 0,
+                                                   inputHigh: Double(highResolution1D.size - 1),
+                                                   outputLow: highResolution1D.inputLowerBound,
+                                                   outputHigh: highResolution1D.inputUpperBound)
+
+            let denominator = curve[high] - curve[low]
+            let rawT = denominator == 0 ? 0 : (clampedValue - curve[low]) / denominator
+            let t = LUTMath.clamp(rawT, lower: 0, upper: 1)
+
+            return LUTMath.lerp(lowerValue, higherValue, t: t)
+        }
+
+        for r in 0..<size {
+            for g in 0..<size {
+                for b in 0..<size {
+                    let startColor = lattice.colorAt(r: r, g: g, b: b)
+                    let red = inverseComponent(startColor.red, curve: curves[0])
+                    let green = inverseComponent(startColor.green, curve: curves[1])
+                    let blue = inverseComponent(startColor.blue, curve: curves[2])
+                    let newColor = LUTColor.color(red: red, green: green, blue: blue)
+                    colorShiftLattice.setColor(newColor, r: r, g: g, b: b)
+                }
+            }
+        }
+
         var extracted = LUT3D(lattice: colorShiftLattice)
         extracted.copyMetadata(from: self)
         return extracted

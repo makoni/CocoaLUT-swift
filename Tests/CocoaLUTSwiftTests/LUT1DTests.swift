@@ -69,9 +69,14 @@ final class LUT1DTests: XCTestCase {
 
         XCTAssertTrue(lut.isReversible(strict: true))
 
-        let nonMonotonic = LUT1D(redCurve: [0.0, 0.7, 0.6, 1.0],
-                                 greenCurve: curve,
-                                 blueCurve: curve,
+        var nonMonotonicCurve = curve
+        if nonMonotonicCurve.count > 2 {
+            nonMonotonicCurve[2] = nonMonotonicCurve[1] - 0.05
+        }
+
+        let nonMonotonic = LUT1D(redCurve: nonMonotonicCurve,
+                                 greenCurve: nonMonotonicCurve,
+                                 blueCurve: nonMonotonicCurve,
                                  inputLowerBound: 0,
                                  inputUpperBound: 1)
 

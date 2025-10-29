@@ -408,3 +408,5 @@ public struct LUT1D {
         curve.map(Self.sanitize)
     }
 }
+
+    extension LUT1D: @unchecked Sendable {}

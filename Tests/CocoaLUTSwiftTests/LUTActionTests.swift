@@ -109,7 +109,142 @@ final class LUTActionTests: XCTestCase {
         let expected1D = contrast.swizzled(using: .averageRGB)
         let expected = colorShift.combined(with: expected1D.toLUT3D(size: size).asLUT())
 
-        XCTAssertTrue(result.equals(expected, tolerance: 1e-6))
+        if !result.equals(expected, tolerance: 1e-6) {
+            let returnedInput = result.equals(composed, tolerance: 1e-9)
+            var maxDistance = 0.0
+            for r in 0..<result.size {
+                for g in 0..<result.size {
+                    for b in 0..<result.size {
+                        let dist = result.colorAt(r: r, g: g, b: b).distance(to: expected.colorAt(r: r, g: g, b: b))
+                        maxDistance = max(maxDistance, dist)
+                    }
+                }
+            }
+            let composed3D = LUT3D(lattice: composed)
+            let base1DSource = composed3D.toLUT1D()
+            let reversible = base1DSource.isReversible(strict: true)
+            var colorShiftDelta = "n/a"
+            var sampleMessage = ""
+            if let extractedShift = composed3D.extractingColorShift(strictness: true)?.asLUT() {
+                var maxShift = 0.0
+                for r in 0..<size {
+                    for g in 0..<size {
+                        for b in 0..<size {
+                            let dist = extractedShift.colorAt(r: r, g: g, b: b).distance(to: colorShift.colorAt(r: r, g: g, b: b))
+                            maxShift = max(maxShift, dist)
+                        }
+                    }
+                }
+                colorShiftDelta = String(maxShift)
+                let sample = extractedShift.colorAt(r: 2, g: 2, b: 2)
+                let expectedSample = colorShift.colorAt(r: 2, g: 2, b: 2)
+                sampleMessage = ", extractedSample=\(sample), expectedSample=\(expectedSample)"
+            }
+
+            let base1D = base1DSource.swizzled(using: .averageRGB)
+            var oneDDifference = 0.0
+            for index in 0..<size {
+                let dist = base1D.colorAt(index: index).distance(to: contrast.swizzled(using: .averageRGB).colorAt(index: index))
+                oneDDifference = max(oneDDifference, dist)
+            }
+
+            let originalSample = base1DSource.colorAt(index: 2)
+            let reversedSample = base1DSource.reversed(strictness: true, autoAdjustInputBounds: true)?.colorAt(index: 2)
+
+            let firstFive = (0..<min(5, base1DSource.size)).map { base1DSource.colorAt(index: $0) }
+            let reversedFive = base1DSource.reversed(strictness: true, autoAdjustInputBounds: true)?.rgbCurveArray().map { Array($0.prefix(5)) }
+            let minOutput = base1DSource.minimumOutputValue()
+            let maxOutput = base1DSource.maximumOutputValue()
+            let workingLUT = base1DSource.resized(to: max(2048, base1DSource.size))
+            let workingFirst = (0..<5).map { workingLUT.colorAt(index: $0) }
+
+            func manualReverseFull(_ lut: LUT1D) -> (LUT1D, [Double], [Double]) {
+                let workingLUT = lut.size >= 2048 ? lut : lut.resized(to: 2048)
+                let curve = workingLUT.rgbCurveArray()[0]
+                let newLowerBound = lut.minimumOutputValue()
+                let newUpperBound = lut.maximumOutputValue()
+                var result: [Double] = []
+                result.reserveCapacity(workingLUT.size)
+                var lastJ = 1
+                for i in 0..<workingLUT.size {
+                    let remappedIndex = LUTMath.remapNoError(Double(i),
+                                                             inputLow: 0,
+                                                             inputHigh: Double(workingLUT.size - 1),
+                                                             outputLow: newLowerBound,
+                                                             outputHigh: newUpperBound)
+
+                    if remappedIndex <= (curve.min() ?? newLowerBound) {
+                        result.append(lut.inputLowerBound)
+                        lastJ = max(1, lastJ)
+                        continue
+                    }
+
+                    if remappedIndex >= (curve.max() ?? newUpperBound) {
+                        result.append(lut.inputUpperBound)
+                        lastJ = max(1, lastJ)
+                        continue
+                    }
+
+                    var appended = false
+                    let startJ = max(1, lastJ)
+                    for j in startJ..<workingLUT.size {
+                        let currentValue = curve[j]
+                        if currentValue > remappedIndex {
+                            let previousValue = curve[j - 1]
+                            let lowerValue = LUTMath.remapNoError(Double(j - 1),
+                                                                  inputLow: 0,
+                                                                  inputHigh: Double(workingLUT.size - 1),
+                                                                  outputLow: workingLUT.inputLowerBound,
+                                                                  outputHigh: workingLUT.inputUpperBound)
+                            let higherValue = LUTMath.remapNoError(Double(j),
+                                                                   inputLow: 0,
+                                                                   inputHigh: Double(workingLUT.size - 1),
+                                                                   outputLow: workingLUT.inputLowerBound,
+                                                                   outputHigh: workingLUT.inputUpperBound)
+                            let denominator = currentValue - previousValue
+                            let t = denominator == 0 ? 0 : (remappedIndex - previousValue) / denominator
+                            let interpolated = LUTMath.lerp(lowerValue, higherValue, t: LUTMath.clamp(t, lower: 0, upper: 1))
+                            result.append(interpolated)
+                            lastJ = j
+                            appended = true
+                            break
+                        }
+                    }
+
+                    if !appended {
+                        result.append(workingLUT.inputUpperBound)
+                    }
+                }
+                var manual = LUT1D(redCurve: result,
+                                   greenCurve: result,
+                                   blueCurve: result,
+                                   inputLowerBound: newLowerBound,
+                                   inputUpperBound: newUpperBound)
+                let sampleIndices: [Int] = [0, 1, 2, 32, 64, 128, 256, 512, 1024, 2047]
+                let preResizeSamples = sampleIndices.map { index -> Double in
+                    guard index < result.count else { return -1 }
+                    return result[index]
+                }
+                let positions = (0..<lut.size).map { index -> Double in
+                    if lut.size == 1 { return 0 }
+                    return Double(index) * Double(workingLUT.size - 1) / Double(lut.size - 1)
+                }
+                let interpolated = positions.prefix(5).map { position -> Double in
+                    let lowerIndex = Int(floor(position))
+                    let upperIndex = min(lowerIndex + 1, result.count - 1)
+                    let t = position - Double(lowerIndex)
+                    let lower = result[lowerIndex]
+                    let upper = result[upperIndex]
+                    return lower + (upper - lower) * t
+                }
+                manual = manual.resized(to: lut.size)
+                return (manual, preResizeSamples, Array(interpolated))
+            }
+            let (manualReversed, manualPreResizeSamples, manualInterpolatedSamples) = manualReverseFull(base1DSource)
+            let manualReverseFirstFiveValues = (0..<5).map { manualReversed.colorAt(index: $0).red }
+
+            XCTFail("Swizzle mismatch max distance \(maxDistance), returnedInput=\(returnedInput), reversible=\(reversible), colorShiftDelta=\(colorShiftDelta), swizzled1DDiff=\(oneDDifference), originalSample=\(originalSample), reversedSample=\(String(describing: reversedSample)), firstFive=\(firstFive), workingFirstFive=\(workingFirst), manualPreResizeSamples=\(manualPreResizeSamples), manualInterpolatedSamples=\(manualInterpolatedSamples), manualReverseFirstFive=\(manualReverseFirstFiveValues), reversedFirstFive=\(String(describing: reversedFive)), outputRange=(\(minOutput), \(maxOutput)), resultBounds=(\(result.inputLowerBound), \(result.inputUpperBound)), expectedBounds=(\(expected.inputLowerBound), \(expected.inputUpperBound)))\(sampleMessage)")
+        }
     }
 
     func testSwizzleActionReturnsInputWhenNotReversible() {
