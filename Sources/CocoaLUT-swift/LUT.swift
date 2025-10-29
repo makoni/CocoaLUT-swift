@@ -148,6 +148,106 @@ public struct LUT {
         return true
     }
 
+    public func changingInputBounds(lower: Double, upper: Double) -> LUT {
+        precondition(upper > lower, "Upper bound must be greater than lower bound")
+        if lower == inputLowerBound && upper == inputUpperBound {
+            return self
+        }
+
+        var newLUT = LUT(size: size, inputLowerBound: lower, inputUpperBound: upper)
+        newLUT.title = title
+        newLUT.descriptionText = descriptionText
+        newLUT.metadata = metadata
+        newLUT.passthroughFileOptions = passthroughFileOptions
+
+        for r in 0..<size {
+            for g in 0..<size {
+                for b in 0..<size {
+                    let identity = newLUT.identityColorAt(r: Double(r), g: Double(g), b: Double(b))
+                    let color = color(at: identity)
+                    newLUT.setColor(color, r: r, g: g, b: b)
+                }
+            }
+        }
+
+        return newLUT
+    }
+
+    public func clamped(lower: Double, upper: Double) -> LUT {
+        mapColors { $0.clamped(lowerBound: lower, upperBound: upper) }
+    }
+
+    public func remappingValues(inputLow: Double,
+                                 inputHigh: Double,
+                                 outputLow: Double,
+                                 outputHigh: Double,
+                                 bounded: Bool) -> LUT {
+        mapColors { $0.remapped(inputLow: inputLow,
+                                inputHigh: inputHigh,
+                                outputLow: outputLow,
+                                outputHigh: outputHigh,
+                                bounded: bounded) }
+    }
+
+    public func remappingValues(inputLowColor: LUTColor,
+                                 inputHighColor: LUTColor,
+                                 outputLowColor: LUTColor,
+                                 outputHighColor: LUTColor,
+                                 bounded: Bool) -> LUT {
+        mapColors { $0.remapped(inputLowColor: inputLowColor,
+                                inputHighColor: inputHighColor,
+                                outputLowColor: outputLowColor,
+                                outputHighColor: outputHighColor,
+                                bounded: bounded) }
+    }
+
+    public func offsetting(by color: LUTColor) -> LUT {
+        mapColors { $0.adding(color) }
+    }
+
+    public func minimumOutputValue() -> Double {
+        storage.reduce(Double.greatestFiniteMagnitude) { partialResult, color in
+            min(partialResult, color.minimumValue())
+        }
+    }
+
+    public func maximumOutputValue() -> Double {
+        storage.reduce(-Double.greatestFiniteMagnitude) { partialResult, color in
+            max(partialResult, color.maximumValue())
+        }
+    }
+
+    public func minimumOutputColor() -> LUTColor {
+        guard let first = storage.first else { return .zeros() }
+        return storage.dropFirst().reduce(first) { result, color in
+            LUTColor.color(red: min(result.red, color.red),
+                           green: min(result.green, color.green),
+                           blue: min(result.blue, color.blue))
+        }
+    }
+
+    public func maximumOutputColor() -> LUTColor {
+        guard let first = storage.first else { return .zeros() }
+        return storage.dropFirst().reduce(first) { result, color in
+            LUTColor.color(red: max(result.red, color.red),
+                           green: max(result.green, color.green),
+                           blue: max(result.blue, color.blue))
+        }
+    }
+
+    public func scaledTo01() -> LUT {
+        let minValue = minimumOutputValue()
+        let maxValue = maximumOutputValue()
+        guard maxValue > minValue else { return self }
+        return remappingValues(inputLow: minValue,
+                               inputHigh: maxValue,
+                               outputLow: 0,
+                               outputHigh: 1,
+                               bounded: false)
+    }
+
+    // MARK: - Private Helpers
+
     // MARK: - Private Helpers
 
     private func colorInterpolated(r: Double, g: Double, b: Double) -> LUTColor {
@@ -190,6 +290,16 @@ public struct LUT {
     private func linearIndex(r: Int, g: Int, b: Int) -> Int {
         precondition((0..<size).contains(r) && (0..<size).contains(g) && (0..<size).contains(b), "Index out of range")
         return ((r * size) + g) * size + b
+    }
+
+    private func mapColors(_ transform: (LUTColor) -> LUTColor) -> LUT {
+        var result = LUT(size: size, inputLowerBound: inputLowerBound, inputUpperBound: inputUpperBound)
+        result.title = title
+        result.descriptionText = descriptionText
+        result.metadata = metadata
+        result.passthroughFileOptions = passthroughFileOptions
+        result.storage = storage.map(transform)
+        return result
     }
 }
 
