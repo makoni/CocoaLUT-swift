@@ -1,4 +1,5 @@
 import CoreGraphics
+import Dispatch
 import Foundation
 import simd
 
@@ -246,5 +247,30 @@ enum LUTColorHelper {
         #else
         return nil
         #endif
+    }
+}
+
+enum LUTUtility {
+    static func concurrentRectLoop(width: Int,
+                                   height: Int,
+                                   body: @Sendable (_ x: Int, _ y: Int) -> Void) {
+        guard width > 0, height > 0 else { return }
+        DispatchQueue.concurrentPerform(iterations: width) { x in
+            for y in 0..<height {
+                body(x, y)
+            }
+        }
+    }
+
+    static func proportionallyScaledSize(current: CGSize, target: CGSize) -> CGSize {
+        guard current.width != 0, current.height != 0 else { return .zero }
+        if current == target { return current }
+
+        let widthFactor = target.width / current.width
+        let heightFactor = target.height / current.height
+        let scaleFactor = min(widthFactor, heightFactor)
+
+        return CGSize(width: current.width * scaleFactor,
+                      height: current.height * scaleFactor)
     }
 }

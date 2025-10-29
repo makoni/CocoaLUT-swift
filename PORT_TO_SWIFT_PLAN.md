@@ -29,8 +29,8 @@ Test Driven Development rules (strict)
 - [x] Port `LUTColor` with arithmetic/clamping tests.
 - [x] Port `LUT` core lattice representation and identity tests.
 - [x] Port `LUT1D`/`LUT3D` minimal functionality with conversion tests.
-- [ ] Port `LUTHelper` functions required by the core types.
-- [ ] Port `LUTFormatterCube` with round-trip IO tests.
+- [x] Port `LUTHelper` functions required by the core types.
+- [x] Port `LUTFormatterCube` with round-trip IO tests.
 - [ ] Port remaining formatters (3DL, Hald, UnwrappedTexture, etc.).
 - [ ] Port processing stack (`LUTProcessor`, `LUTReverser`, `LUTAction`).
 - [ ] Port color space and transfer utilities (`LUTColorSpace`, `LUTColorTransferFunction`, `LUTColorSpaceWhitePoint`).

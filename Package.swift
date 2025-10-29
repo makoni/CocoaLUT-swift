@@ -20,7 +20,10 @@ let package = Package(
         ),
         .testTarget(
             name: "CocoaLUTSwiftTests",
-            dependencies: ["CocoaLUT-swift"]
+            dependencies: ["CocoaLUT-swift"],
+            resources: [
+                .process("Resources")
+            ]
         ),
     ]
 )

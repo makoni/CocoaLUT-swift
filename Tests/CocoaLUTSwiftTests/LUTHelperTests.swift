@@ -1,3 +1,5 @@
+import CoreGraphics
+import Foundation
 import XCTest
 @testable import CocoaLUT_swift
 
@@ -46,4 +48,53 @@ final class LUTHelperTests: XCTestCase {
         XCTAssertEqual(LUTStringHelper.stringIsValidNumber("-1.23"), true)
         XCTAssertEqual(LUTStringHelper.stringIsValidNumber("abc"), false)
     }
+
+    func testConcurrentRectLoopVisitsAllPoints() {
+        let width = 4
+        let height = 3
+        let storage = ThreadSafeStringSet()
+
+        LUTUtility.concurrentRectLoop(width: width, height: height) { x, y in
+            storage.insert("\(x)-\(y)")
+        }
+
+        let visited = storage.snapshot()
+        XCTAssertEqual(visited.count, width * height)
+        for x in 0..<width {
+            for y in 0..<height {
+                XCTAssertTrue(visited.contains("\(x)-\(y)"))
+            }
+        }
+    }
+
+    func testProportionalScaling() {
+        let current = CGSize(width: 400, height: 200)
+        let target = CGSize(width: 100, height: 50)
+        let scaled = LUTUtility.proportionallyScaledSize(current: current, target: target)
+        XCTAssertEqual(scaled.width, 100, accuracy: 1e-6)
+        XCTAssertEqual(scaled.height, 50, accuracy: 1e-6)
+
+        let tallTarget = CGSize(width: 50, height: 200)
+        let scaledTall = LUTUtility.proportionallyScaledSize(current: current, target: tallTarget)
+        XCTAssertEqual(scaledTall.width, 50, accuracy: 1e-6)
+        XCTAssertEqual(scaledTall.height, 25, accuracy: 1e-6)
+    }
 }
+
+    private final class ThreadSafeStringSet: @unchecked Sendable {
+        private var values: Set<String> = []
+        private let lock = NSLock()
+
+        func insert(_ value: String) {
+            lock.lock()
+            values.insert(value)
+            lock.unlock()
+        }
+
+        func snapshot() -> Set<String> {
+            lock.lock()
+            let current = values
+            lock.unlock()
+            return current
+        }
+    }
