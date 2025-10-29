@@ -56,20 +56,44 @@ public struct LUT {
     }
 
     public func identityColorAt(r: Double, g: Double, b: Double) -> LUTColor {
-        let red = remap(r, 0, Double(size - 1), inputLowerBound, inputUpperBound)
-        let green = remap(g, 0, Double(size - 1), inputLowerBound, inputUpperBound)
-        let blue = remap(b, 0, Double(size - 1), inputLowerBound, inputUpperBound)
+        let red = LUTMath.remapNoError(r,
+                                       inputLow: 0,
+                                       inputHigh: Double(size - 1),
+                                       outputLow: inputLowerBound,
+                                       outputHigh: inputUpperBound)
+        let green = LUTMath.remapNoError(g,
+                                         inputLow: 0,
+                                         inputHigh: Double(size - 1),
+                                         outputLow: inputLowerBound,
+                                         outputHigh: inputUpperBound)
+        let blue = LUTMath.remapNoError(b,
+                                        inputLow: 0,
+                                        inputHigh: Double(size - 1),
+                                        outputLow: inputLowerBound,
+                                        outputHigh: inputUpperBound)
         return LUTColor.color(red: red, green: green, blue: blue)
     }
 
     public func color(at color: LUTColor) -> LUTColor {
         let clamped = color.clamped(lowerBound: inputLowerBound, upperBound: inputUpperBound)
-        let r = remap(clamped.red, inputLowerBound, inputUpperBound, 0, Double(size - 1))
-        let g = remap(clamped.green, inputLowerBound, inputUpperBound, 0, Double(size - 1))
-        let b = remap(clamped.blue, inputLowerBound, inputUpperBound, 0, Double(size - 1))
-        return colorInterpolated(r: r.clamped(to: 0...Double(size - 1)),
-                                 g: g.clamped(to: 0...Double(size - 1)),
-                                 b: b.clamped(to: 0...Double(size - 1)))
+        let r = LUTMath.remapNoError(clamped.red,
+                                      inputLow: inputLowerBound,
+                                      inputHigh: inputUpperBound,
+                                      outputLow: 0,
+                                      outputHigh: Double(size - 1))
+        let g = LUTMath.remapNoError(clamped.green,
+                                      inputLow: inputLowerBound,
+                                      inputHigh: inputUpperBound,
+                                      outputLow: 0,
+                                      outputHigh: Double(size - 1))
+        let b = LUTMath.remapNoError(clamped.blue,
+                                      inputLow: inputLowerBound,
+                                      inputHigh: inputUpperBound,
+                                      outputLow: 0,
+                                      outputHigh: Double(size - 1))
+        return colorInterpolated(r: LUTMath.clamp(r, lower: 0, upper: Double(size - 1)),
+                                 g: LUTMath.clamp(g, lower: 0, upper: Double(size - 1)),
+                                 b: LUTMath.clamp(b, lower: 0, upper: Double(size - 1)))
     }
 
     public func resized(to newSize: Int) -> LUT {
@@ -161,12 +185,6 @@ public struct LUT {
         let c0 = c00.lerping(to: c10, amount: dg)
         let c1 = c01.lerping(to: c11, amount: dg)
         return c0.lerping(to: c1, amount: db)
-    }
-
-    private func remap(_ value: Double, _ inputLow: Double, _ inputHigh: Double, _ outputLow: Double, _ outputHigh: Double) -> Double {
-        let denominator = inputHigh - inputLow
-        guard denominator != 0 else { return outputLow }
-        return outputLow + ((value - inputLow) * (outputHigh - outputLow)) / denominator
     }
 
     private func linearIndex(r: Int, g: Int, b: Int) -> Int {

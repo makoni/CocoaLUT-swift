@@ -7,6 +7,8 @@ final class LUTHelperTests: XCTestCase {
         XCTAssertEqual(LUTMath.clamp01(-0.5), 0)
         XCTAssertEqual(LUTMath.clampLowerBound(-1, lowerBound: 0), 0)
         XCTAssertEqual(LUTMath.clampUpperBound(5, upperBound: 1), 1)
+        XCTAssertTrue(LUTMath.outOfBounds(5, lowerBound: 0, upperBound: 1, inclusive: true))
+        XCTAssertFalse(LUTMath.outOfBounds(1, lowerBound: 0, upperBound: 1, inclusive: true))
     }
 
     func testRemapVariants() {

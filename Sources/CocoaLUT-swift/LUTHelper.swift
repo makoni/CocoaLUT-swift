@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import simd
 
@@ -101,6 +102,10 @@ enum LUTMath {
         simd_distance(lhs, rhs)
     }
 
+    static func distance(_ lhs: SIMD3<Double>, _ rhs: SIMD3<Double>) -> Double {
+        simd_distance(lhs, rhs)
+    }
+
     static func roundToNearest(_ value: Double, nearest: Double) -> Double {
         guard nearest != 0 else { return value }
         let multiplier = floor(value / nearest)
@@ -152,6 +157,14 @@ enum LUTMath {
             indices[indices.count - 1] = end
         }
         return indices
+    }
+
+    static func outOfBounds(_ value: Double,
+                            lowerBound: Double,
+                            upperBound: Double,
+                            inclusive: Bool) -> Bool {
+        inclusive ? (value < lowerBound || value > upperBound)
+                   : (value <= lowerBound || value >= upperBound)
     }
 }
 

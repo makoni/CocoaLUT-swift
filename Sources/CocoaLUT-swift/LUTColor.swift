@@ -46,7 +46,7 @@ public struct LUTColor: Equatable, Sendable {
     }
 
     public static func fromIntegers(bitDepth: Int, red: Int, green: Int, blue: Int) -> LUTColor {
-        let maxValue = maxInteger(bitDepth: bitDepth)
+        let maxValue = LUTMath.maxInteger(bitDepth: bitDepth)
         guard maxValue > 0 else { return .zeros() }
         let scale = 1.0 / Double(maxValue)
         return LUTColor(red: Double(red) * scale,
@@ -80,41 +80,60 @@ public struct LUTColor: Equatable, Sendable {
 
     public func clamped(lowerBound: Double, upperBound: Double) -> LUTColor {
         precondition(lowerBound <= upperBound, "Lower bound must be less than or equal to upper bound")
-    let range = lowerBound...upperBound
-    let result = SIMD3(red.clamped(to: range),
-               green.clamped(to: range),
-               blue.clamped(to: range))
-    return LUTColor(components: result, alreadySanitized: false)
+        let result = SIMD3(
+            LUTMath.clamp(red, lower: lowerBound, upper: upperBound),
+            LUTMath.clamp(green, lower: lowerBound, upper: upperBound),
+            LUTMath.clamp(blue, lower: lowerBound, upper: upperBound)
+        )
+        return LUTColor(components: result, alreadySanitized: false)
     }
 
     public func clamped(lowerBound: Double) -> LUTColor {
-    let lower = SIMD3(repeating: lowerBound)
-    return LUTColor(components: max(components, lower), alreadySanitized: false)
+        let lower = SIMD3(repeating: lowerBound)
+        return LUTColor(components: max(components, lower), alreadySanitized: false)
     }
 
     public func clamped(upperBound: Double) -> LUTColor {
-    let upper = SIMD3(repeating: upperBound)
-    return LUTColor(components: min(components, upper), alreadySanitized: false)
+        let upper = SIMD3(repeating: upperBound)
+        return LUTColor(components: min(components, upper), alreadySanitized: false)
     }
 
     // MARK: - Transformations
 
     public func contrastStretched(currentMin: Double, currentMax: Double, finalMin: Double, finalMax: Double) -> LUTColor {
-        let result = SIMD3(stretch(red, currentMin, currentMax, finalMin, finalMax),
-                           stretch(green, currentMin, currentMax, finalMin, finalMax),
-                           stretch(blue, currentMin, currentMax, finalMin, finalMax))
-    return LUTColor(components: result, alreadySanitized: false)
+        let result = SIMD3(
+            LUTMath.contrastStretch(red,
+                                     currentMin: currentMin,
+                                     currentMax: currentMax,
+                                     finalMin: finalMin,
+                                     finalMax: finalMax),
+            LUTMath.contrastStretch(green,
+                                     currentMin: currentMin,
+                                     currentMax: currentMax,
+                                     finalMin: finalMin,
+                                     finalMax: finalMax),
+            LUTMath.contrastStretch(blue,
+                                     currentMin: currentMin,
+                                     currentMax: currentMax,
+                                     finalMin: finalMin,
+                                     finalMax: finalMax)
+        )
+        return LUTColor(components: result, alreadySanitized: false)
     }
 
     public func remapped(inputLow: Double, inputHigh: Double, outputLow: Double, outputHigh: Double, bounded: Bool) -> LUTColor {
         let mapper = { (value: Double) -> Double in
             let inRange = inputLow...inputHigh
             let source = bounded ? value.clamped(to: inRange) : value
-            return remap(source, inputLow, inputHigh, outputLow, outputHigh)
+            return LUTMath.remapNoError(source,
+                                        inputLow: inputLow,
+                                        inputHigh: inputHigh,
+                                        outputLow: outputLow,
+                                        outputHigh: outputHigh)
         }
 
-    let result = SIMD3(mapper(red), mapper(green), mapper(blue))
-    return LUTColor(components: result, alreadySanitized: false)
+        let result = SIMD3(mapper(red), mapper(green), mapper(blue))
+        return LUTColor(components: result, alreadySanitized: false)
     }
 
     public func remapped(inputLowColor: LUTColor, inputHighColor: LUTColor, outputLowColor: LUTColor, outputHighColor: LUTColor, bounded: Bool) -> LUTColor {
@@ -140,23 +159,27 @@ public struct LUTColor: Equatable, Sendable {
         let sourceValue = components[index]
         let range = inputLow...inputHigh
         let value = bounded ? sourceValue.clamped(to: range) : sourceValue
-        return remap(value, inputLow, inputHigh, outputLow, outputHigh)
+        return LUTMath.remapNoError(value,
+                                     inputLow: inputLow,
+                                     inputHigh: inputHigh,
+                                     outputLow: outputLow,
+                                     outputHigh: outputHigh)
     }
 
     public func multiplied(by scalar: Double) -> LUTColor {
-    LUTColor(components: components * scalar, alreadySanitized: false)
+        LUTColor(components: components * scalar, alreadySanitized: false)
     }
 
     public func multiplied(by color: LUTColor) -> LUTColor {
-    LUTColor(components: components * color.components, alreadySanitized: false)
+        LUTColor(components: components * color.components, alreadySanitized: false)
     }
 
     public func adding(_ color: LUTColor) -> LUTColor {
-    LUTColor(components: components + color.components, alreadySanitized: false)
+        LUTColor(components: components + color.components, alreadySanitized: false)
     }
 
     public func subtracting(_ color: LUTColor) -> LUTColor {
-    LUTColor(components: components - color.components, alreadySanitized: false)
+        LUTColor(components: components - color.components, alreadySanitized: false)
     }
 
     public func changingSaturation(_ saturation: Double, lumaR: Double, lumaG: Double, lumaB: Double) -> LUTColor {
@@ -166,7 +189,7 @@ public struct LUTColor: Equatable, Sendable {
             luma + saturation * (green - luma),
             luma + saturation * (blue - luma)
         )
-    return LUTColor(components: result, alreadySanitized: false)
+        return LUTColor(components: result, alreadySanitized: false)
     }
 
     public func applyingSlopeOffsetPower(redSlope: Double,
@@ -186,17 +209,21 @@ public struct LUTColor: Equatable, Sendable {
         let result = SIMD3(pow(input.x, sanitizedPower.x),
                            pow(input.y, sanitizedPower.y),
                            pow(input.z, sanitizedPower.z))
-    return LUTColor(components: result, alreadySanitized: false)
+        return LUTColor(components: result, alreadySanitized: false)
     }
 
     public func lerping(to otherColor: LUTColor, amount: Double) -> LUTColor {
         precondition((0...1).contains(amount), "Lerp amount must be in the range [0, 1]")
-    let result = mix(components, otherColor.components, t: amount)
-    return LUTColor(components: result, alreadySanitized: false)
+        let result = SIMD3(
+            LUTMath.lerp(components.x, otherColor.components.x, t: amount),
+            LUTMath.lerp(components.y, otherColor.components.y, t: amount),
+            LUTMath.lerp(components.z, otherColor.components.z, t: amount)
+        )
+        return LUTColor(components: result, alreadySanitized: false)
     }
 
     public func distance(to otherColor: LUTColor) -> Double {
-    simd_distance(components, otherColor.components)
+        LUTMath.distance(components, otherColor.components)
     }
 
     public func applyingColorMatrix(columnMajor matrix: (Double, Double, Double, Double, Double, Double, Double, Double, Double)) -> LUTColor {
@@ -224,29 +251,7 @@ public struct LUTColor: Equatable, Sendable {
     }
 
     private static func sanitize(_ vector: SIMD3<Double>) -> SIMD3<Double> {
-    SIMD3(Self.sanitize(vector.x), Self.sanitize(vector.y), Self.sanitize(vector.z))
-    }
-
-    private static func maxInteger(bitDepth: Int) -> Int {
-        guard bitDepth > 0 else { return 0 }
-        let powValue = pow(2.0, Double(bitDepth)) - 1.0
-        return Int(round(powValue))
-    }
-
-    private func stretch(_ value: Double, _ currentMin: Double, _ currentMax: Double, _ finalMin: Double, _ finalMax: Double) -> Double {
-        let denominator = currentMax - currentMin
-        guard denominator != 0 else { return finalMin }
-        return (value - currentMin) * ((finalMax - finalMin) / denominator) + finalMin
-    }
-
-    private func remap(_ value: Double, _ inputLow: Double, _ inputHigh: Double, _ outputLow: Double, _ outputHigh: Double) -> Double {
-        let denominator = inputHigh - inputLow
-        guard denominator != 0 else { return outputLow }
-        return outputLow + ((value - inputLow) * (outputHigh - outputLow)) / denominator
-    }
-
-    private func mix(_ a: SIMD3<Double>, _ b: SIMD3<Double>, t: Double) -> SIMD3<Double> {
-        a + (b - a) * t
+        SIMD3(Self.sanitize(vector.x), Self.sanitize(vector.y), Self.sanitize(vector.z))
     }
 }
 
