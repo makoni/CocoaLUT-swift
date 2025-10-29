@@ -30,9 +30,9 @@ public struct LUT1D {
         self.descriptionText = nil
         self.metadata = [:]
         self.passthroughFileOptions = [:]
-        self.redCurve = redCurve.map(Self.sanitize)
-        self.greenCurve = greenCurve.map(Self.sanitize)
-        self.blueCurve = blueCurve.map(Self.sanitize)
+        self.redCurve = Self.sanitized(curve: redCurve)
+        self.greenCurve = Self.sanitized(curve: greenCurve)
+        self.blueCurve = Self.sanitized(curve: blueCurve)
     }
 
     public static func uniformCurve(size: Int,
@@ -77,9 +77,9 @@ public struct LUT1D {
             return Double(index) * Double(size - 1) / Double(newSize - 1)
         }
 
-        let red = positions.map { evaluateCurve(redCurve, atNormalizedIndex: $0) }
-        let green = positions.map { evaluateCurve(greenCurve, atNormalizedIndex: $0) }
-        let blue = positions.map { evaluateCurve(blueCurve, atNormalizedIndex: $0) }
+    let red = positions.map { evaluateCurve(redCurve, atNormalizedIndex: $0) }
+    let green = positions.map { evaluateCurve(greenCurve, atNormalizedIndex: $0) }
+    let blue = positions.map { evaluateCurve(blueCurve, atNormalizedIndex: $0) }
 
         var resized = LUT1D(redCurve: red,
                              greenCurve: green,
@@ -103,11 +103,15 @@ public struct LUT1D {
         cube.passthroughFileOptions = passthroughFileOptions
 
         let source = resized(to: newSize)
-        cube.loop { r, g, b in
-            let color = LUTColor.color(red: source.redCurve[r],
-                                       green: source.greenCurve[g],
-                                       blue: source.blueCurve[b])
-            cube.setColor(color, r: r, g: g, b: b)
+        for r in 0..<newSize {
+            for g in 0..<newSize {
+                for b in 0..<newSize {
+                    let color = LUTColor.color(red: source.redCurve[r],
+                                               green: source.greenCurve[g],
+                                               blue: source.blueCurve[b])
+                    cube.setColor(color, r: r, g: g, b: b)
+                }
+            }
         }
         return cube
     }
@@ -116,12 +120,34 @@ public struct LUT1D {
         [redCurve, greenCurve, blueCurve]
     }
 
+    public func colorAt(index: Int) -> LUTColor {
+        LUTColor.color(red: redCurve[index], green: greenCurve[index], blue: blueCurve[index])
+    }
+
+    public mutating func setColor(_ color: LUTColor, index: Int) {
+        redCurve[index] = Self.sanitize(color.red)
+        greenCurve[index] = Self.sanitize(color.green)
+        blueCurve[index] = Self.sanitize(color.blue)
+    }
+
+    mutating func fillUsingLattice(from lut: LUT) {
+        precondition(lut.size == size, "Size mismatch when converting LUT3D to LUT1D")
+        for index in 0..<size {
+            let color = lut.colorAt(r: index, g: index, b: index)
+            setColor(color, index: index)
+        }
+    }
+
     // MARK: - Private Helpers
 
     private func evaluateCurve(_ curve: [Double], for value: Double) -> Double {
         if size == 1 { return curve[0] }
-        let clampedValue = clamp(value, lower: inputLowerBound, upper: inputUpperBound)
-        let normalized = remap(clampedValue, inputLowerBound, inputUpperBound, 0, Double(size - 1))
+        let clampedValue = LUTMath.clamp(value, lower: inputLowerBound, upper: inputUpperBound)
+        let normalized = LUTMath.remapNoError(clampedValue,
+                                              inputLow: inputLowerBound,
+                                              inputHigh: inputUpperBound,
+                                              outputLow: 0,
+                                              outputHigh: Double(size - 1))
         return evaluateCurve(curve, atNormalizedIndex: normalized)
     }
 
@@ -133,28 +159,14 @@ public struct LUT1D {
             return curve[lowerIndex]
         }
         let t = index - Double(lowerIndex)
-        return lerp(curve[lowerIndex], curve[upperIndex], t: t)
+        return LUTMath.lerp(curve[lowerIndex], curve[upperIndex], t: t)
     }
 
     private static func sanitize(_ value: Double) -> Double {
         value.isFinite ? value : 0
     }
 
-    private func clamp(_ value: Double, lower: Double, upper: Double) -> Double {
-        min(max(value, lower), upper)
-    }
-
-    private func remap(_ value: Double,
-                       _ inputLow: Double,
-                       _ inputHigh: Double,
-                       _ outputLow: Double,
-                       _ outputHigh: Double) -> Double {
-        let denominator = inputHigh - inputLow
-        guard denominator != 0 else { return outputLow }
-        return outputLow + ((value - inputLow) * (outputHigh - outputLow)) / denominator
-    }
-
-    private func lerp(_ a: Double, _ b: Double, t: Double) -> Double {
-        a + (b - a) * t
+    private static func sanitized(curve: [Double]) -> [Double] {
+        curve.map(Self.sanitize)
     }
 }

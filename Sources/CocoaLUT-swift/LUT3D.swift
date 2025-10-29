@@ -80,4 +80,19 @@ public struct LUT3D {
     public func asLUT() -> LUT {
         lattice
     }
+
+    public func toLUT1D() -> LUT1D {
+        var lut1D = LUT1D(redCurve: Array(repeating: 0, count: size),
+                          greenCurve: Array(repeating: 0, count: size),
+                          blueCurve: Array(repeating: 0, count: size),
+                          inputLowerBound: inputLowerBound,
+                          inputUpperBound: inputUpperBound)
+        lut1D.title = title
+        lut1D.descriptionText = descriptionText
+        lut1D.metadata = metadata
+        lut1D.passthroughFileOptions = passthroughFileOptions
+
+        lut1D.fillUsingLattice(from: lattice)
+        return lut1D
+    }
 }
