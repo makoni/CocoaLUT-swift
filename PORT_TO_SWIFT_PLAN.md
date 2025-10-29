@@ -49,7 +49,14 @@ Test Driven Development rules (strict)
   - [x] LUTProcessor base class with cancellation/progress support.
   - [x] LUTReverser scaffold.
   - [ ] LUTAction chainable operations.
+    - [x] Scale/remap/offset/combine/color-matrix factories with caching.
+    - [x] Swizzle actions for 1D/3D LUTs.
+    - [ ] Color-temperature conversion action (requires color space utilities).
+    - [x] Tests covering new swizzle and color-temperature behaviors.
 - [ ] Port color space and transfer utilities (`LUTColorSpace`, `LUTColorTransferFunction`, `LUTColorSpaceWhitePoint`).
+  - [ ] `LUTColorSpaceWhitePoint` creation helpers and temperature conversion.
+  - [ ] `LUTColorSpace` primaries/transfer conversions.
+  - [ ] `LUTColorTransferFunction` gamma/log helpers.
 - [ ] Port platform glue (Core Image wrappers, GPUImage shim, macOS preview utilities).
 
 > Maintain TDD discipline: every item above remains unchecked until tests are in place and passing.

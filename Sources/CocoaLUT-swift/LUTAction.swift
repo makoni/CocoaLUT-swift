@@ -148,6 +148,22 @@ public final class LUTAction: NSObject, NSCopying {
                          actionMetadata: metadata)
     }
 
+    public static func swizzle(method: LUT1D.SwizzleMethod,
+                                strictness: Bool = false,
+                                name: String? = nil) -> LUTAction {
+        let metadata = LUTActionMetadata(entries: [
+            ("id", "MixCurves"),
+            ("method", method.displayName),
+            ("strictness", strictness ? "strict" : "relaxed")
+        ])
+
+        return LUTAction(actionBlock: { lut in
+            lut.swizzling1DChannels(method: method, strictness: strictness) ?? lut
+        },
+        actionName: name ?? "Mix Curves (\(method.displayName))",
+        actionMetadata: metadata)
+    }
+
     public static func scaleLegalToExtended(name: String? = nil) -> LUTAction {
         let metadata = LUTActionMetadata(entries: [
             ("id", "ScaleLegalToExtended")

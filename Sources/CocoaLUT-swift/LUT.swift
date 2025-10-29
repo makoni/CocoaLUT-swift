@@ -312,6 +312,15 @@ public struct LUT {
         return combined(targetSize: targetSize, other: other, sameSize: false)
     }
 
+    public func swizzling1DChannels(method: LUT1D.SwizzleMethod,
+                                     strictness: Bool = false) -> LUT? {
+        let cube = LUT3D(lattice: self)
+        guard let swizzled = cube.swizzling1DChannels(method: method, strictness: strictness) else {
+            return nil
+        }
+        return swizzled.asLUT()
+    }
+
     // MARK: - Private Helpers
 
     // MARK: - Private Helpers

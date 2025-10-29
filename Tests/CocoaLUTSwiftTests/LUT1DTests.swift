@@ -57,6 +57,69 @@ final class LUT1DTests: XCTestCase {
         XCTAssertEqual(color.green, green[2], accuracy: 1e-9)
         XCTAssertEqual(color.blue, blue[0], accuracy: 1e-9)
     }
+
+    func testIsReversibleDetectsMonotonicCurves() {
+        let size = 8
+        let curve = monotonicCurve(size: size, exponent: 1.0)
+        let lut = LUT1D(redCurve: curve,
+                        greenCurve: curve,
+                        blueCurve: curve,
+                        inputLowerBound: 0,
+                        inputUpperBound: 1)
+
+        XCTAssertTrue(lut.isReversible(strict: true))
+
+        let nonMonotonic = LUT1D(redCurve: [0.0, 0.7, 0.6, 1.0],
+                                 greenCurve: curve,
+                                 blueCurve: curve,
+                                 inputLowerBound: 0,
+                                 inputUpperBound: 1)
+
+        XCTAssertFalse(nonMonotonic.isReversible(strict: true))
+    }
+
+    func testReversedCurveRestoresInput() {
+        let size = 64
+        let curve = monotonicCurve(size: size, exponent: 2.0)
+        let lut = LUT1D(redCurve: curve,
+                        greenCurve: curve,
+                        blueCurve: curve,
+                        inputLowerBound: 0,
+                        inputUpperBound: 1)
+
+        let reversed = lut.reversed(strictness: true, autoAdjustInputBounds: true)
+        XCTAssertNotNil(reversed)
+
+        let testValue = 0.42
+        let forward = lut.color(at: LUTColor.color(red: testValue, green: testValue, blue: testValue))
+        let recovered = reversed?.color(at: forward)
+
+        XCTAssertEqual(recovered?.red ?? 0, testValue, accuracy: 1e-3)
+        XCTAssertEqual(recovered?.green ?? 0, testValue, accuracy: 1e-3)
+        XCTAssertEqual(recovered?.blue ?? 0, testValue, accuracy: 1e-3)
+    }
+
+    func testSwizzledCopiesRedChannel() {
+        let size = 6
+        let red = monotonicCurve(size: size, exponent: 1.0)
+        let green = monotonicCurve(size: size, exponent: 1.3)
+        let blue = monotonicCurve(size: size, exponent: 0.8)
+
+        let lut = LUT1D(redCurve: red,
+                        greenCurve: green,
+                        blueCurve: blue,
+                        inputLowerBound: 0,
+                        inputUpperBound: 1)
+
+        let swizzled = lut.swizzled(using: .redCopiedToRGB)
+
+        for index in 0..<size {
+            let redValue = lut.valueAtR(index)
+            XCTAssertEqual(swizzled.valueAtR(index), redValue, accuracy: 1e-9)
+            XCTAssertEqual(swizzled.valueAtG(index), redValue, accuracy: 1e-9)
+            XCTAssertEqual(swizzled.valueAtB(index), redValue, accuracy: 1e-9)
+        }
+    }
 }
 
 final class LUT3DTests: XCTestCase {
@@ -78,4 +141,11 @@ final class LUT3DTests: XCTestCase {
 
 private func lerp(_ a: Double, _ b: Double, t: Double) -> Double {
     a + (b - a) * t
+}
+
+private func monotonicCurve(size: Int, exponent: Double) -> [Double] {
+    guard size > 1 else { return [0] }
+    return (0..<size).map { index in
+        pow(Double(index) / Double(size - 1), exponent)
+    }
 }

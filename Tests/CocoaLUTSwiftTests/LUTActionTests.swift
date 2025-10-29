@@ -81,4 +81,54 @@ final class LUTActionTests: XCTestCase {
         let secondResult = action.apply(to: secondInput)
         XCTAssertEqual(secondResult.title, "Second")
     }
+
+    func testSwizzleActionMatchesManualComposition() {
+        let size = 5
+        let identity = LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
+        let matrix: LUTAction.ColorMatrix = (0.8, 0.1, 0.1,
+                                             0.2, 0.7, 0.1,
+                                             0.1, 0.2, 0.7)
+        let colorShift = identity.applyingColorMatrix(columnMajor: matrix)
+
+        let baseCurve = (0..<size).map { pow(Double($0) / Double(size - 1), 1.4) }
+        let greenCurve = baseCurve.map { min(1.0, $0 * 0.95) }
+        let blueCurve = baseCurve.map { min(1.0, $0 * 1.05) }
+
+        var contrast = LUT1D(redCurve: baseCurve,
+                              greenCurve: greenCurve,
+                              blueCurve: blueCurve,
+                              inputLowerBound: 0,
+                              inputUpperBound: 1)
+        contrast.title = "Contrast"
+
+        let composed = colorShift.combined(with: contrast.toLUT3D(size: size).asLUT())
+
+        let action = LUTAction.swizzle(method: .averageRGB, strictness: true)
+        let result = action.apply(to: composed)
+
+        let expected1D = contrast.swizzled(using: .averageRGB)
+        let expected = colorShift.combined(with: expected1D.toLUT3D(size: size).asLUT())
+
+        XCTAssertTrue(result.equals(expected, tolerance: 1e-6))
+    }
+
+    func testSwizzleActionReturnsInputWhenNotReversible() {
+        let size = 3
+        let identity = LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
+
+        let redCurve: [Double] = [0.0, 0.6, 0.5]
+        let monotonic: [Double] = [0.0, 0.5, 1.0]
+        let contrast = LUT1D(redCurve: redCurve,
+                              greenCurve: monotonic,
+                              blueCurve: monotonic,
+                              inputLowerBound: 0,
+                              inputUpperBound: 1)
+
+        let lut = identity.combined(with: contrast.toLUT3D(size: size).asLUT())
+
+        let action = LUTAction.swizzle(method: .averageRGB, strictness: true)
+        let result = action.apply(to: lut)
+
+        XCTAssertTrue(result.equals(lut, tolerance: 1e-9))
+    }
 }

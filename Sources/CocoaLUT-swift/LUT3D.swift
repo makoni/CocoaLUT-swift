@@ -95,4 +95,36 @@ public struct LUT3D {
         lut1D.fillUsingLattice(from: lattice)
         return lut1D
     }
+
+    public func extractingColorShift(strictness: Bool) -> LUT3D? {
+        let base1D = toLUT1D()
+        guard base1D.isReversible(strict: strictness),
+              let reversed = base1D.reversed(strictness: strictness, autoAdjustInputBounds: true) else {
+            return nil
+        }
+
+        let reversed3D = reversed.toLUT3D(size: size).asLUT()
+        let colorShiftLattice = lattice.combined(with: reversed3D)
+        var extracted = LUT3D(lattice: colorShiftLattice)
+        extracted.copyMetadata(from: self)
+        return extracted
+    }
+
+    public func swizzling1DChannels(method: LUT1D.SwizzleMethod,
+                                     strictness: Bool = false) -> LUT3D? {
+        guard let colorShift = extractingColorShift(strictness: strictness) else { return nil }
+        let swizzled1D = toLUT1D().swizzled(using: method)
+        let swizzled3D = swizzled1D.toLUT3D(size: size).asLUT()
+        let combined = colorShift.asLUT().combined(with: swizzled3D)
+        var result = LUT3D(lattice: combined)
+        result.copyMetadata(from: self)
+        return result
+    }
+
+    private mutating func copyMetadata(from other: LUT3D) {
+        title = other.title
+        descriptionText = other.descriptionText
+        metadata = other.metadata
+        passthroughFileOptions = other.passthroughFileOptions
+    }
 }
