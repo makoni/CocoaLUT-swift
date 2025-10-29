@@ -1,0 +1,84 @@
+import XCTest
+@testable import CocoaLUT_swift
+
+final class LUTActionTests: XCTestCase {
+    private func identityLUT(size: Int = 2) -> LUT {
+        LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
+    }
+
+    func testCombineActionMatchesDirectCombination() {
+        let base = identityLUT()
+        let other = base.offsetting(by: LUTColor.color(red: 0.1, green: -0.2, blue: 0.05))
+
+        let action = LUTAction.combine(with: other)
+        let result = action.apply(to: base)
+
+        XCTAssertTrue(result.equals(base.combined(with: other), tolerance: 1e-9))
+        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "Combine")
+    }
+
+    func testCombineBehindActionMatchesDirectCombination() {
+        let base = identityLUT()
+        let other = base.clamped(lower: 0.2, upper: 0.8)
+
+        let action = LUTAction.combineBehind(lut: other)
+        let result = action.apply(to: base)
+
+        XCTAssertTrue(result.equals(other.combined(with: base), tolerance: 1e-9))
+        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "CombineBehind")
+    }
+
+    func testApplyColorMatrixSwapsRedAndBlue() {
+        var lut = identityLUT()
+        lut.setColor(LUTColor.color(red: 0.2, green: 0.4, blue: 0.6), r: 1, g: 1, b: 1)
+
+        let matrix: LUTAction.ColorMatrix = (0, 0, 1,
+                                             0, 1, 0,
+                                             1, 0, 0)
+        let action = LUTAction.applyColorMatrix(matrix)
+        let transformed = action.apply(to: lut)
+        let color = transformed.colorAt(r: 1, g: 1, b: 1)
+
+        XCTAssertEqual(color.red, 0.6, accuracy: 1e-9)
+        XCTAssertEqual(color.green, 0.4, accuracy: 1e-9)
+        XCTAssertEqual(color.blue, 0.2, accuracy: 1e-9)
+        XCTAssertEqual(action.actionMetadata.value(for: "m02") as? Double, 1)
+    }
+
+    func testRemapValuesActionProducesExpectedRange() {
+        let action = LUTAction.remapValues(inputLow: 0, inputHigh: 1, outputLow: -1, outputHigh: 1)
+        let lut = identityLUT()
+        let result = action.apply(to: lut)
+
+        let color = result.colorAt(r: 1, g: 0, b: 0)
+        XCTAssertEqual(color.red, 1, accuracy: 1e-9)
+        XCTAssertEqual(color.green, -1, accuracy: 1e-9)
+        XCTAssertEqual(color.blue, -1, accuracy: 1e-9)
+        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "ScaleOutput")
+    }
+
+    func testOffsetActionEncodesMetadata() {
+        let offsetColor = LUTColor.color(red: 0.05, green: -0.1, blue: 0.2)
+        let action = LUTAction.offset(by: offsetColor)
+        let result = action.apply(to: identityLUT())
+
+        let color = result.colorAt(r: 0, g: 1, b: 1)
+        XCTAssertEqual(color.red, 0.05, accuracy: 1e-9)
+        XCTAssertEqual(color.green, 0.9, accuracy: 1e-9)
+        XCTAssertEqual(color.blue, 1.2, accuracy: 1e-9)
+        XCTAssertEqual(action.actionMetadata.value(for: "redOffset") as? Double, offsetColor.red)
+    }
+
+    func testCachedApplyCopiesMetadataFromSource() {
+        let action = LUTAction.scaleToUnitRange()
+        var firstInput = identityLUT()
+        firstInput.title = "First"
+        let firstResult = action.apply(to: firstInput)
+        XCTAssertEqual(firstResult.title, "First")
+
+        var secondInput = firstInput
+        secondInput.title = "Second"
+        let secondResult = action.apply(to: secondInput)
+        XCTAssertEqual(secondResult.title, "Second")
+    }
+}

@@ -101,10 +101,7 @@ public struct LUT {
         if newSize == size { return self }
 
         var resized = LUT(size: newSize, inputLowerBound: inputLowerBound, inputUpperBound: inputUpperBound)
-        resized.title = title
-        resized.descriptionText = descriptionText
-        resized.metadata = metadata
-        resized.passthroughFileOptions = passthroughFileOptions
+        cloneMetadata(into: &resized)
 
         let ratio = newSize == 1 ? 0 : Double(size - 1) / Double(newSize - 1)
         for r in 0..<newSize {
@@ -154,11 +151,8 @@ public struct LUT {
             return self
         }
 
-        var newLUT = LUT(size: size, inputLowerBound: lower, inputUpperBound: upper)
-        newLUT.title = title
-        newLUT.descriptionText = descriptionText
-        newLUT.metadata = metadata
-        newLUT.passthroughFileOptions = passthroughFileOptions
+    var newLUT = LUT(size: size, inputLowerBound: lower, inputUpperBound: upper)
+    cloneMetadata(into: &newLUT)
 
         for r in 0..<size {
             for g in 0..<size {
@@ -175,6 +169,17 @@ public struct LUT {
 
     public func clamped(lower: Double, upper: Double) -> LUT {
         mapColors { $0.clamped(lowerBound: lower, upperBound: upper) }
+    }
+
+    public func remappingValues(inputLow: Double,
+                                 inputHigh: Double,
+                                 outputLow: Double,
+                                 outputHigh: Double) -> LUT {
+        remappingValues(inputLow: inputLow,
+                        inputHigh: inputHigh,
+                        outputLow: outputLow,
+                        outputHigh: outputHigh,
+                        bounded: false)
     }
 
     public func remappingValues(inputLow: Double,
@@ -203,6 +208,10 @@ public struct LUT {
 
     public func offsetting(by color: LUTColor) -> LUT {
         mapColors { $0.adding(color) }
+    }
+
+    public func applyingColorMatrix(columnMajor matrix: (Double, Double, Double, Double, Double, Double, Double, Double, Double)) -> LUT {
+        mapColors { $0.applyingColorMatrix(columnMajor: matrix) }
     }
 
     public func minimumOutputValue() -> Double {
@@ -244,6 +253,63 @@ public struct LUT {
                                outputLow: 0,
                                outputHigh: 1,
                                bounded: false)
+    }
+
+    public func scaledRGBTo01() -> LUT {
+        let minColor = minimumOutputColor()
+        let maxColor = maximumOutputColor()
+        guard maxColor.maximumValue() > minColor.minimumValue() else { return self }
+        return remappingValues(inputLowColor: minColor,
+                               inputHighColor: maxColor,
+                               outputLowColor: .zeros(),
+                               outputHighColor: .ones(),
+                               bounded: false)
+    }
+
+    public func scaledCurvesTo01() -> LUT {
+        let extrema = curveScalarExtrema()
+        guard let minValue = extrema?.min, let maxValue = extrema?.max, maxValue > minValue else {
+            return self
+        }
+        return remappingValues(inputLow: minValue,
+                               inputHigh: maxValue,
+                               outputLow: 0,
+                               outputHigh: 1,
+                               bounded: false)
+    }
+
+    public func scaledCurvesRGBTo01() -> LUT {
+    guard let extrema = curveColorExtrema(), extrema.max.distance(to: extrema.min) > 0 else { return self }
+        return remappingValues(inputLowColor: extrema.min,
+                               inputHighColor: extrema.max,
+                               outputLowColor: .zeros(),
+                               outputHighColor: .ones(),
+                               bounded: false)
+    }
+
+    public func scaledLegalToExtended() -> LUT {
+        remappingValues(inputLow: LUTConstants.legalLevelsMin,
+                        inputHigh: LUTConstants.legalLevelsMax,
+                        outputLow: LUTConstants.extendedLevelsMin,
+                        outputHigh: LUTConstants.extendedLevelsMax,
+                        bounded: false)
+    }
+
+    public func scaledExtendedToLegal() -> LUT {
+        remappingValues(inputLow: LUTConstants.extendedLevelsMin,
+                        inputHigh: LUTConstants.extendedLevelsMax,
+                        outputLow: LUTConstants.legalLevelsMin,
+                        outputHigh: LUTConstants.legalLevelsMax,
+                        bounded: false)
+    }
+
+    public func combined(with other: LUT) -> LUT {
+        if size == other.size {
+            return combined(targetSize: size, other: other, sameSize: true)
+        }
+
+        let targetSize = min(max(size, other.size), LUTConstants.suggestedMax3DSize)
+        return combined(targetSize: targetSize, other: other, sameSize: false)
     }
 
     // MARK: - Private Helpers
@@ -294,12 +360,75 @@ public struct LUT {
 
     private func mapColors(_ transform: (LUTColor) -> LUTColor) -> LUT {
         var result = LUT(size: size, inputLowerBound: inputLowerBound, inputUpperBound: inputUpperBound)
-        result.title = title
-        result.descriptionText = descriptionText
-        result.metadata = metadata
-        result.passthroughFileOptions = passthroughFileOptions
+        cloneMetadata(into: &result)
         result.storage = storage.map(transform)
         return result
+    }
+
+    private func combined(targetSize: Int, other: LUT, sameSize: Bool) -> LUT {
+        var result = LUT(size: targetSize,
+                         inputLowerBound: inputLowerBound,
+                         inputUpperBound: inputUpperBound)
+        cloneMetadata(into: &result)
+
+        for r in 0..<targetSize {
+            for g in 0..<targetSize {
+                for b in 0..<targetSize {
+                    let startColor: LUTColor
+                    if sameSize {
+                        startColor = colorAt(r: r, g: g, b: b)
+                    } else {
+                        let identity = result.identityColorAt(r: Double(r), g: Double(g), b: Double(b))
+                        startColor = color(at: identity)
+                    }
+                    let newColor = other.color(at: startColor)
+                    result.setColor(newColor, r: r, g: g, b: b)
+                }
+            }
+        }
+
+        return result
+    }
+
+    private func cloneMetadata(into result: inout LUT) {
+        result.copyMetadata(from: self)
+    }
+
+    private func curveScalarExtrema() -> (min: Double, max: Double)? {
+        guard size > 0 else { return nil }
+        let colors = (0..<size).map { colorAt(r: $0, g: $0, b: $0) }
+        guard let first = colors.first else { return nil }
+        var minValue = first.minimumValue()
+        var maxValue = first.maximumValue()
+        for color in colors.dropFirst() {
+            minValue = min(minValue, color.minimumValue())
+            maxValue = max(maxValue, color.maximumValue())
+        }
+        return (minValue, maxValue)
+    }
+
+    private func curveColorExtrema() -> (min: LUTColor, max: LUTColor)? {
+        guard size > 0 else { return nil }
+        let colors = (0..<size).map { colorAt(r: $0, g: $0, b: $0) }
+        guard let first = colors.first else { return nil }
+        var minColor = first
+        var maxColor = first
+        for color in colors.dropFirst() {
+            minColor = LUTColor.color(red: min(minColor.red, color.red),
+                                      green: min(minColor.green, color.green),
+                                      blue: min(minColor.blue, color.blue))
+            maxColor = LUTColor.color(red: max(maxColor.red, color.red),
+                                      green: max(maxColor.green, color.green),
+                                      blue: max(maxColor.blue, color.blue))
+        }
+        return (minColor, maxColor)
+    }
+
+    public mutating func copyMetadata(from other: LUT) {
+        title = other.title
+        descriptionText = other.descriptionText
+        metadata = other.metadata
+        passthroughFileOptions = other.passthroughFileOptions
     }
 }
 

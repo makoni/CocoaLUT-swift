@@ -43,6 +43,7 @@ public struct LUTActionMetadata: Sequence {
 
 public final class LUTAction: NSObject, NSCopying {
     public typealias ActionBlock = (LUT) -> LUT
+    public typealias ColorMatrix = (Double, Double, Double, Double, Double, Double, Double, Double, Double)
 
     public let actionBlock: ActionBlock
     public let actionName: String
@@ -73,7 +74,6 @@ public final class LUTAction: NSObject, NSCopying {
                name: name,
                metadataEntries: [("id", "Bypass")])
     }
-
 
     public static func changeInputBounds(lower: Double,
                                          upper: Double,
@@ -117,17 +117,170 @@ public final class LUTAction: NSObject, NSCopying {
             ("id", "ScaleTo01")
         ])
         return LUTAction(actionBlock: { $0.scaledTo01() },
-                         actionName: name ?? "Scale 0 to 1",
+                         actionName: name ?? "Scale Absolute 0 to 1",
+                         actionMetadata: metadata)
+    }
+
+    public static func scaleCurvesToUnitRange(name: String? = nil) -> LUTAction {
+        let metadata = LUTActionMetadata(entries: [
+            ("id", "ScaleCurvesTo01")
+        ])
+        return LUTAction(actionBlock: { $0.scaledCurvesTo01() },
+                         actionName: name ?? "Scale Curves 0 to 1",
+                         actionMetadata: metadata)
+    }
+
+    public static func scaleRGBToUnitRange(name: String? = nil) -> LUTAction {
+        let metadata = LUTActionMetadata(entries: [
+            ("id", "ScaleRGBTo01")
+        ])
+        return LUTAction(actionBlock: { $0.scaledRGBTo01() },
+                         actionName: name ?? "Scale Absolute RGB 0 to 1",
+                         actionMetadata: metadata)
+    }
+
+    public static func scaleCurvesRGBToUnitRange(name: String? = nil) -> LUTAction {
+        let metadata = LUTActionMetadata(entries: [
+            ("id", "ScaleCurvesRGBTo01")
+        ])
+        return LUTAction(actionBlock: { $0.scaledCurvesRGBTo01() },
+                         actionName: name ?? "Scale Curves RGB 0 to 1",
+                         actionMetadata: metadata)
+    }
+
+    public static func scaleLegalToExtended(name: String? = nil) -> LUTAction {
+        let metadata = LUTActionMetadata(entries: [
+            ("id", "ScaleLegalToExtended")
+        ])
+        return LUTAction(actionBlock: { $0.scaledLegalToExtended() },
+                         actionName: name ?? "Legal to Extended",
+                         actionMetadata: metadata)
+    }
+
+    public static func scaleExtendedToLegal(name: String? = nil) -> LUTAction {
+        let metadata = LUTActionMetadata(entries: [
+            ("id", "ScaleExtendedToLegal")
+        ])
+        return LUTAction(actionBlock: { $0.scaledExtendedToLegal() },
+                         actionName: name ?? "Extended to Legal",
+                         actionMetadata: metadata)
+    }
+
+    public static func remapValues(inputLow: Double,
+                                    inputHigh: Double,
+                                    outputLow: Double,
+                                    outputHigh: Double,
+                                    name: String? = nil) -> LUTAction {
+        let metadata = LUTActionMetadata(entries: [
+            ("id", "ScaleOutput"),
+            ("inputLow", inputLow),
+            ("inputHigh", inputHigh),
+            ("outputLow", outputLow),
+            ("outputHigh", outputHigh)
+        ])
+        return LUTAction(actionBlock: {
+            $0.remappingValues(inputLow: inputLow,
+                               inputHigh: inputHigh,
+                               outputLow: outputLow,
+                               outputHigh: outputHigh,
+                               bounded: false)
+        },
+        actionName: name ?? "Scale Output",
+        actionMetadata: metadata)
+    }
+
+    public static func remapValues(inputLowColor: LUTColor,
+                                    inputHighColor: LUTColor,
+                                    outputLowColor: LUTColor,
+                                    outputHighColor: LUTColor,
+                                    name: String? = nil) -> LUTAction {
+        let entries: [(String, Any)] = [
+            ("id", "ScaleOutputRGB"),
+            ("inputLowColor", inputLowColor.rgbArray()),
+            ("inputHighColor", inputHighColor.rgbArray()),
+            ("outputLowColor", outputLowColor.rgbArray()),
+            ("outputHighColor", outputHighColor.rgbArray())
+        ]
+        let metadata = LUTActionMetadata(entries: entries)
+        return LUTAction(actionBlock: {
+            $0.remappingValues(inputLowColor: inputLowColor,
+                               inputHighColor: inputHighColor,
+                               outputLowColor: outputLowColor,
+                               outputHighColor: outputHighColor,
+                               bounded: false)
+        },
+        actionName: name ?? "Scale Output RGB",
+        actionMetadata: metadata)
+    }
+
+    public static func combine(with lut: LUT,
+                               sourceDescription: String? = nil,
+                               name: String? = nil) -> LUTAction {
+        var entries: [(String, Any)] = [("id", "Combine")]
+        if let sourceDescription {
+            entries.append(("lutDescription", sourceDescription))
+        }
+        let metadata = LUTActionMetadata(entries: entries)
+        return LUTAction(actionBlock: { $0.combined(with: lut) },
+                         actionName: name ?? "Combine with LUT",
+                         actionMetadata: metadata)
+    }
+
+    public static func combineBehind(lut: LUT,
+                                     sourceDescription: String? = nil,
+                                     name: String? = nil) -> LUTAction {
+        var entries: [(String, Any)] = [("id", "CombineBehind")]
+        if let sourceDescription {
+            entries.append(("lutDescription", sourceDescription))
+        }
+        let metadata = LUTActionMetadata(entries: entries)
+        return LUTAction(actionBlock: { lut.combined(with: $0) },
+                         actionName: name ?? "Combine Behind LUT",
+                         actionMetadata: metadata)
+    }
+
+    public static func applyColorMatrix(_ matrix: ColorMatrix,
+                                        name: String? = nil) -> LUTAction {
+        let metadata = LUTActionMetadata(entries: [
+            ("id", "ApplyColorMatrix"),
+            ("m00", matrix.0),
+            ("m01", matrix.1),
+            ("m02", matrix.2),
+            ("m10", matrix.3),
+            ("m11", matrix.4),
+            ("m12", matrix.5),
+            ("m20", matrix.6),
+            ("m21", matrix.7),
+            ("m22", matrix.8)
+        ])
+        return LUTAction(actionBlock: { $0.applyingColorMatrix(columnMajor: matrix) },
+                         actionName: name ?? "Apply Color Matrix",
+                         actionMetadata: metadata)
+    }
+
+    public static func offset(by color: LUTColor, name: String? = nil) -> LUTAction {
+        let metadata = LUTActionMetadata(entries: [
+            ("id", "Offset"),
+            ("redOffset", color.red),
+            ("greenOffset", color.green),
+            ("blueOffset", color.blue)
+        ])
+        return LUTAction(actionBlock: { $0.offsetting(by: color) },
+                         actionName: name ?? "Offset",
                          actionMetadata: metadata)
     }
 
     public func apply(to lut: LUT) -> LUT {
-        if let cachedInput, let cachedOutput,
+        if let cachedInput,
+           var cachedOutput,
            cachedInput.equals(lut) {
+            cachedOutput.copyMetadata(from: lut)
+            self.cachedOutput = cachedOutput
             return cachedOutput
         }
 
-        let result = actionBlock(lut)
+        var result = actionBlock(lut)
+        result.copyMetadata(from: lut)
         cachedInput = lut
         cachedOutput = result
         return result
