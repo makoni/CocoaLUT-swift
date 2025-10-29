@@ -192,6 +192,8 @@ Notes and constraints
 ## Audit log
 
 - 2025-10-29: Reviewed headers in `Classes/` and `Classes/osx/`; confirmed every public symbol is already mapped in this plan. No new Objective-C sources require additional tasks. Added explicit progress checklist to track TDD-aligned milestones.
+- 2025-10-30: Resolved swizzle regression by porting direct 1D inverse lookup; tightened tests to ensure LUTAction swizzle matches manual composition. Next focus: implement color-temperature action and supporting color space/white point utilities.
+- 2025-10-30: Confirmed parity against Objective-C by switching to high-resolution curve inversion; `testSwizzleActionMatchesManualComposition` now green.
 
 Appendix — formatters and small headers (quick map)
 - Files that are subclasses of `LUTFormatter` and should be ported as concrete formatter types (implement `read`, `write`):
