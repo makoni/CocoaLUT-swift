@@ -266,4 +266,43 @@ final class LUTActionTests: XCTestCase {
 
         XCTAssertTrue(result.equals(lut, tolerance: 1e-9))
     }
+
+    func testConvertColorTemperatureMatchesUtility() throws {
+        let size = 5
+        var base = LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
+        base.title = "Base"
+        base.metadata["note"] = "metadata"
+
+        let sourceColorSpace = LUTColorSpace.rec709
+        let transfer = LUTColorTransferFunction.gammaTransferFunction(gamma: 2.2)
+        guard let sourceTemperature = LUTColorSpaceWhitePoint.fromColorTemperature(5600),
+              let destinationTemperature = LUTColorSpaceWhitePoint.fromColorTemperature(3200) else {
+            XCTFail("Failed to create white points")
+            return
+        }
+
+        let action = LUTAction.convertColorTemperature(sourceColorSpace: sourceColorSpace,
+                                                        sourceTransferFunction: transfer,
+                                                        sourceColorTemperature: sourceTemperature,
+                                                        destinationColorTemperature: destinationTemperature)
+
+        let result = action.apply(to: base)
+
+        let expected3D = try LUTColorSpace.convertColorTemperature(LUT3D(lattice: base),
+                                                                    sourceColorSpace: sourceColorSpace,
+                                                                    sourceTransferFunction: transfer,
+                                                                    sourceColorTemperature: sourceTemperature,
+                                                                    destinationColorTemperature: destinationTemperature)
+        let expected = expected3D.asLUT()
+
+        XCTAssertTrue(result.equals(expected, tolerance: 1e-6))
+        XCTAssertEqual(result.title, base.title)
+        XCTAssertEqual(result.metadata["note"] as? String, "metadata")
+
+        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "ConvertColorTemperature")
+        XCTAssertEqual(action.actionMetadata.value(for: "sourceColorSpace") as? String, sourceColorSpace.name)
+        XCTAssertEqual(action.actionMetadata.value(for: "sourceTransferFunction") as? String, transfer.name)
+        XCTAssertEqual(action.actionMetadata.value(for: "sourceColorTemperature") as? String, sourceTemperature.name)
+        XCTAssertEqual(action.actionMetadata.value(for: "destinationColorTemperature") as? String, destinationTemperature.name)
+    }
 }

@@ -51,7 +51,7 @@ Test Driven Development rules (strict)
   - [ ] LUTAction chainable operations.
     - [x] Scale/remap/offset/combine/color-matrix factories with caching.
     - [x] Swizzle actions for 1D/3D LUTs.
-    - [ ] Color-temperature conversion action (requires color space utilities).
+    - [x] Color-temperature conversion action (requires color space utilities).
     - [x] Tests covering new swizzle and color-temperature behaviors.
 - [ ] Port color space and transfer utilities (`LUTColorSpace`, `LUTColorTransferFunction`, `LUTColorSpaceWhitePoint`).
   - [ ] `LUTColorSpaceWhitePoint` creation helpers and temperature conversion.

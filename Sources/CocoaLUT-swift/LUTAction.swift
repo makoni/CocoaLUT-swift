@@ -164,6 +164,34 @@ public final class LUTAction: NSObject, NSCopying {
         actionMetadata: metadata)
     }
 
+    public static func convertColorTemperature(sourceColorSpace: LUTColorSpace,
+                                                sourceTransferFunction: LUTColorTransferFunction,
+                                                sourceColorTemperature: LUTColorSpaceWhitePoint,
+                                                destinationColorTemperature: LUTColorSpaceWhitePoint,
+                                                name: String? = nil) -> LUTAction {
+        let metadata = LUTActionMetadata(entries: [
+            ("id", "ConvertColorTemperature"),
+            ("sourceColorSpace", sourceColorSpace.name),
+            ("sourceTransferFunction", sourceTransferFunction.name),
+            ("sourceColorTemperature", sourceColorTemperature.name),
+            ("destinationColorTemperature", destinationColorTemperature.name)
+        ])
+
+        return LUTAction(actionBlock: { lut in
+            let sourceLUT = LUT3D(lattice: lut)
+            guard let converted = try? LUTColorSpace.convertColorTemperature(sourceLUT,
+                                                                             sourceColorSpace: sourceColorSpace,
+                                                                             sourceTransferFunction: sourceTransferFunction,
+                                                                             sourceColorTemperature: sourceColorTemperature,
+                                                                             destinationColorTemperature: destinationColorTemperature) else {
+                return lut
+            }
+            return converted.asLUT()
+        },
+        actionName: name ?? "Change Color Temperature",
+        actionMetadata: metadata)
+    }
+
     public static func scaleLegalToExtended(name: String? = nil) -> LUTAction {
         let metadata = LUTActionMetadata(entries: [
             ("id", "ScaleLegalToExtended")
