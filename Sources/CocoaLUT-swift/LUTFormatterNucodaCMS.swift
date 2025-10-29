@@ -201,6 +201,10 @@ enum LUTFormatterNucodaCMS {
             return write3D(lut, variant: resolvedOptions.variant)
         }
     }
+
+    static func combine(preLUT: LUT1D, cube: LUT3D) -> LUT3D {
+        combineInternal(preLUT: preLUT, cube: cube)
+    }
 }
 
 // MARK: - Parsing Helpers
@@ -468,7 +472,7 @@ private extension LUTFormatterNucodaCMS {
         return normalized
     }
 
-    static func combine(preLUT: LUT1D, cube: LUT3D) -> LUT3D {
+    static func combineInternal(preLUT: LUT1D, cube: LUT3D) -> LUT3D {
         var result = cube
         let lattice = cube.asLUT()
         for r in 0..<cube.size {

@@ -41,6 +41,9 @@ Test Driven Development rules (strict)
   - [x] FSI DAT formatter with binary round-trip tests.
   - [x] Resolve DAT formatter (including DaVinci DAVLUT variant) with read/write tests.
   - [x] Arri Look formatter with tone map and SOP interplay tests.
+  - [x] Clipster formatter with XML round-trip tests.
+  - [x] MatchLight formatter with combined 1D/3D tests.
+  - [x] OLUT formatter with CSV read/write tests.
 - [ ] Port processing stack (`LUTProcessor`, `LUTReverser`, `LUTAction`).
 - [ ] Port color space and transfer utilities (`LUTColorSpace`, `LUTColorTransferFunction`, `LUTColorSpaceWhitePoint`).
 - [ ] Port platform glue (Core Image wrappers, GPUImage shim, macOS preview utilities).
