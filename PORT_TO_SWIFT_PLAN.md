@@ -35,6 +35,7 @@ Test Driven Development rules (strict)
   - [x] 3DL formatter with read/write round-trip tests.
   - [x] Hald CLUT formatter with image round-trip tests.
   - [x] Unwrapped texture formatter with image round-trip tests.
+  - [x] ILUT formatter with read/write validation.
 - [ ] Port processing stack (`LUTProcessor`, `LUTReverser`, `LUTAction`).
 - [ ] Port color space and transfer utilities (`LUTColorSpace`, `LUTColorTransferFunction`, `LUTColorSpaceWhitePoint`).
 - [ ] Port platform glue (Core Image wrappers, GPUImage shim, macOS preview utilities).

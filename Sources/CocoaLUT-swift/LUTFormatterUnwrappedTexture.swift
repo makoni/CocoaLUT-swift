@@ -1,14 +1,6 @@
 import CoreGraphics
 import Foundation
 import ImageIO
-#if canImport(UniformTypeIdentifiers)
-import UniformTypeIdentifiers
-#endif
-#if canImport(MobileCoreServices)
-import MobileCoreServices
-#elseif canImport(CoreServices)
-import CoreServices
-#endif
 import simd
 
 enum LUTFormatterUnwrappedTextureError: Error, Equatable, LocalizedError {
@@ -48,85 +40,26 @@ enum LUTFormatterUnwrappedTexture {
         let size = lut.size
         let width = size * size
         let height = size
-        let bytesPerComponent = bitDepth / 8
-        let bytesPerPixel = 3 * bytesPerComponent
-        let bytesPerRow = width * bytesPerPixel
-        let bufferSize = bytesPerRow * height
-
-        var storage = Data(count: bufferSize)
-        storage.withUnsafeMutableBytes { rawBuffer in
-            guard let baseAddress = rawBuffer.baseAddress else { return }
-            if bitDepth == 8 {
-                let pointer = baseAddress.bindMemory(to: UInt8.self, capacity: bufferSize)
+        do {
+            return try ImageBasedLUTUtilities.makeRGBImage(width: width,
+                                                           height: height,
+                                                           bitDepth: bitDepth) { write in
                 writePixels(lut: lut, size: size, width: width) { index, color in
-                    let base = index * 3
-                    pointer[base + 0] = UInt8(clamping: Int((color.red * 255.0).rounded()))
-                    pointer[base + 1] = UInt8(clamping: Int((color.green * 255.0).rounded()))
-                    pointer[base + 2] = UInt8(clamping: Int((color.blue * 255.0).rounded()))
-                }
-            } else {
-                let pointer = baseAddress.bindMemory(to: UInt16.self, capacity: bufferSize / 2)
-                let maxValue = 65535.0
-                writePixels(lut: lut, size: size, width: width) { index, color in
-                    let base = index * 3
-                    pointer[base + 0] = UInt16(clamping: Int((color.red * maxValue).rounded())).littleEndian
-                    pointer[base + 1] = UInt16(clamping: Int((color.green * maxValue).rounded())).littleEndian
-                    pointer[base + 2] = UInt16(clamping: Int((color.blue * maxValue).rounded())).littleEndian
+                    write(index, color)
                 }
             }
+        } catch let error as ImageBasedLUTUtilitiesError {
+            throw mapUtilitiesError(error)
         }
-
-        guard let provider = CGDataProvider(data: storage as CFData) else {
-            throw LUTFormatterUnwrappedTextureError.unsupportedImage
-        }
-
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bitmapInfo: CGBitmapInfo
-        if bitDepth == 8 {
-            bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue)
-        } else {
-            bitmapInfo = [CGBitmapInfo.byteOrder16Little, CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue)]
-        }
-
-        guard let image = CGImage(width: width,
-                                  height: height,
-                                  bitsPerComponent: bitDepth,
-                                  bitsPerPixel: bitDepth * 3,
-                                  bytesPerRow: bytesPerRow,
-                                  space: colorSpace,
-                                  bitmapInfo: bitmapInfo,
-                                  provider: provider,
-                                  decode: nil,
-                                  shouldInterpolate: false,
-                                  intent: .defaultIntent) else {
-            throw LUTFormatterUnwrappedTextureError.unsupportedImage
-        }
-
-        return image
     }
 
     static func pngData(from lut: LUT3D, options: Options = Options()) throws -> Data {
         let image = try image(from: lut, options: options)
-        let data = NSMutableData()
-        let type: CFString
-        #if canImport(UniformTypeIdentifiers)
-        if #available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
-            type = UTType.png.identifier as CFString
-        } else {
-            type = kUTTypePNG
+        do {
+            return try ImageBasedLUTUtilities.pngData(from: image)
+        } catch let error as ImageBasedLUTUtilitiesError {
+            throw mapUtilitiesError(error)
         }
-        #else
-        type = kUTTypePNG
-        #endif
-
-        guard let destination = CGImageDestinationCreateWithData(data, type, 1, nil) else {
-            throw LUTFormatterUnwrappedTextureError.unsupportedImage
-        }
-        CGImageDestinationAddImage(destination, image, nil)
-        guard CGImageDestinationFinalize(destination) else {
-            throw LUTFormatterUnwrappedTextureError.unsupportedImage
-        }
-        return data as Data
     }
 
     static func read(image: CGImage) throws -> LUT3D {
@@ -138,7 +71,15 @@ enum LUTFormatterUnwrappedTexture {
 
         let size = height
         let expectedEntries = width * height
-        let pixelData = try normalizedPixelData(from: image)
+        let bitDepth = ImageBasedLUTUtilities.bitDepth(of: image)
+        guard bitDepth == 8 || bitDepth == 16 else { throw LUTFormatterUnwrappedTextureError.unsupportedBitDepth }
+
+        let pixelData: [SIMD3<Double>]
+        do {
+            pixelData = try ImageBasedLUTUtilities.normalizedPixelData(from: image)
+        } catch let error as ImageBasedLUTUtilitiesError {
+            throw mapUtilitiesError(error)
+        }
         guard pixelData.count == expectedEntries else {
             throw LUTFormatterUnwrappedTextureError.unsupportedImage
         }
@@ -154,16 +95,17 @@ enum LUTFormatterUnwrappedTexture {
             lut.setColor(lutColor, r: r, g: g, b: b)
         }
 
-        lut.passthroughFileOptions = passthroughOptions(lutSize: size, bitDepth: 8)
+        lut.passthroughFileOptions = passthroughOptions(lutSize: size, bitDepth: bitDepth)
         return lut
     }
 
     static func read(data: Data) throws -> LUT3D {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-            throw LUTFormatterUnwrappedTextureError.unsupportedImage
+        do {
+            let image = try ImageBasedLUTUtilities.image(from: data)
+            return try read(image: image)
+        } catch let error as ImageBasedLUTUtilitiesError {
+            throw mapUtilitiesError(error)
         }
-        return try read(image: image)
     }
 
     private static func passthroughOptions(lutSize: Int, bitDepth: Int) -> [String: Any] {
@@ -187,44 +129,12 @@ enum LUTFormatterUnwrappedTexture {
         }
     }
 
-    private static func normalizedPixelData(from image: CGImage) throws -> [SIMD3<Double>] {
-        let width = image.width
-        let height = image.height
-        let bytesPerPixel = 4
-        let bytesPerRow = width * bytesPerPixel
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-
-        guard let context = CGContext(data: nil,
-                                      width: width,
-                                      height: height,
-                                      bitsPerComponent: 8,
-                                      bytesPerRow: bytesPerRow,
-                                      space: colorSpace,
-                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
-            throw LUTFormatterUnwrappedTextureError.unsupportedImage
+    private static func mapUtilitiesError(_ error: ImageBasedLUTUtilitiesError) -> LUTFormatterUnwrappedTextureError {
+        switch error {
+        case .unsupportedBitDepth:
+            return .unsupportedBitDepth
+        case .unsupportedImage:
+            return .unsupportedImage
         }
-
-        let rect = CGRect(x: 0, y: 0, width: width, height: height)
-        context.draw(image, in: rect)
-        guard let dataPointer = context.data else {
-            throw LUTFormatterUnwrappedTextureError.unsupportedImage
-        }
-
-        let buffer = dataPointer.bindMemory(to: UInt8.self, capacity: bytesPerRow * height)
-        var pixels = [SIMD3<Double>](repeating: .zero, count: width * height)
-
-        for y in 0..<height {
-            let rowOffset = y * bytesPerRow
-            for x in 0..<width {
-                let columnOffset = x * bytesPerPixel
-                let offset = rowOffset + columnOffset
-                let red = Double(buffer[offset + 0]) / 255.0
-                let green = Double(buffer[offset + 1]) / 255.0
-                let blue = Double(buffer[offset + 2]) / 255.0
-                pixels[y * width + x] = SIMD3(red, green, blue)
-            }
-        }
-
-        return pixels
     }
 }
