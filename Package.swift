@@ -19,7 +19,7 @@ let package = Package(
             name: "CocoaLUT-swift"
         ),
         .testTarget(
-            name: "CocoaLUT-swiftTests",
+            name: "CocoaLUTSwiftTests",
             dependencies: ["CocoaLUT-swift"]
         ),
     ]
