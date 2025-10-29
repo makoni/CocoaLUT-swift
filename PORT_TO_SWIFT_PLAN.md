@@ -27,8 +27,8 @@ Test Driven Development rules (strict)
 
 - [x] Establish Swift test target `CocoaLUTSwiftTests` scaffold.
 - [x] Port `LUTColor` with arithmetic/clamping tests.
-- [ ] Port `LUT` core lattice representation and identity tests.
-- [ ] Port `LUT1D`/`LUT3D` minimal functionality with conversion tests.
+- [x] Port `LUT` core lattice representation and identity tests.
+- [x] Port `LUT1D`/`LUT3D` minimal functionality with conversion tests.
 - [ ] Port `LUTHelper` functions required by the core types.
 - [ ] Port `LUTFormatterCube` with round-trip IO tests.
 - [ ] Port remaining formatters (3DL, Hald, UnwrappedTexture, etc.).
