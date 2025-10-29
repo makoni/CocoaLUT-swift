@@ -6,8 +6,64 @@ final class LUTActionTests: XCTestCase {
         LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
     }
 
+    func testChangeInputBoundsActionMatchesDirectResult() {
+        let original = identityLUT(size: 4)
+        let action = LUTAction.changeInputBounds(lower: -0.5, upper: 1.5)
+
+        let actionResult = action.apply(to: original)
+        let expected = original.changingInputBounds(lower: -0.5, upper: 1.5)
+
+        XCTAssertEqual(actionResult.inputLowerBound, -0.5)
+        XCTAssertEqual(actionResult.inputUpperBound, 1.5)
+        XCTAssertTrue(actionResult.equals(expected, tolerance: 1e-9))
+        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "ChangeInputBounds")
+    }
+
+    func testClampActionMatchesDirectResult() {
+        var lut = identityLUT(size: 3)
+        lut.loop { r, g, b in
+            let scalar = Double(r + g + b) / Double(max(1, lut.size - 1) * 3)
+            let color = LUTColor.color(red: scalar - 0.25,
+                                       green: scalar + 0.25,
+                                       blue: scalar + 0.75)
+            lut.setColor(color, r: r, g: g, b: b)
+        }
+
+        let action = LUTAction.clamp(lower: 0, upper: 1)
+        let actionResult = action.apply(to: lut)
+        let expected = lut.clamped(lower: 0, upper: 1)
+
+        lut.loop { r, g, b in
+            let color = actionResult.colorAt(r: r, g: g, b: b)
+            XCTAssertGreaterThanOrEqual(color.red, 0 - 1e-9)
+            XCTAssertLessThanOrEqual(color.red, 1 + 1e-9)
+            XCTAssertGreaterThanOrEqual(color.green, 0 - 1e-9)
+            XCTAssertLessThanOrEqual(color.green, 1 + 1e-9)
+            XCTAssertGreaterThanOrEqual(color.blue, 0 - 1e-9)
+            XCTAssertLessThanOrEqual(color.blue, 1 + 1e-9)
+        }
+
+        XCTAssertTrue(actionResult.equals(expected, tolerance: 1e-9))
+        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "Clamp")
+    }
+
+    func testResizeActionMatchesDirectResult() {
+        var lut = identityLUT(size: 2)
+        lut.setColor(LUTColor.color(red: 0.1, green: 0.4, blue: 0.7), r: 0, g: 0, b: 0)
+        lut.setColor(LUTColor.color(red: 0.9, green: 0.6, blue: 0.3), r: 1, g: 1, b: 1)
+
+        let action = LUTAction.resize(to: 5)
+        let actionResult = action.apply(to: lut)
+        let expected = lut.resized(to: 5)
+
+        XCTAssertEqual(actionResult.size, 5)
+        XCTAssertTrue(actionResult.equals(expected, tolerance: 1e-9))
+        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "Resize")
+    }
+
     func testCombineActionMatchesDirectCombination() {
-        let base = identityLUT()
+        var base = identityLUT()
+        base.metadata["tag"] = "base"
         let other = base.offsetting(by: LUTColor.color(red: 0.1, green: -0.2, blue: 0.05))
 
         let action = LUTAction.combine(with: other)
@@ -15,10 +71,12 @@ final class LUTActionTests: XCTestCase {
 
         XCTAssertTrue(result.equals(base.combined(with: other), tolerance: 1e-9))
         XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "Combine")
+        XCTAssertEqual(result.metadata["tag"] as? String, "base")
     }
 
     func testCombineBehindActionMatchesDirectCombination() {
-        let base = identityLUT()
+        var base = identityLUT()
+        base.metadata["tag"] = "base"
         let other = base.clamped(lower: 0.2, upper: 0.8)
 
         let action = LUTAction.combineBehind(lut: other)
@@ -26,6 +84,7 @@ final class LUTActionTests: XCTestCase {
 
         XCTAssertTrue(result.equals(other.combined(with: base), tolerance: 1e-9))
         XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "CombineBehind")
+        XCTAssertEqual(result.metadata["tag"] as? String, "base")
     }
 
     func testApplyColorMatrixSwapsRedAndBlue() {
@@ -73,13 +132,19 @@ final class LUTActionTests: XCTestCase {
         let action = LUTAction.scaleToUnitRange()
         var firstInput = identityLUT()
         firstInput.title = "First"
+        firstInput.metadata["owner"] = "one"
         let firstResult = action.apply(to: firstInput)
         XCTAssertEqual(firstResult.title, "First")
+        XCTAssertEqual(firstResult.metadata["owner"] as? String, "one")
 
         var secondInput = firstInput
         secondInput.title = "Second"
+        secondInput.metadata["owner"] = "two"
         let secondResult = action.apply(to: secondInput)
         XCTAssertEqual(secondResult.title, "Second")
+        XCTAssertEqual(secondResult.metadata["owner"] as? String, "two")
+
+        XCTAssertEqual(firstResult.metadata["owner"] as? String, "one")
     }
 
     func testSwizzleActionMatchesManualComposition() {

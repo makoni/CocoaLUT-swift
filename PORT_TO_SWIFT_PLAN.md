@@ -48,11 +48,16 @@ Test Driven Development rules (strict)
 - [ ] Port processing stack (`LUTProcessor`, `LUTReverser`, `LUTAction`).
   - [x] LUTProcessor base class with cancellation/progress support.
   - [x] LUTReverser scaffold.
-  - [ ] LUTAction chainable operations.
+  - [x] LUTAction chainable operations.
     - [x] Scale/remap/offset/combine/color-matrix factories with caching.
     - [x] Swizzle actions for 1D/3D LUTs.
     - [x] Color-temperature conversion action (requires color space utilities).
     - [x] Tests covering new swizzle and color-temperature behaviors.
+    - [x] Verify change-input-bounds action parity with tests.
+    - [x] Verify clamp action bounds preservation with tests.
+    - [x] Verify resize action resamples lattice with tests.
+    - [x] Verify combine/combine-behind actions with tests.
+    - [x] Verify action caching propagates metadata with tests.
 - [x] Port color space and transfer utilities (`LUTColorSpace`, `LUTColorTransferFunction`, `LUTColorSpaceWhitePoint`).
   - [x] `LUTColorSpaceWhitePoint` creation helpers and temperature conversion.
   - [x] `LUTColorSpace` primaries/transfer conversions.
