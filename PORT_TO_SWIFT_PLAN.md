@@ -63,6 +63,11 @@ Test Driven Development rules (strict)
   - [x] `LUTColorSpace` primaries/transfer conversions.
   - [x] `LUTColorTransferFunction` gamma/log helpers.
 - [ ] Port platform glue (Core Image wrappers, GPUImage shim, macOS preview utilities).
+  - [x] Implement `LUTImageRenderPath` enum and public API for image rendering entry points.
+  - [x] Add Core Image filter generation (`coreImageFilter(colorSpace:)`) with tests.
+  - [x] Add `process(ciImage:)` pipeline and verify output via `CIContext` sampling.
+  - [x] Provide platform-specific image helpers (`processUIImage`, `processNSImage`) with coverage where possible.
+  - [ ] Bridge GPUImage wrapper or supply placeholder shim with tests (pending GPUImage availability).
 
 > Maintain TDD discipline: every item above remains unchecked until tests are in place and passing.
 
