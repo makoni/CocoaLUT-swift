@@ -32,6 +32,7 @@ Test Driven Development rules (strict)
 - [x] Port `LUTHelper` functions required by the core types.
 - [x] Port `LUTFormatterCube` with round-trip IO tests.
 - [ ] Port remaining formatters (3DL, Hald, UnwrappedTexture, etc.).
+  - [x] 3DL formatter with read/write round-trip tests.
 - [ ] Port processing stack (`LUTProcessor`, `LUTReverser`, `LUTAction`).
 - [ ] Port color space and transfer utilities (`LUTColorSpace`, `LUTColorTransferFunction`, `LUTColorSpaceWhitePoint`).
 - [ ] Port platform glue (Core Image wrappers, GPUImage shim, macOS preview utilities).
