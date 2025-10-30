@@ -97,7 +97,7 @@ public struct LUTFormatterDescriptor {
 
 private enum LUTFormatterRegistry {
     static func descriptors() -> [LUTFormatterDescriptor] {
-        [cubeDescriptor()]
+        [cubeDescriptor(), threeDLDescriptor()]
     }
 
     static func descriptor(for identifier: String) -> LUTFormatterDescriptor? {
@@ -158,6 +158,65 @@ private enum LUTFormatterRegistry {
         )
     }
 
+    private static func threeDLDescriptor() -> LUTFormatterDescriptor {
+        let formatterKey = LUTFormatter3DL.formatterIdentifier
+        let defaultOptions: [String: Any] = [
+            formatterKey: [
+                "fileTypeVariant": LUTFormatter3DL.Variant.nuke.rawValue,
+                "integerMaxOutput": LUTMath.maxInteger(bitDepth: 16),
+                "lutSize": 32
+            ]
+        ]
+
+        let allOptions: [[String: Any]] = [
+            [
+                "fileTypeVariant": LUTFormatter3DL.Variant.lustre.rawValue,
+                "integerMaxOutput": [
+                    LUTMath.maxInteger(bitDepth: 12),
+                    LUTMath.maxInteger(bitDepth: 16)
+                ],
+                "lutSize": [17, 33, 65]
+            ],
+            [
+                "fileTypeVariant": LUTFormatter3DL.Variant.nuke.rawValue,
+                "integerMaxOutput": [
+                    LUTMath.maxInteger(bitDepth: 12),
+                    LUTMath.maxInteger(bitDepth: 16)
+                ],
+                "lutSize": [32, 64]
+            ],
+            [
+                "fileTypeVariant": LUTFormatter3DL.Variant.legacy.rawValue,
+                "integerMaxOutput": [LUTMath.maxInteger(bitDepth: 12)],
+                "lutSize": [17]
+            ]
+        ]
+
+        return LUTFormatterDescriptor(
+            id: formatterKey,
+            name: "Autodesk 3D LUT",
+            fileExtensions: ["3dl"],
+            output: .lut3D,
+            roles: [.read, .write],
+            uti: "com.autodesk.3dl",
+            defaultOptions: defaultOptions,
+            allOptions: allOptions,
+            alternateIdentifiers: ["com.autodesk.3dl"],
+            reader: { url in
+                let lut = try LUTFormatter3DL.read(url: url)
+                return .lut3D(lut)
+            },
+            writer: { payload, url, options in
+                guard case .lut3D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut3D, actual: payload.outputType)
+                }
+                let writeOptions = normalized3DLOptions(from: options)
+                let contents = try LUTFormatter3DL.write(lut, options: writeOptions)
+                try contents.write(to: url, atomically: true, encoding: .utf8)
+            }
+        )
+    }
+
     private static func normalizeCubePayload(_ result: LUTCubeResult) -> LUTFormatterPayload {
         func optionsByAddingAlias(_ options: [String: Any]) -> [String: Any] {
             var updated = options
@@ -196,6 +255,46 @@ private enum LUTFormatterRegistry {
         }
 
         return nil
+    }
+
+    private static func normalized3DLOptions(from options: [String: Any]?) -> LUTFormatter3DL.Options? {
+        guard let options else { return nil }
+    let candidateKeys = [LUTFormatter3DL.formatterIdentifier, "autodesk3dl"]
+    var formatterOptions: [String: Any]? = options
+        for key in candidateKeys {
+            if let nested = options[key] as? [String: Any] {
+                formatterOptions = nested
+                break
+            }
+        }
+
+        guard let rawVariant = formatterOptions?["fileTypeVariant"] as? String,
+              let variant = LUTFormatter3DL.Variant(rawValue: rawVariant) else {
+            return nil
+        }
+
+        guard let integerMax = integerValue(from: formatterOptions?["integerMaxOutput"]) else {
+            return nil
+        }
+
+        return LUTFormatter3DL.Options(variant: variant, integerMaxOutput: integerMax)
+    }
+
+    private static func integerValue(from value: Any?) -> Int? {
+        switch value {
+        case let value as Int:
+            return value
+        case let value as NSNumber:
+            return value.intValue
+        case let value as Double:
+            return Int(value)
+        case let value as Float:
+            return Int(value)
+        case let value as String:
+            return Int(value)
+        default:
+            return nil
+        }
     }
 }
 
