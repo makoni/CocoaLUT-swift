@@ -45,7 +45,7 @@ Test Driven Development rules (strict)
   - [x] MatchLight formatter with combined 1D/3D tests.
   - [x] OLUT formatter with CSV read/write tests.
   - [x] CMS Test Pattern formatter with layout and PNG round-trip tests.
-- [ ] Port processing stack (`LUTProcessor`, `LUTReverser`, `LUTAction`).
+- [x] Port processing stack (`LUTProcessor`, `LUTReverser`, `LUTAction`).
   - [x] LUTProcessor base class with cancellation/progress support.
   - [x] LUTReverser scaffold.
   - [x] LUTAction chainable operations.
@@ -62,12 +62,12 @@ Test Driven Development rules (strict)
   - [x] `LUTColorSpaceWhitePoint` creation helpers and temperature conversion.
   - [x] `LUTColorSpace` primaries/transfer conversions.
   - [x] `LUTColorTransferFunction` gamma/log helpers.
-- [ ] Port platform glue (Core Image wrappers, GPUImage shim, macOS preview utilities).
+- [x] Port platform glue (Core Image wrappers, GPUImage shim, macOS preview utilities).
   - [x] Implement `LUTImageRenderPath` enum and public API for image rendering entry points.
   - [x] Add Core Image filter generation (`coreImageFilter(colorSpace:)`) with tests.
   - [x] Add `process(ciImage:)` pipeline and verify output via `CIContext` sampling.
   - [x] Provide platform-specific image helpers (`processUIImage`, `processNSImage`) with coverage where possible.
-  - [ ] Bridge GPUImage wrapper or supply placeholder shim with tests (pending GPUImage availability).
+  - [x] Bridge GPUImage wrapper or supply placeholder shim with tests (pending GPUImage availability).
 
 > Maintain TDD discipline: every item above remains unchecked until tests are in place and passing.
 
