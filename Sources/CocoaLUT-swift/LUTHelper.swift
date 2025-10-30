@@ -14,8 +14,10 @@ public struct SystemColor { }
 #endif
 
 enum LUTConstants {
+    static let suggestedMax1DSize = 65_536
     static let suggestedMax3DSize = 64
     static let maxCIColorCubeSize = 64
+    static let maxVVLUT1DFilterSize = 65_536
     static let legalLevelsMin = 0.06256109481
     static let legalLevelsMax = 0.91886608015
     static let extendedLevelsMin = 0.0

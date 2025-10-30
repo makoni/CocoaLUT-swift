@@ -77,8 +77,8 @@ Test Driven Development rules (strict)
 
 ### Remaining items for full parity (identified 2025-10-30)
 
-- [ ] Port `LUTFormatterICCProfile` to Swift (macOS only) and add read/write regression tests using sample ICC data.
-- [ ] Port the macOS preview stack to SwiftUI/AppKit (`LUTPreviewScene`, `LUTPreviewImageGenerator`, `LUTPreviewView`, `LUT1DGraphView`) with lightweight rendering tests where possible.
+- [x] Port `LUTFormatterICCProfile` to Swift (macOS only) and add read/write regression tests using sample ICC data.
+- [x] Port the macOS preview stack to SwiftUI/AppKit (`LUTPreviewScene`, `LUTPreviewImageGenerator`, `LUTPreviewView`, `LUT1DGraphView`) with lightweight rendering tests where possible.
 - [ ] Recreate a Swift formatter registry/entry points mirroring `LUTFormatter` discovery (`formatters(for:)`, convenience read/write on `LUT`).
 - [ ] Replace `CocoaLUT.h` macros with Swift symbols (constants for suggested sizes, `SystemColor` alias) and populate `CocoaLUT_swift.swift` as the public facade.
 - [ ] Remove or port the legacy Objective‑C image-based formatter scaffolding (`LUTFormatterImageBased`) once the Swift helpers cover all use cases.
