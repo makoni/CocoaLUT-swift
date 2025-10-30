@@ -97,7 +97,7 @@ public struct LUTFormatterDescriptor {
 
 private enum LUTFormatterRegistry {
     static func descriptors() -> [LUTFormatterDescriptor] {
-        [cubeDescriptor(), threeDLDescriptor()]
+        [cubeDescriptor(), threeDLDescriptor(), haldDescriptor(), unwrappedTextureDescriptor()]
     }
 
     static func descriptor(for identifier: String) -> LUTFormatterDescriptor? {
@@ -217,6 +217,101 @@ private enum LUTFormatterRegistry {
         )
     }
 
+    private static func haldDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterHaldCLUT.formatterIdentifier
+        let defaultMetadata = ImageBasedFormatterMetadata(
+            options: ImageBasedFormatterOptions(variant: .tiff, bitDepth: 16)!,
+            lutSize: 36
+        )
+
+        let defaultOptions = defaultMetadata.passthroughDictionary(formatterID: formatterID)
+        let allOptions: [[String: Any]] = [[
+            "fileTypeVariant": ImageBasedFormatterVariant.tiff.rawValue,
+            "bitDepth": ImageBasedFormatterVariant.tiff.supportedBitDepths,
+            "lutSize": [9, 16, 25, 36, 49, 64]
+        ]]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "Hald CLUT",
+            fileExtensions: ["tiff", "tif"],
+            output: .lut3D,
+            roles: [.read, .write],
+            uti: "public.image",
+            defaultOptions: defaultOptions,
+            allOptions: allOptions,
+            alternateIdentifiers: [formatterID.lowercased()],
+            reader: { url in
+                let data = try Data(contentsOf: url)
+                let lut = try LUTFormatterHaldCLUT.read(data: data)
+                return .lut3D(lut)
+            },
+            writer: { payload, url, options in
+                guard case .lut3D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut3D, actual: payload.outputType)
+                }
+
+                let writeOptions = normalizedHaldOptions(from: options) ?? LUTFormatterHaldCLUT.Options(bitDepth: 16)
+                let image = try LUTFormatterHaldCLUT.image(from: lut, options: writeOptions)
+
+                let data: Data
+                switch url.pathExtension.lowercased() {
+                case "png":
+                    data = try ImageBasedLUTUtilities.pngData(from: image)
+                default:
+                    data = try ImageBasedLUTUtilities.tiffData(from: image)
+                }
+
+                try data.write(to: url, options: .atomic)
+            }
+        )
+    }
+
+    private static func unwrappedTextureDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterUnwrappedTexture.formatterIdentifier
+        let defaultMetadata = LUTFormatterUnwrappedTexture.Options().metadata()
+        let defaultOptions = defaultMetadata.passthroughDictionary(formatterID: formatterID)
+        let allOptions: [[String: Any]] = [[
+            "fileTypeVariant": ImageBasedFormatterVariant.tiff.rawValue,
+            "bitDepth": ImageBasedFormatterVariant.tiff.supportedBitDepths
+        ]]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "Unwrapped Cube Image 3D LUT",
+            fileExtensions: ["png", "tiff", "tif"],
+            output: .lut3D,
+            roles: [.read, .write],
+            uti: "public.image",
+            defaultOptions: defaultOptions,
+            allOptions: allOptions,
+            alternateIdentifiers: [formatterID.lowercased()],
+            reader: { url in
+                let data = try Data(contentsOf: url)
+                let lut = try LUTFormatterUnwrappedTexture.read(data: data)
+                return .lut3D(lut)
+            },
+            writer: { payload, url, options in
+                guard case .lut3D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut3D, actual: payload.outputType)
+                }
+
+                let writeOptions = normalizedUnwrappedOptions(from: options) ?? LUTFormatterUnwrappedTexture.Options()
+
+                let data: Data
+                switch url.pathExtension.lowercased() {
+                case "png":
+                    data = try LUTFormatterUnwrappedTexture.pngData(from: lut, options: writeOptions)
+                default:
+                    let image = try LUTFormatterUnwrappedTexture.image(from: lut, options: writeOptions)
+                    data = try ImageBasedLUTUtilities.tiffData(from: image)
+                }
+
+                try data.write(to: url, options: .atomic)
+            }
+        )
+    }
+
     private static func normalizeCubePayload(_ result: LUTCubeResult) -> LUTFormatterPayload {
         func optionsByAddingAlias(_ options: [String: Any]) -> [String: Any] {
             var updated = options
@@ -295,6 +390,46 @@ private enum LUTFormatterRegistry {
         default:
             return nil
         }
+    }
+
+    private static func normalizedHaldOptions(from options: [String: Any]?) -> LUTFormatterHaldCLUT.Options? {
+        guard let options else { return nil }
+
+        if let parsed = LUTFormatterHaldCLUT.Options.from(passthrough: options) {
+            return parsed
+        }
+
+        if let bitDepth = integerValue(from: options["bitDepth"]) {
+            return LUTFormatterHaldCLUT.Options(bitDepth: bitDepth)
+        }
+
+        if let nested = options[LUTFormatterHaldCLUT.formatterIdentifier] as? [String: Any] {
+            let payload = [LUTFormatterHaldCLUT.formatterIdentifier: nested]
+            return LUTFormatterHaldCLUT.Options.from(passthrough: payload)
+        }
+
+        return nil
+    }
+
+    private static func normalizedUnwrappedOptions(from options: [String: Any]?) -> LUTFormatterUnwrappedTexture.Options? {
+        guard let options else { return nil }
+
+        if let parsed = LUTFormatterUnwrappedTexture.Options.from(passthrough: options) {
+            return parsed
+        }
+
+        if let nested = options[LUTFormatterUnwrappedTexture.formatterIdentifier] as? [String: Any] {
+            let payload = [LUTFormatterUnwrappedTexture.formatterIdentifier: nested]
+            if let parsed = LUTFormatterUnwrappedTexture.Options.from(passthrough: payload) {
+                return parsed
+            }
+        }
+
+        if let bitDepth = integerValue(from: options["bitDepth"]) {
+            return LUTFormatterUnwrappedTexture.Options(bitDepth: bitDepth)
+        }
+
+        return nil
     }
 }
 

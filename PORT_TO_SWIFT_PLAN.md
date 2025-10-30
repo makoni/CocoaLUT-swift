@@ -82,6 +82,8 @@ Test Driven Development rules (strict)
 - [ ] Recreate a Swift formatter registry/entry points mirroring `LUTFormatter` discovery (`formatters(for:)`, convenience read/write on `LUT`).
   - [x] Establish registry infrastructure (`LUTFormatterDescriptor`, payload enum, `CocoaLUT` facade constants/tests).
   - [x] Register initial formatter (Cube) and prove read/write plumbing via tests.
+  - [x] Add Hald CLUT formatter coverage to the registry with TIFF round-trip tests.
+  - [x] Add Unwrapped texture formatter coverage (PNG/TIFF) to the registry with read/write facade tests.
   - [ ] Incrementally add remaining formatters + legacy aliases with regression coverage.
 - [ ] Replace `CocoaLUT.h` macros with Swift symbols (constants for suggested sizes, `SystemColor` alias) and populate `CocoaLUT_swift.swift` as the public facade.
 - [ ] Remove or port the legacy Objective‑C image-based formatter scaffolding (`LUTFormatterImageBased`) once the Swift helpers cover all use cases.

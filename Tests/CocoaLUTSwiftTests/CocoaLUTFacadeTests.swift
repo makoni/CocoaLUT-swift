@@ -80,6 +80,43 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(descriptors.map { $0.id }, [LUTFormatter3DL.formatterIdentifier])
     }
 
+    func testHaldDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterHaldCLUT.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, "Hald CLUT")
+        XCTAssertEqual(descriptor.fileExtensions, ["tiff", "tif"])
+        XCTAssertEqual(descriptor.output, .lut3D)
+        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+
+        let options = descriptor.defaultOptions?[LUTFormatterHaldCLUT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, ImageBasedFormatterVariant.tiff.rawValue)
+        XCTAssertEqual(integer(from: options?["bitDepth"]), 16)
+        XCTAssertEqual(integer(from: options?["lutSize"]), 36)
+    }
+
+    func testDescriptorsLookupByExtensionIncludesHald() {
+        let descriptors = CocoaLUT.descriptors(forFileExtension: "TIFF")
+        XCTAssertFalse(descriptors.isEmpty)
+        let identifiers = Set(descriptors.map { $0.id })
+        XCTAssertTrue(identifiers.contains(LUTFormatterHaldCLUT.formatterIdentifier))
+    }
+
+    func testUnwrappedDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterUnwrappedTexture.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, "Unwrapped Cube Image 3D LUT")
+        XCTAssertEqual(descriptor.fileExtensions, ["png", "tiff", "tif"])
+        XCTAssertEqual(descriptor.output, .lut3D)
+        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+
+        let options = descriptor.defaultOptions?[LUTFormatterUnwrappedTexture.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(integer(from: options?["bitDepth"]), 8)
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, ImageBasedFormatterVariant.tiff.rawValue)
+    }
+
+    func testDescriptorsLookupByExtensionIncludesUnwrapped() {
+        let descriptors = CocoaLUT.descriptors(forFileExtension: "PNG")
+        XCTAssertEqual(descriptors.map { $0.id }, [LUTFormatterUnwrappedTexture.formatterIdentifier])
+    }
+
     func testReadCubeByIdentifier() throws {
         let payload = try CocoaLUT.read(from: cubeURL(), formatterIdentifier: "cube")
         guard case .lut1D(let lut) = payload else {
@@ -148,6 +185,30 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, LUTFormatter3DL.Variant.nuke.rawValue)
     }
 
+    func testReadHaldByIdentifier() throws {
+        let lut = LUT3D.identity(size: 9, inputLowerBound: 0, inputUpperBound: 1)
+        let image = try LUTFormatterHaldCLUT.image(from: lut, options: .init(bitDepth: 8))
+        let data = try ImageBasedLUTUtilities.tiffData(from: image)
+
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("sample.tiff")
+        try data.write(to: fileURL)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterHaldCLUT.formatterIdentifier)
+        guard case .lut3D(let decoded) = payload else {
+            XCTFail("Expected LUT3D payload from Hald CLUT file")
+            return
+        }
+
+        let quantizedTolerance = (1.0 / 255.0) + 1e-6
+        XCTAssertTrue(decoded.equals(lut, tolerance: quantizedTolerance))
+        let passthrough = decoded.passthroughFileOptions[LUTFormatterHaldCLUT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(integer(from: passthrough?["bitDepth"]), 8)
+        XCTAssertEqual(integer(from: passthrough?["lutSize"]), 9)
+    }
+
     func testRead3DLFallsBackToExtensionMatching() throws {
         let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -162,6 +223,54 @@ final class CocoaLUTFacadeTests: XCTestCase {
         }
 
         XCTAssertEqual(lut.size, 2)
+    }
+
+    func testReadUnwrappedTextureByIdentifier() throws {
+        let size = 16
+        let lut = LUT3D.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
+        let data = try LUTFormatterUnwrappedTexture.pngData(from: lut)
+
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("sample.png")
+        try data.write(to: fileURL)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterUnwrappedTexture.formatterIdentifier)
+        guard case .lut3D(let decoded) = payload else {
+            XCTFail("Expected LUT3D payload from unwrapped texture file")
+            return
+        }
+
+        let quantizedTolerance = (1.0 / 255.0) + 1e-6
+        XCTAssertTrue(decoded.equals(lut, tolerance: quantizedTolerance))
+
+        let passthrough = decoded.passthroughFileOptions[LUTFormatterUnwrappedTexture.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(integer(from: passthrough?["bitDepth"]), 8)
+        XCTAssertEqual(integer(from: passthrough?["lutSize"]), size)
+        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, ImageBasedFormatterVariant.tiff.rawValue)
+    }
+
+    func testWriteUnwrappedTextureRoundTrip() throws {
+        let original = LUT3D.identity(size: 9, inputLowerBound: 0, inputUpperBound: 1)
+
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("roundtrip.png")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        try CocoaLUT.write(.lut3D(original),
+                           to: fileURL,
+                           formatterIdentifier: LUTFormatterUnwrappedTexture.formatterIdentifier)
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterUnwrappedTexture.formatterIdentifier)
+        guard case .lut3D(let decoded) = payload else {
+            XCTFail("Expected LUT3D payload from round-tripped unwrapped texture file")
+            return
+        }
+
+        let quantizedTolerance = (1.0 / 255.0) + 1e-6
+        XCTAssertTrue(decoded.equals(original, tolerance: quantizedTolerance))
     }
 
     func testWrite3DLRoundTrip() throws {
@@ -184,6 +293,28 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(lut.colorAt(r: 1, g: 0, b: 1).red, original.colorAt(r: 1, g: 0, b: 1).red, accuracy: 1e-9)
         let passthrough = lut.passthroughFileOptions[LUTFormatter3DL.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, LUTFormatter3DL.Variant.nuke.rawValue)
+    }
+
+    func testWriteHaldRoundTrip() throws {
+        let original = LUT3D.identity(size: 9, inputLowerBound: 0, inputUpperBound: 1)
+
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("roundtrip.tiff")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        try CocoaLUT.write(.lut3D(original),
+                           to: fileURL,
+                           formatterIdentifier: LUTFormatterHaldCLUT.formatterIdentifier)
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterHaldCLUT.formatterIdentifier)
+        guard case .lut3D(let lut) = payload else {
+            XCTFail("Expected LUT3D payload from round-tripped Hald CLUT file")
+            return
+        }
+
+        let quantizedTolerance = (1.0 / 255.0) + 1e-6
+        XCTAssertTrue(lut.equals(original, tolerance: quantizedTolerance))
     }
 
     private func integer(from value: Any?) -> Int? {
