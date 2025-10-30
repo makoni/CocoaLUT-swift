@@ -27,10 +27,31 @@ enum LUTFormatterHaldCLUT {
     static let formatterIdentifier = "haldCLUT"
 
     struct Options {
-        var bitDepth: Int
+        fileprivate var base: ImageBasedFormatterOptions
 
         init(bitDepth: Int = 8) {
-            self.bitDepth = bitDepth
+            guard let options = ImageBasedFormatterOptions(variant: .tiff, bitDepth: bitDepth) else {
+                preconditionFailure("Unsupported bit depth \(bitDepth) for TIFF metadata")
+            }
+            self.base = options
+        }
+
+        fileprivate init(base: ImageBasedFormatterOptions) {
+            self.base = base
+        }
+
+        var bitDepth: Int { base.bitDepth }
+
+        func metadata(lutSize: Int? = nil) -> ImageBasedFormatterMetadata {
+            ImageBasedFormatterMetadata(options: base, lutSize: lutSize)
+        }
+
+        static func from(passthrough options: [String: Any]) -> Options? {
+            guard let metadata = ImageBasedFormatterMetadata.fromPassthrough(options,
+                                                                             formatterID: formatterIdentifier) else {
+                return nil
+            }
+            return Options(base: metadata.options)
         }
     }
 
@@ -111,7 +132,13 @@ enum LUTFormatterHaldCLUT {
     }
 
     private static func passthroughOptions(lutSize: Int, bitDepth: Int) -> [String: Any] {
-        [formatterIdentifier: ["lutSize": lutSize, "bitDepth": bitDepth]]
+        guard let dictionary = ImageBasedFormatterMetadata.passthroughDictionary(formatterID: formatterIdentifier,
+                                                                                variant: .tiff,
+                                                                                bitDepth: bitDepth,
+                                                                                lutSize: lutSize) else {
+            preconditionFailure("Unsupported bit depth \(bitDepth) for TIFF metadata")
+        }
+        return dictionary
     }
 
     private static func writePixels(lut: LUT3D,

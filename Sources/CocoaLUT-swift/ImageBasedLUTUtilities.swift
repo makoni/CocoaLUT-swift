@@ -110,26 +110,11 @@ enum ImageBasedLUTUtilities {
     }
 
     static func pngData(from image: CGImage) throws -> Data {
-        let data = NSMutableData()
-        let type: CFString
-        #if canImport(UniformTypeIdentifiers)
-        if #available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
-            type = UTType.png.identifier as CFString
-        } else {
-            type = kUTTypePNG
-        }
-        #else
-        type = kUTTypePNG
-        #endif
+        try data(from: image, preferredType: .png)
+    }
 
-        guard let destination = CGImageDestinationCreateWithData(data, type, 1, nil) else {
-            throw ImageBasedLUTUtilitiesError.unsupportedImage
-        }
-        CGImageDestinationAddImage(destination, image, nil)
-        guard CGImageDestinationFinalize(destination) else {
-            throw ImageBasedLUTUtilitiesError.unsupportedImage
-        }
-        return data as Data
+    static func tiffData(from image: CGImage) throws -> Data {
+        try data(from: image, preferredType: .tiff)
     }
 
     static func image(from data: Data) throws -> CGImage {
@@ -181,5 +166,41 @@ enum ImageBasedLUTUtilities {
         }
 
         return storage
+    }
+
+    private enum ExportType {
+        case png
+        case tiff
+
+        var uti: CFString {
+            #if canImport(UniformTypeIdentifiers)
+            if #available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
+                switch self {
+                case .png:
+                    return UTType.png.identifier as CFString
+                case .tiff:
+                    return UTType.tiff.identifier as CFString
+                }
+            }
+            #endif
+            switch self {
+            case .png:
+                return kUTTypePNG
+            case .tiff:
+                return kUTTypeTIFF
+            }
+        }
+    }
+
+    private static func data(from image: CGImage, preferredType: ExportType) throws -> Data {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, preferredType.uti, 1, nil) else {
+            throw ImageBasedLUTUtilitiesError.unsupportedImage
+        }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else {
+            throw ImageBasedLUTUtilitiesError.unsupportedImage
+        }
+        return data as Data
     }
 }

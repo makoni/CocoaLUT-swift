@@ -53,6 +53,7 @@ import Testing
         let passthrough = decoded.passthroughFileOptions[LUTFormatterCMSTestPattern.formatterIdentifier] as? [String: Any]
         #expect(passthrough?["bitDepth"] as? Int == 8)
         #expect(passthrough?["lutSize"] as? Int == size)
+        #expect(passthrough?["fileTypeVariant"] as? String == "TIFF")
     }
 
     private func unwrapLayout(width: Int, height: Int) throws -> Layout {

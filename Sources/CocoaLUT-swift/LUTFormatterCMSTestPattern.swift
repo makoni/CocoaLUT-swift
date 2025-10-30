@@ -2,6 +2,9 @@ import CoreGraphics
 import Foundation
 import ImageIO
 import simd
+#if canImport(AppKit)
+import AppKit
+#endif
 
 enum LUTFormatterCMSTestPatternError: Error, Equatable, LocalizedError {
     case unsupportedBitDepth
@@ -25,10 +28,36 @@ enum LUTFormatterCMSTestPattern {
     private static let blockSize = 7
 
     struct Options {
-        var bitDepth: Int
+        fileprivate var base: ImageBasedFormatterOptions
 
-        init(bitDepth: Int = 8) {
-            self.bitDepth = bitDepth
+        init(bitDepth: Int = 8, variant: ImageBasedFormatterVariant = .tiff) {
+            guard let options = ImageBasedFormatterOptions(variant: variant, bitDepth: bitDepth) else {
+                preconditionFailure("Unsupported bit depth \(bitDepth) for variant \(variant)")
+            }
+            self.base = options
+        }
+
+        fileprivate init(base: ImageBasedFormatterOptions) {
+            self.base = base
+        }
+
+        var bitDepth: Int { base.bitDepth }
+        var variant: ImageBasedFormatterVariant { base.variant }
+
+        func formatterDictionary() -> [String: Any] {
+            metadata().passthroughDictionary(formatterID: formatterIdentifier)
+        }
+
+        func metadata(lutSize: Int? = nil) -> ImageBasedFormatterMetadata {
+            ImageBasedFormatterMetadata(options: base, lutSize: lutSize)
+        }
+
+        static func from(passthrough options: [String: Any]) -> Options? {
+            guard let metadata = ImageBasedFormatterMetadata.fromPassthrough(options,
+                                                                             formatterID: formatterIdentifier) else {
+                return nil
+            }
+            return Options(base: metadata.options)
         }
     }
 
@@ -59,6 +88,33 @@ enum LUTFormatterCMSTestPattern {
             throw mapUtilitiesError(utilitiesError)
         }
     }
+
+    static func data(from lut: LUT3D, options: Options = Options()) throws -> Data {
+        guard options.variant == .tiff else {
+            throw LUTFormatterCMSTestPatternError.unsupportedImage
+        }
+        let image = try image(from: lut, options: options)
+        do {
+            return try ImageBasedLUTUtilities.tiffData(from: image)
+        } catch let utilitiesError as ImageBasedLUTUtilitiesError {
+            throw mapUtilitiesError(utilitiesError)
+        }
+    }
+
+    static func read(url: URL) throws -> LUT3D {
+        let data = try Data(contentsOf: url)
+        return try read(data: data)
+    }
+
+    #if canImport(AppKit)
+    static func nsImage(from lut: LUT3D, options: Options = Options()) throws -> NSImage {
+        let cgImage = try image(from: lut, options: options)
+        let size = NSSize(width: cgImage.width, height: cgImage.height)
+        let image = NSImage(size: size)
+        image.addRepresentation(NSBitmapImageRep(cgImage: cgImage))
+        return image
+    }
+    #endif
 
     static func read(image: CGImage) throws -> LUT3D {
         guard image.width % blockSize == 0, image.height % blockSize == 0 else {
@@ -102,7 +158,8 @@ enum LUTFormatterCMSTestPattern {
             }
         }
 
-        lut.passthroughFileOptions = passthroughOptions(lutSize: layout.cubeSize, bitDepth: bitDepth)
+        lut.passthroughFileOptions = passthroughOptions(lutSize: layout.cubeSize,
+                                                        bitDepth: bitDepth)
         return lut
     }
 
@@ -182,7 +239,13 @@ enum LUTFormatterCMSTestPattern {
     }
 
     private static func passthroughOptions(lutSize: Int, bitDepth: Int) -> [String: Any] {
-        [formatterIdentifier: ["lutSize": lutSize, "bitDepth": bitDepth]]
+        guard let dictionary = ImageBasedFormatterMetadata.passthroughDictionary(formatterID: formatterIdentifier,
+                                                                                variant: .tiff,
+                                                                                bitDepth: bitDepth,
+                                                                                lutSize: lutSize) else {
+            preconditionFailure("Unsupported bit depth \(bitDepth) for TIFF metadata")
+        }
+        return dictionary
     }
 
     private static func mapUtilitiesError(_ error: ImageBasedLUTUtilitiesError) -> LUTFormatterCMSTestPatternError {
@@ -192,21 +255,5 @@ enum LUTFormatterCMSTestPattern {
         case .unsupportedImage:
             return .unsupportedImage
         }
-    }
-}
-
-extension LUTFormatterCMSTestPattern.Options {
-    static func from(passthrough options: [String: Any]) -> LUTFormatterCMSTestPattern.Options? {
-        guard let formatterOptions = options[LUTFormatterCMSTestPattern.formatterIdentifier] as? [String: Any] else {
-            return nil
-        }
-
-        if let bitDepth = formatterOptions["bitDepth"] as? Int {
-            return .init(bitDepth: bitDepth)
-        }
-        if let number = formatterOptions["bitDepth"] as? NSNumber {
-            return .init(bitDepth: number.intValue)
-        }
-        return nil
     }
 }
