@@ -1,0 +1,190 @@
+import Foundation
+
+public enum LUTFormatterOutputType: String, Sendable {
+    case lut1D
+    case lut3D
+    case either
+}
+
+public enum LUTFormatterPayload {
+    case lut1D(LUT1D)
+    case lut3D(LUT3D)
+
+    public var outputType: LUTFormatterOutputType {
+        switch self {
+        case .lut1D:
+            return .lut1D
+        case .lut3D:
+            return .lut3D
+        }
+    }
+
+    public var passthroughFileOptions: [String: Any] {
+        switch self {
+        case .lut1D(let lut):
+            return lut.passthroughFileOptions
+        case .lut3D(let lut):
+            return lut.passthroughFileOptions
+        }
+    }
+}
+
+public struct LUTFormatterDescriptor {
+    public struct Roles: OptionSet, Sendable {
+        public let rawValue: Int
+
+        public static let read = Roles(rawValue: 1 << 0)
+        public static let write = Roles(rawValue: 1 << 1)
+
+        public init(rawValue: Int) {
+            self.rawValue = rawValue
+        }
+    }
+
+    public let id: String
+    public let name: String
+    public let fileExtensions: [String]
+    public let output: LUTFormatterOutputType
+    public let roles: Roles
+    public let uti: String?
+    public let defaultOptions: [String: Any]?
+    public let allOptions: [[String: Any]]?
+    public let alternateIdentifiers: [String]
+
+    private let reader: ((URL) throws -> LUTFormatterPayload)?
+    private let writer: ((LUTFormatterPayload, URL, [String: Any]?) throws -> Void)?
+
+    public init(id: String,
+                name: String,
+                fileExtensions: [String],
+                output: LUTFormatterOutputType,
+                roles: Roles,
+                uti: String? = nil,
+                defaultOptions: [String: Any]? = nil,
+                allOptions: [[String: Any]]? = nil,
+                alternateIdentifiers: [String] = [],
+                reader: ((URL) throws -> LUTFormatterPayload)? = nil,
+                writer: ((LUTFormatterPayload, URL, [String: Any]?) throws -> Void)? = nil) {
+        self.id = id
+        self.name = name
+        self.fileExtensions = fileExtensions
+        self.output = output
+        self.roles = roles
+        self.uti = uti
+        self.defaultOptions = defaultOptions
+        self.allOptions = allOptions
+        self.alternateIdentifiers = alternateIdentifiers
+        self.reader = reader
+        self.writer = writer
+    }
+
+    public func read(url: URL) throws -> LUTFormatterPayload {
+        guard roles.contains(.read), let reader else {
+            throw CocoaLUT.Error.readUnsupportedFormatter(id)
+        }
+        return try reader(url)
+    }
+
+    public func write(_ payload: LUTFormatterPayload,
+                      to url: URL,
+                      options: [String: Any]? = nil) throws {
+        guard roles.contains(.write), let writer else {
+            throw CocoaLUT.Error.writeUnsupportedFormatter(id)
+        }
+        try writer(payload, url, options)
+    }
+}
+
+private enum LUTFormatterRegistry {
+    static func descriptors() -> [LUTFormatterDescriptor] {
+        []
+    }
+
+    static func descriptor(for identifier: String) -> LUTFormatterDescriptor? {
+        descriptors().first { descriptor in
+            descriptor.id == identifier || descriptor.alternateIdentifiers.contains(identifier)
+        }
+    }
+
+    static func descriptors(forFileExtension ext: String) -> [LUTFormatterDescriptor] {
+        let lowercasedExtension = ext.lowercased()
+        return descriptors().filter { descriptor in
+            descriptor.fileExtensions.contains { $0.lowercased() == lowercasedExtension }
+        }
+    }
+}
+
+public enum CocoaLUT {
+    public enum Error: Swift.Error, LocalizedError {
+        case formatterNotFound(String)
+        case readUnsupportedFormatter(String)
+        case writeUnsupportedFormatter(String)
+        case invalidPayload(expected: LUTFormatterOutputType, actual: LUTFormatterOutputType)
+
+        public var errorDescription: String? {
+            switch self {
+            case .formatterNotFound(let id):
+                return "No formatter registered with identifier \(id)."
+            case .readUnsupportedFormatter(let id):
+                return "Formatter \(id) does not support reading."
+            case .writeUnsupportedFormatter(let id):
+                return "Formatter \(id) does not support writing."
+            case .invalidPayload(let expected, let actual):
+                return "Formatter expected payload type \(expected.rawValue) but received \(actual.rawValue)."
+            }
+        }
+    }
+
+    public static let suggestedMaxLUT1DSize = LUTConstants.suggestedMax1DSize
+    public static let suggestedMaxLUT3DSize = LUTConstants.suggestedMax3DSize
+    public static let maxCIColorCubeSize = LUTConstants.maxCIColorCubeSize
+    public static let maxVVLUT1DFilterSize = LUTConstants.maxVVLUT1DFilterSize
+
+    public static func descriptor(for identifier: String) throws -> LUTFormatterDescriptor {
+        guard let descriptor = LUTFormatterRegistry.descriptor(for: identifier) else {
+            throw Error.formatterNotFound(identifier)
+        }
+        return descriptor
+    }
+
+    public static func descriptors(forFileExtension ext: String) -> [LUTFormatterDescriptor] {
+        LUTFormatterRegistry.descriptors(forFileExtension: ext)
+    }
+
+    public static func read(from url: URL, formatterIdentifier: String? = nil) throws -> LUTFormatterPayload {
+        if let formatterIdentifier {
+            let descriptor = try descriptor(for: formatterIdentifier)
+            return try descriptor.read(url: url)
+        }
+
+        let matches = descriptors(forFileExtension: url.pathExtension)
+        guard !matches.isEmpty else {
+            throw Error.formatterNotFound(url.pathExtension)
+        }
+
+        var lastError: Swift.Error?
+        for descriptor in matches where descriptor.roles.contains(.read) {
+            do {
+                return try descriptor.read(url: url)
+            } catch {
+                lastError = error
+            }
+        }
+
+        throw lastError ?? Error.readUnsupportedFormatter(url.pathExtension)
+    }
+
+    public static func write(_ payload: LUTFormatterPayload,
+                             to url: URL,
+                             formatterIdentifier: String,
+                             options: [String: Any]? = nil) throws {
+        let descriptor = try descriptor(for: formatterIdentifier)
+        guard descriptor.roles.contains(.write) else {
+            throw Error.writeUnsupportedFormatter(formatterIdentifier)
+        }
+        if descriptor.output != .either && descriptor.output != payload.outputType {
+            throw Error.invalidPayload(expected: descriptor.output, actual: payload.outputType)
+        }
+        try descriptor.write(payload, to: url, options: options)
+    }
+}
