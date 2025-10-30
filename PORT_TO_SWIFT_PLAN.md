@@ -2,6 +2,12 @@
 
 This document is an actionable plan for porting the CocoaLUT Objective‑C codebase to Swift 6 as a Swift Package, using Test‑Driven Development (TDD). It is written for the human maintainer and for the AI agent that will do the porting work.
 
+## Status (updated 2025-10-30)
+
+- **Completion estimate:** ~88% of the Objective‑C surface has Swift equivalents with green tests (core math, processors, formatters, color spaces, GPUImage shim, and image-based helpers).
+- **What remains for 100% parity:** macOS-only UI/preview utilities, the ICC profile formatter, and a top-level Swift entry point that mirrors `CocoaLUT.h`/formatter discovery APIs.
+- **Next focus:** finish macOS preview pipeline ports, add ICC formatter tests, wire a Swift formatter registry & `CocoaLUT` facade, and retire the remaining Objective‑C files.
+
 Summary
 - Goal: Produce a Swift 6 implementation of the library (module name `CocoaLUTSwift`), preserve public API behavior, and keep a SwiftPM-first workflow. Maintain Objective‑C compatibility where needed for existing apps until migration is complete.
 - Strategy: Port incrementally, feature-by-feature, using TDD. Port core data model and pure logic first (LUT data structures, color math), then formatting (read/write), then platform rendering/wrapping (CoreImage/GPUImage), then utility/UI pieces.
@@ -23,7 +29,7 @@ Test Driven Development rules (strict)
 - Use XCTest with `swift test`. Add tests under `Tests/CocoaLUTSwiftTests/` matching package layout.
 - When porting code that uses global state or singletons, write tests that run in isolation (reset global state between tests).
 
-## Progress tracker (updated 2025-10-29)
+## Progress tracker (updated 2025-10-30)
 
 - [x] Establish Swift test target `CocoaLUTSwiftTests` scaffold.
 - [x] Port `LUTColor` with arithmetic/clamping tests.
@@ -68,6 +74,15 @@ Test Driven Development rules (strict)
   - [x] Add `process(ciImage:)` pipeline and verify output via `CIContext` sampling.
   - [x] Provide platform-specific image helpers (`processUIImage`, `processNSImage`) with coverage where possible.
   - [x] Bridge GPUImage wrapper or supply placeholder shim with tests (pending GPUImage availability).
+
+### Remaining items for full parity (identified 2025-10-30)
+
+- [ ] Port `LUTFormatterICCProfile` to Swift (macOS only) and add read/write regression tests using sample ICC data.
+- [ ] Port the macOS preview stack to SwiftUI/AppKit (`LUTPreviewScene`, `LUTPreviewImageGenerator`, `LUTPreviewView`, `LUT1DGraphView`) with lightweight rendering tests where possible.
+- [ ] Recreate a Swift formatter registry/entry points mirroring `LUTFormatter` discovery (`formatters(for:)`, convenience read/write on `LUT`).
+- [ ] Replace `CocoaLUT.h` macros with Swift symbols (constants for suggested sizes, `SystemColor` alias) and populate `CocoaLUT_swift.swift` as the public facade.
+- [ ] Remove or port the legacy Objective‑C image-based formatter scaffolding (`LUTFormatterImageBased`) once the Swift helpers cover all use cases.
+- [ ] Update README/API docs to describe the Swift-first surface and deprecation path for the Objective‑C headers.
 
 > Maintain TDD discipline: every item above remains unchecked until tests are in place and passing.
 
@@ -184,15 +199,13 @@ Tests: what to port first
   - LUT resizing/combining produces expected lattice values for small sizes (3–5) to make assertions easy.
 
 AI agent instructions (explicit steps)
-1. Continue working on the current branch (you are already on `swift`).
-2. Port `LUTColor` as a Swift `struct` with tests: create `Tests/CocoaLUTSwiftTests/LUTColorTests.swift` and implement basic arithmetic and clamping tests.
-3. Port `LUT` core: implement lattice representation (consider `Array<LUTColor>` flattened or 3D array) with `init(size:inputLowerBound:inputUpperBound:)` and `loop` helper. Write tests for `identity` and `colorAt(r:g:b:)`.
-4. Port `LUT1D` and `LUT3D` minimal functionality and conversion routines with tests.
-5. Port `LUTHelper` functions used by the above.
-6. Once the core passes, port one formatter (`LUTFormatterCube`) and write roundtrip IO tests using the sample `.cube` in `Assets/TransferFunctionLUTs/`.
-7. Continue with remaining formatters by priority.
-8. Port `LUTProcessor` and a sample `LUTReverser` behavior with async-friendly Swift APIs (use `Task`/`async` where appropriate but preserve synchronous API if used by other code).
-9. Port optional platform-specific pieces (SceneKit preview, GPUImage filter) last.
+1. Continue working on the current branch (`swift`) and keep TDD discipline.
+2. Port `LUTFormatterICCProfile` to Swift, covering both read and write paths with fixture-based tests.
+3. Port the macOS preview stack (`LUTPreviewScene`, `LUTPreviewImageGenerator`, `LUTPreviewView`, `LUT1DGraphView`) to Swift (SwiftUI/AppKit as appropriate) and add smoke tests that validate image generation.
+4. Introduce a Swift formatter registry that mirrors the Objective‑C `LUTFormatter` discovery API and expose convenience `LUT` read/write helpers that delegate to it.
+5. Replace `CocoaLUT.h` macros with Swift constants/types inside `CocoaLUT_swift.swift` (suggested sizes, `SystemColor` typealias, etc.).
+6. Remove or reimplement the legacy Objective‑C `LUTFormatterImageBased` scaffolding once equivalent Swift utilities cover its behavior.
+7. Update README/API docs after the above tasks to document the Swift-first entry points and Objective‑C compatibility story.
 
 Notes and constraints
 - Preserve numeric behavior: unit tests must assert numerics to reasonable tolerances (use `XCTAssertEqualWithAccuracy` / `XCTAssertEqual` with tolerance).
