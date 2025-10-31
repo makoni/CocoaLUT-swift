@@ -94,7 +94,7 @@ Test Driven Development rules (strict)
       - [x] Wire remaining legacy sidecar descriptors.
 - [x] Replace `CocoaLUT.h` macros with Swift symbols (constants for suggested sizes, `SystemColor` alias) and populate `CocoaLUT_swift.swift` as the public facade.
 - [x] Remove or port the legacy Objective‑C image-based formatter scaffolding (`LUTFormatterImageBased`) once the Swift helpers cover all use cases.
-- [ ] Update README/API docs to describe the Swift-first surface and deprecation path for the Objective‑C headers.
+- [x] Update README/API docs to describe the Swift-first surface and deprecation path for the Objective‑C headers.
 
 > Maintain TDD discipline: every item above remains unchecked until tests are in place and passing.
 
