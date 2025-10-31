@@ -5,8 +5,8 @@ This document is an actionable plan for porting the CocoaLUT Objective‑C codeb
 ## Status (updated 2025-10-31)
 
 - **Completion estimate:** ~88% of the Objective‑C surface has Swift equivalents with green tests (core math, processors, formatters, color spaces, GPUImage shim, and image-based helpers).
-- **What remains for 100% parity:** finalize the Swift formatter registry & `CocoaLUT` facade, replace `CocoaLUT.h` macros with Swift-native constants, and retire the remaining Objective‑C scaffolding.
-- **Next focus:** deliver the public Swift facade, migrate the remaining constants/macros, and start decommissioning the Objective‑C helper modules.
+- **What remains for 100% parity:** retire the remaining Objective‑C scaffolding (image-based formatter helpers, transitional headers) and document the Swift-first API surface.
+- **Next focus:** decommission the Objective‑C image-based helpers, smooth out concurrency annotations, and refresh the README/API docs for the Swift facade.
 
 Summary
 - Goal: Produce a Swift 6 implementation of the library (module name `CocoaLUTSwift`), preserve public API behavior, and keep a SwiftPM-first workflow. Maintain Objective‑C compatibility where needed for existing apps until migration is complete.
@@ -79,7 +79,7 @@ Test Driven Development rules (strict)
 
 - [x] Port `LUTFormatterICCProfile` to Swift (macOS only) and add read/write regression tests using sample ICC data.
 - [x] Port the macOS preview stack to SwiftUI/AppKit (`LUTPreviewScene`, `LUTPreviewImageGenerator`, `LUTPreviewView`, `LUT1DGraphView`) with lightweight rendering tests where possible.
-- [ ] Recreate a Swift formatter registry/entry points mirroring `LUTFormatter` discovery (`formatters(for:)`, convenience read/write on `LUT`).
+- [x] Recreate a Swift formatter registry/entry points mirroring `LUTFormatter` discovery (`formatters(for:)`, convenience read/write on `LUT`).
   - [x] Establish registry infrastructure (`LUTFormatterDescriptor`, payload enum, `CocoaLUT` facade constants/tests).
   - [x] Register initial formatter (Cube) and prove read/write plumbing via tests.
   - [x] Add Hald CLUT formatter coverage to the registry with TIFF round-trip tests.
@@ -92,7 +92,7 @@ Test Driven Development rules (strict)
     - [x] Add MatchLight aliases and the remaining legacy sidecars.
       - [x] Support MatchLight alias lookup (camel-case and lowercase identifiers).
       - [x] Wire remaining legacy sidecar descriptors.
-- [ ] Replace `CocoaLUT.h` macros with Swift symbols (constants for suggested sizes, `SystemColor` alias) and populate `CocoaLUT_swift.swift` as the public facade.
+- [x] Replace `CocoaLUT.h` macros with Swift symbols (constants for suggested sizes, `SystemColor` alias) and populate `CocoaLUT_swift.swift` as the public facade.
 - [ ] Remove or port the legacy Objective‑C image-based formatter scaffolding (`LUTFormatterImageBased`) once the Swift helpers cover all use cases.
 - [ ] Update README/API docs to describe the Swift-first surface and deprecation path for the Objective‑C headers.
 
