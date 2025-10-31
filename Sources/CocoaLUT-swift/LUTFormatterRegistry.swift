@@ -103,6 +103,8 @@ private enum LUTFormatterRegistry {
      ilutDescriptor(),
      olutDescriptor(),
      quantelDescriptor(),
+     resolveDATDescriptor(),
+     davinciDescriptor(),
      unwrappedTextureDescriptor()]
     }
 
@@ -396,6 +398,77 @@ private enum LUTFormatterRegistry {
         )
     }
 
+    private static func resolveDATDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterResolveDAT.formatterIdentifier
+        let defaultVariant: [String: Any] = ["fileTypeVariant": "Resolve"]
+        let defaultOptions: [String: Any] = [formatterID: defaultVariant]
+        let allOptions: [[String: Any]] = [[
+            "fileTypeVariant": "Resolve"
+        ], [
+            "fileTypeVariant": "DaVinci"
+        ]]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "Resolve DAT 3D LUT",
+            fileExtensions: ["dat"],
+            output: .lut3D,
+            roles: [.read, .write],
+            uti: "public.dat-lut",
+            defaultOptions: defaultOptions,
+            allOptions: allOptions,
+            alternateIdentifiers: ["ResolveDAT"],
+            reader: { url in
+                let lut = try LUTFormatterResolveDAT.read(url: url)
+                return .lut3D(lut)
+            },
+            writer: { payload, url, options in
+                guard case .lut3D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut3D, actual: payload.outputType)
+                }
+
+                let writeOptions = normalizedResolveOptions(from: options)
+                let contents = try LUTFormatterResolveDAT.write(lut, options: writeOptions)
+                try contents.write(to: url, atomically: true, encoding: .utf8)
+            }
+        )
+    }
+
+    private static func davinciDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterDaVinciDAVLUT.formatterIdentifier
+        let resolveKey = LUTFormatterResolveDAT.formatterIdentifier
+        let defaultVariant: [String: Any] = ["fileTypeVariant": "DaVinci"]
+        let defaultOptions: [String: Any] = [
+            resolveKey: defaultVariant,
+            formatterID: defaultVariant
+        ]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: LUTFormatterDaVinciDAVLUT.formatterName(),
+            fileExtensions: LUTFormatterDaVinciDAVLUT.fileExtensions(),
+            output: .lut3D,
+            roles: [.read, .write],
+            uti: "com.blackmagicdesign.davlut",
+            defaultOptions: defaultOptions,
+            allOptions: [["fileTypeVariant": "DaVinci"]],
+            alternateIdentifiers: ["DaVinci"],
+            reader: { url in
+                let lut = try LUTFormatterDaVinciDAVLUT.read(url: url)
+                return .lut3D(lut)
+            },
+            writer: { payload, url, options in
+                guard case .lut3D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut3D, actual: payload.outputType)
+                }
+
+                let writeOptions = normalizedResolveOptions(from: options) ?? LUTFormatterResolveDAT.Options(fileTypeVariant: "DaVinci")
+                let contents = try LUTFormatterResolveDAT.write(lut, options: writeOptions)
+                try contents.write(to: url, atomically: true, encoding: .utf8)
+            }
+        )
+    }
+
     private static func unwrappedTextureDescriptor() -> LUTFormatterDescriptor {
         let formatterID = LUTFormatterUnwrappedTexture.formatterIdentifier
         let defaultMetadata = LUTFormatterUnwrappedTexture.Options().metadata()
@@ -591,6 +664,30 @@ private enum LUTFormatterRegistry {
         if let integerMax = integerValue(from: options["integerMaxOutput"]),
            let lutSize = integerValue(from: options["lutSize"]) {
             return LUTFormatterQuantel.Options(integerMaxOutput: integerMax, lutSize: lutSize)
+        }
+
+        return nil
+    }
+
+    private static func normalizedResolveOptions(from options: [String: Any]?) -> LUTFormatterResolveDAT.Options? {
+        guard let options else { return nil }
+
+        let candidateKeys = [
+            LUTFormatterResolveDAT.formatterIdentifier,
+            LUTFormatterDaVinciDAVLUT.formatterIdentifier,
+            "ResolveDAT",
+            "DaVinci"
+        ]
+
+        for key in candidateKeys {
+            if let nested = options[key] as? [String: Any],
+               let variant = nested["fileTypeVariant"] as? String {
+                return LUTFormatterResolveDAT.Options(fileTypeVariant: variant)
+            }
+        }
+
+        if let variant = options["fileTypeVariant"] as? String {
+            return LUTFormatterResolveDAT.Options(fileTypeVariant: variant)
         }
 
         return nil

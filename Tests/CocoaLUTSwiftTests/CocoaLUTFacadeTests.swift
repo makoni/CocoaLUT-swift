@@ -63,6 +63,22 @@ final class CocoaLUTFacadeTests: XCTestCase {
         """
     }
 
+    private func sampleResolveDATString() -> String {
+        """
+        # Resolve DAT sample
+        3DLUTSIZE 2
+
+        0.0 0.0 0.0
+        0.0 0.0 1.0
+        0.0 1.0 0.0
+        0.0 1.0 1.0
+        1.0 0.0 0.0
+        1.0 0.2 0.8
+        1.0 1.0 0.0
+        1.0 1.0 1.0
+        """
+    }
+
     func testConstantsMirrorHelperValues() {
         XCTAssertEqual(CocoaLUT.suggestedMaxLUT1DSize, LUTConstants.suggestedMax1DSize)
         XCTAssertEqual(CocoaLUT.suggestedMaxLUT3DSize, LUTConstants.suggestedMax3DSize)
@@ -166,6 +182,38 @@ final class CocoaLUTFacadeTests: XCTestCase {
     func testDescriptorsLookupByExtensionIncludesQuantel() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "TXT")
         XCTAssertTrue(descriptors.contains { $0.id == LUTFormatterQuantel.formatterIdentifier })
+    }
+
+    func testResolveDATDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterResolveDAT.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, "Resolve DAT 3D LUT")
+        XCTAssertEqual(descriptor.fileExtensions, ["dat"])
+        XCTAssertEqual(descriptor.output, .lut3D)
+        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+
+        let options = descriptor.defaultOptions?[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, "Resolve")
+    }
+
+    func testDescriptorsLookupByExtensionIncludesResolveDAT() {
+        let descriptors = CocoaLUT.descriptors(forFileExtension: "DAT")
+        XCTAssertTrue(descriptors.contains { $0.id == LUTFormatterResolveDAT.formatterIdentifier })
+    }
+
+    func testDaVinciDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterDaVinciDAVLUT.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, LUTFormatterDaVinciDAVLUT.formatterName())
+        XCTAssertEqual(descriptor.fileExtensions, LUTFormatterDaVinciDAVLUT.fileExtensions())
+        XCTAssertEqual(descriptor.output, .lut3D)
+        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+
+        let resolveOptions = descriptor.defaultOptions?[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(resolveOptions?["fileTypeVariant"] as? String, "DaVinci")
+    }
+
+    func testDescriptorsLookupByExtensionIncludesDaVinci() {
+        let descriptors = CocoaLUT.descriptors(forFileExtension: "DAVLUT")
+        XCTAssertTrue(descriptors.contains { $0.id == LUTFormatterDaVinciDAVLUT.formatterIdentifier })
     }
 
     func testHaldDescriptorIsRegistered() throws {
@@ -339,6 +387,69 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(lut.colorAt(r: 0, g: 0, b: 1).blue, 1023.0 / 1023.0, accuracy: 1e-9)
     }
 
+    func testReadResolveDATByIdentifier() throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("sample.dat")
+        try sampleResolveDATString().write(to: fileURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterResolveDAT.formatterIdentifier)
+        guard case .lut3D(let lut) = payload else {
+            return XCTFail("Expected LUT3D payload from Resolve DAT file")
+        }
+
+        XCTAssertEqual(lut.size, 2)
+        let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Resolve")
+    }
+
+    func testReadResolveDATFallsBackToExtensionMatching() throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("fallback.dat")
+        try sampleResolveDATString().write(to: fileURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let payload = try CocoaLUT.read(from: fileURL)
+        guard case .lut3D(let lut) = payload else {
+            return XCTFail("Expected LUT3D payload from Resolve DAT extension lookup")
+        }
+
+        XCTAssertEqual(lut.size, 2)
+    }
+
+    func testReadDaVinciByIdentifier() throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("sample.davlut")
+        try sampleResolveDATString().write(to: fileURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterDaVinciDAVLUT.formatterIdentifier)
+        guard case .lut3D(let lut) = payload else {
+            return XCTFail("Expected LUT3D payload from DaVinci DAVLUT file")
+        }
+
+        let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "DaVinci")
+    }
+
+    func testReadDaVinciFallsBackToExtensionMatching() throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("fallback.davlut")
+        try sampleResolveDATString().write(to: fileURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let payload = try CocoaLUT.read(from: fileURL)
+        guard case .lut3D(let lut) = payload else {
+            return XCTFail("Expected LUT3D payload from DaVinci extension lookup")
+        }
+
+        XCTAssertEqual(lut.size, 2)
+    }
+
     func testWriteCubeRoundTrip() throws {
         let originalPayload = try CocoaLUT.read(from: cubeURL())
         guard case .lut1D(let lut) = originalPayload else {
@@ -455,6 +566,60 @@ final class CocoaLUTFacadeTests: XCTestCase {
         let passthrough = lut.passthroughFileOptions[LUTFormatterQuantel.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(integer(from: passthrough?["lutSize"]), original.size)
         XCTAssertEqual(integer(from: passthrough?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 10))
+    }
+
+    func testWriteResolveDATRoundTrip() throws {
+        var original = LUT3D.identity(size: 4, inputLowerBound: 0, inputUpperBound: 1)
+        original.passthroughFileOptions = [
+            LUTFormatterResolveDAT.formatterIdentifier: [
+                "fileTypeVariant": "Resolve"
+            ]
+        ]
+
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("roundtrip.dat")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        try CocoaLUT.write(.lut3D(original),
+                           to: fileURL,
+                           formatterIdentifier: LUTFormatterResolveDAT.formatterIdentifier)
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterResolveDAT.formatterIdentifier)
+        guard case .lut3D(let lut) = payload else {
+            return XCTFail("Expected LUT3D payload from round-tripped Resolve DAT file")
+        }
+
+        XCTAssertTrue(lut.equals(original, tolerance: 1e-9))
+        let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Resolve")
+    }
+
+    func testWriteDaVinciRoundTrip() throws {
+        var original = LUT3D.identity(size: 4, inputLowerBound: 0, inputUpperBound: 1)
+        original.passthroughFileOptions = [
+            LUTFormatterResolveDAT.formatterIdentifier: [
+                "fileTypeVariant": "DaVinci"
+            ]
+        ]
+
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("roundtrip.davlut")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        try CocoaLUT.write(.lut3D(original),
+                           to: fileURL,
+                           formatterIdentifier: LUTFormatterDaVinciDAVLUT.formatterIdentifier)
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterDaVinciDAVLUT.formatterIdentifier)
+        guard case .lut3D(let lut) = payload else {
+            return XCTFail("Expected LUT3D payload from round-tripped DaVinci file")
+        }
+
+        XCTAssertTrue(lut.equals(original, tolerance: 1e-9))
+        let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "DaVinci")
     }
 
     func testRead3DLByIdentifier() throws {
