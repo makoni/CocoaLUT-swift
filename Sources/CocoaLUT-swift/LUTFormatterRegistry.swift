@@ -105,6 +105,7 @@ private enum LUTFormatterRegistry {
      quantelDescriptor(),
      resolveDATDescriptor(),
      davinciDescriptor(),
+     matchLightDescriptor(),
      unwrappedTextureDescriptor()]
     }
 
@@ -469,6 +470,31 @@ private enum LUTFormatterRegistry {
         )
     }
 
+    private static func matchLightDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterMatchLight.formatterIdentifier
+        let defaultOptions: [String: Any] = [
+            formatterID: [
+                "fileTypeVariant": "MatchLight"
+            ]
+        ]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "LightIllusion MatchLight 3D LUT",
+            fileExtensions: ["mlc"],
+            output: .lut3D,
+            roles: [.read],
+            uti: "com.lightillusion.mlc",
+            defaultOptions: defaultOptions,
+            allOptions: [["fileTypeVariant": "MatchLight"]],
+            alternateIdentifiers: ["MatchLight"],
+            reader: { url in
+                let lut = try LUTFormatterMatchLight.read(url: url)
+                return .lut3D(lut)
+            }
+        )
+    }
+
     private static func unwrappedTextureDescriptor() -> LUTFormatterDescriptor {
         let formatterID = LUTFormatterUnwrappedTexture.formatterIdentifier
         let defaultMetadata = LUTFormatterUnwrappedTexture.Options().metadata()
@@ -765,6 +791,7 @@ public enum CocoaLUT {
         if descriptor.output != .either && descriptor.output != payload.outputType {
             throw Error.invalidPayload(expected: descriptor.output, actual: payload.outputType)
         }
-        try descriptor.write(payload, to: url, options: options)
+        let effectiveOptions = options ?? payload.passthroughFileOptions
+        try descriptor.write(payload, to: url, options: effectiveOptions.isEmpty ? nil : effectiveOptions)
     }
 }

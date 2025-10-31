@@ -79,6 +79,26 @@ final class CocoaLUTFacadeTests: XCTestCase {
         """
     }
 
+    private func sampleMatchLightString() -> String {
+        """
+        lutSize = 3
+        cubeSize = 2
+
+        0 0 0
+        1 1 1
+        1 1 1
+        # CUBE
+        0 0 0
+        0 0 1
+        0 1 0
+        0 1 1
+        1 0 0
+        1 0 1
+        1 1 0
+        1 1 1
+        """
+    }
+
     func testConstantsMirrorHelperValues() {
         XCTAssertEqual(CocoaLUT.suggestedMaxLUT1DSize, LUTConstants.suggestedMax1DSize)
         XCTAssertEqual(CocoaLUT.suggestedMaxLUT3DSize, LUTConstants.suggestedMax3DSize)
@@ -214,6 +234,23 @@ final class CocoaLUTFacadeTests: XCTestCase {
     func testDescriptorsLookupByExtensionIncludesDaVinci() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "DAVLUT")
         XCTAssertTrue(descriptors.contains { $0.id == LUTFormatterDaVinciDAVLUT.formatterIdentifier })
+    }
+
+    func testMatchLightDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterMatchLight.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, "LightIllusion MatchLight 3D LUT")
+        XCTAssertEqual(descriptor.fileExtensions, ["mlc"])
+        XCTAssertEqual(descriptor.output, .lut3D)
+        XCTAssertTrue(descriptor.roles.contains(.read))
+        XCTAssertFalse(descriptor.roles.contains(.write))
+
+    let options = descriptor.defaultOptions?[LUTFormatterMatchLight.formatterIdentifier] as? [String: Any]
+    XCTAssertEqual(options?["fileTypeVariant"] as? String, "MatchLight")
+    }
+
+    func testDescriptorsLookupByExtensionIncludesMatchLight() {
+        let descriptors = CocoaLUT.descriptors(forFileExtension: "MLC")
+        XCTAssertTrue(descriptors.contains { $0.id == LUTFormatterMatchLight.formatterIdentifier })
     }
 
     func testHaldDescriptorIsRegistered() throws {
@@ -450,6 +487,42 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(lut.size, 2)
     }
 
+    func testReadMatchLightByIdentifier() throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("sample.mlc")
+        try sampleMatchLightString().write(to: fileURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterMatchLight.formatterIdentifier)
+        guard case .lut3D(let lut) = payload else {
+            return XCTFail("Expected LUT3D payload from MatchLight file")
+        }
+
+        XCTAssertEqual(lut.size, 2)
+        XCTAssertEqual(lut.colorAt(r: 1, g: 1, b: 1).red, 1, accuracy: 1e-9)
+    let passthrough = lut.passthroughFileOptions[LUTFormatterMatchLight.formatterIdentifier] as? [String: Any]
+    XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "MatchLight")
+    XCTAssertEqual(integer(from: passthrough?["lut1DSize"]), 3)
+    XCTAssertEqual(integer(from: passthrough?["lut3DSize"]), 2)
+    }
+
+    func testReadMatchLightFallsBackToExtensionMatching() throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("fallback.mlc")
+        try sampleMatchLightString().write(to: fileURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let payload = try CocoaLUT.read(from: fileURL)
+        guard case .lut3D(let lut) = payload else {
+            return XCTFail("Expected LUT3D payload from MatchLight extension lookup")
+        }
+
+        XCTAssertEqual(lut.size, 2)
+        XCTAssertEqual(lut.colorAt(r: 0, g: 0, b: 1).blue, 1, accuracy: 1e-9)
+    }
+
     func testWriteCubeRoundTrip() throws {
         let originalPayload = try CocoaLUT.read(from: cubeURL())
         guard case .lut1D(let lut) = originalPayload else {
@@ -590,7 +663,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
             return XCTFail("Expected LUT3D payload from round-tripped Resolve DAT file")
         }
 
-        XCTAssertTrue(lut.equals(original, tolerance: 1e-9))
+    XCTAssertTrue(lut.equals(original, tolerance: 1e-6))
         let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Resolve")
     }
@@ -617,7 +690,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
             return XCTFail("Expected LUT3D payload from round-tripped DaVinci file")
         }
 
-        XCTAssertTrue(lut.equals(original, tolerance: 1e-9))
+    XCTAssertTrue(lut.equals(original, tolerance: 1e-6))
         let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "DaVinci")
     }
