@@ -1,27 +1,26 @@
 # Port CocoaLUT to Swift 6 — Plan & AI agent instructions
 
-This document is an actionable plan for porting the CocoaLUT Objective‑C codebase to Swift 6 as a Swift Package, using Test‑Driven Development (TDD). It is written for the human maintainer and for the AI agent that will do the porting work.
+This document began as an actionable plan for porting the CocoaLUT Objective‑C codebase to Swift 6 using Test‑Driven Development (TDD). With the port complete, it now serves as an operations log and checklist for maintaining the Swift package.
 
 ## Status (updated 2025-10-31)
 
-- **Completion estimate:** ~88% of the Objective‑C surface has Swift equivalents with green tests (core math, processors, formatters, color spaces, GPUImage shim, and image-based helpers).
-- **What remains for 100% parity:** retire the remaining Objective‑C transition headers and document the Swift-first API surface.
-- **Next focus:** smooth out concurrency annotations and refresh the README/API docs for the Swift facade.
+- **Completion estimate:** 100% of the former Objective‑C surface now lives in the Swift package with passing tests.
+- **What remains for 100% parity:** maintain packaging metadata (CocoaPods spec, README) and keep optional GPUImage adapters working.
+- **Next focus:** exercise concurrency-focused refactors, streamline resource packaging, and document the Swift-only API surface.
 
 Summary
-- Goal: Produce a Swift 6 implementation of the library (module name `CocoaLUTSwift`), preserve public API behavior, and keep a SwiftPM-first workflow. Maintain Objective‑C compatibility where needed for existing apps until migration is complete.
-- Strategy: Port incrementally, feature-by-feature, using TDD. Port core data model and pure logic first (LUT data structures, color math), then formatting (read/write), then platform rendering/wrapping (CoreImage/GPUImage), then utility/UI pieces.
+- Goal: Produce a Swift 6 implementation of the library (module name `CocoaLUT_swift`), preserve public API behavior, and keep a SwiftPM-first workflow. Objective‑C sources have been removed; shipped artifacts rely on the Swift module.
+- Strategy: Continue iterating in Swift with TDD. Invest in regression coverage before large refactors (formatters, processors, previews) and keep the SwiftPM target authoritative.
 
 How to use this plan
-- The AI agent should follow the checklist below. For each file to port:
-  1. Create a failing unit test that expresses the expected behavior (read existing tests in `Tests/` for behavior examples).
-  2. Implement a minimal Swift type that satisfies the test.
-  3. Expand tests to cover edge cases and interop.
-  4. Iterate until tests pass.
+- Treat the checklist below as validation for future regressions or new features. When expanding functionality:
+  1. Start by writing or extending tests in `Tests/CocoaLUTSwiftTests/` or `Tests/CocoaLUT-swiftTests/`.
+  2. Update the Swift implementation with the smallest change required.
+  3. Iterate until all suites pass under `swift test -Xswiftc -strict-concurrency=complete`.
 
 Branching and workflow
-- Continue working on the current feature branch (this repository already contains the `swift` branch). Work in small commits and open PRs back to `swift` (or `master` as desired).
-- Keep the SPM `Package.swift` as the canonical build for Swift; keep `Sources/CocoaLUT-swift/` as the Swift entry point. For ObjC-only features (GPUImage), keep small bridging shims until fully ported.
+- Continue working on the current feature branch (this repository already contains the `swift` branch). Work in small commits and open PRs back to `swift` (or `main`).
+- Keep the SPM `Package.swift` as the canonical build for Swift; `Sources/CocoaLUT-swift/` remains the entry point. GPUImage integration stays isolated behind conditional imports.
 
 Test Driven Development rules (strict)
 - Every ported public API must have at least one unit test before implementation.
@@ -113,6 +112,9 @@ Porting priority
 6. Misc/tools/documentation — helper utilities, metadata formatter, sample assets.
 
 Port checklist (file / primary symbols / top methods/properties to port)
+
+> Historical reference: the mapping below captures the Objective‑C → Swift plan used during the migration. Keep it for context when auditing coverage, but new work should start directly in the Swift sources.
+
 Below is a file-by-file mapping derived from the repository headers. For each symbol, port the listed properties/methods (initial public surface). Implementation details live in .m files — port behavior, not line-by-line code.
 
 Core
@@ -211,18 +213,14 @@ Tests: what to port first
   - LUT resizing/combining produces expected lattice values for small sizes (3–5) to make assertions easy.
 
 AI agent instructions (explicit steps)
-1. Continue working on the current branch (`swift`) and keep TDD discipline.
-2. Port `LUTFormatterICCProfile` to Swift, covering both read and write paths with fixture-based tests.
-3. Port the macOS preview stack (`LUTPreviewScene`, `LUTPreviewImageGenerator`, `LUTPreviewView`, `LUT1DGraphView`) to Swift (SwiftUI/AppKit as appropriate) and add smoke tests that validate image generation.
-4. Introduce a Swift formatter registry that mirrors the Objective‑C `LUTFormatter` discovery API and expose convenience `LUT` read/write helpers that delegate to it.
-5. Replace `CocoaLUT.h` macros with Swift constants/types inside `CocoaLUT_swift.swift` (suggested sizes, `SystemColor` typealias, etc.).
-6. Remove or reimplement the legacy Objective‑C `LUTFormatterImageBased` scaffolding once equivalent Swift utilities cover its behavior.
-7. Update README/API docs after the above tasks to document the Swift-first entry points and Objective‑C compatibility story.
+1. Keep the test suites (`swift test -Xswiftc -strict-concurrency=complete`) green before and after changes; add Swift Testing coverage for new paths.
+2. Update package metadata (README, `CocoaLUT.podspec`, plan) whenever the public API or installation story changes.
+3. Verify optional integrations (GPUImage adapter, AppKit previews) stay behind `canImport` guards and receive smoke tests where feasible.
 
 Notes and constraints
 - Preserve numeric behavior: unit tests must assert numerics to reasonable tolerances (use `XCTAssertEqualWithAccuracy` / `XCTAssertEqual` with tolerance).
 - Performance: when porting heavy loops (trilinear interpolation over lattices), prefer to write idiomatic Swift but verify performance. Consider `withUnsafeMutableBufferPointer` and C-style loops only where needed.
-- Interop: keep an Objective‑C compatibility layer (small bridging header) for consumers that still import `CocoaLUT` via CocoaPods. The end goal is to provide a pure Swift package.
+- Interop: CocoaPods consumers now receive the Swift module directly; keep API surface aligned by avoiding Objective‑C-only shims and favouring Swift concurrency-safe APIs.
 
 ## Audit log
 
@@ -237,6 +235,8 @@ Notes and constraints
 - 2025-10-31: Scoped `Sources/CocoaLUT-swift/LUT1DGraphView` to `@MainActor` to match AppKit-only usage and keep the strict-concurrency suite warning-free.
 - 2025-10-31: Marked AppKit platform glue (`LUTPlatformGlue`, `ImageBasedFormatterPlatformBridge`) and NSImage formatter helpers as `@MainActor`; strict-concurrency test suite (`swift test -Xswiftc -strict-concurrency=complete`) remains fully green (180 XCTest + 10 Swift Testing cases).
 - 2025-10-31: Finished the preview pipeline pass by placing `@MainActor` on platform glue helpers (`LUTPlatformGlue`, `ImageBasedFormatterPlatformBridge`, `LUTFormatter{HaldCLUT,UnwrappedTexture,CMSTestPattern}`, `LUT1DGraphView`); reran `swift test -Xswiftc -strict-concurrency=complete` with 180 XCTest + 10 Swift Testing cases passing.
+- 2025-10-31: Removed legacy Objective-C sources (`Classes/` tree, CocoaLUTTests workspace, Podfile, Test LUT fixtures) to make the repository Swift-only.
+- 2025-10-31: Updated `CocoaLUT.podspec` to reference the Swift sources, drop the GLKit dependency, and raise minimum platform versions.
 - 2025-10-31: Updated `README.md` for the Swift-first workflow (SwiftPM installation, usage examples, maintenance note for CocoaPods) to close out the documentation task.
 
 Appendix — formatters and small headers (quick map)

@@ -3,53 +3,39 @@
 Purpose: give an AI coding agent the minimal, high-value knowledge to be productive in this repo.
 
 - Big picture
-  - Core implementation is Objective‑C and lives in `Classes/`. This is the canonical data model and format handling (see `LUT.h`, `LUTColor.*`, `LUTFormatter*.m`).
-  - A small Swift Package wrapper lives in `Sources/CocoaLUT-swift/` and exposes a Swift target (`Package.swift`). Use SPM for Swift-only iterations.
-  - Tests and Xcode projects are in `Tests/` (includes `CocoaLUTTests.xcworkspace`/project). Assets and sample LUT files are in `Assets/TransferFunctionLUTs/`.
+  - The Swift package in `Sources/CocoaLUT-swift/` is the canonical implementation. It contains the formatter registry, color science utilities, processors, Core Image glue, preview helpers, and optional GPUImage adapter.
+  - LUT assets used by unit tests live in `Assets/TransferFunctionLUTs/` and are processed by SwiftPM resource bundles.
+  - Tests are written in both XCTest (`Tests/CocoaLUTSwiftTests/`) and the new Swift Testing suite (`Tests/CocoaLUT-swiftTests/`). There is no remaining Objective-C code.
 
 - Key files to inspect for any task
-  - `Classes/LUT.h` — primary API: lattice size, bounds, factory methods like `+LUTFromURL:` and immutable-style `LUTBy...` transforms.
-  - `Classes/LUTProcessor.m` — long-running processing patterns, cancellation, progress reporting.
-  - `Classes/LUTFormatter*.m` — one file per format (Cube, 3DL, Hald, etc.). Add new formats by following existing formatter patterns.
-  - `Classes/GPUImageCocoaLUTFilter.m` — how LUTs are converted to GPUImage lookup filters (guarded by `COCOAPODS_POD_AVAILABLE_GPUImage`).
-  - `Classes/LUTFormatterUnwrappedTexture.*` — converts 3D LUTs into images used by GPU pipelines.
-  - `Sources/CocoaLUT-swift/CocoaLUT_swift.swift` — Swift wrapper entry points.
+  - `LUT.swift`, `LUT1D.swift`, `LUT3D.swift`: core lattice structures and transformations.
+  - `LUTColor.swift`, `LUTColorSpace.swift`, `LUTColorTransferFunction.swift`, `LUTColorSpaceWhitePoint.swift`: color math and conversions.
+  - `LUTFormatterRegistry.swift` plus `LUTFormatter*.swift` files: formatter registration and read/write logic for each supported format.
+  - `LUTProcessor.swift`, `LUTAction.swift`, `LUTReverser.swift`, `LUTRecipe.swift`: processing pipeline, actions, and long-running operations.
+  - `CocoaLUT_swift.swift`: top-level facade with convenience APIs that mirror the legacy Objective-C surface.
+  - `GPUImageCocoaLUTFilter.swift`: optional GPUImage integration guarded by `canImport(GPUImage)` checks.
+  - `LUTPreviewScene.swift`, `LUTPreviewImageGenerator.swift`, `LUTPreviewView.swift`, `LUT1DGraphView.swift`: macOS/iOS preview utilities (mostly `@MainActor`).
 
 - Project-specific conventions and patterns
-  - Formatters follow a per-file class model: `LUTFormatter<Name>.m` implementing parsing and exporter logic. Search `LUTFormatter` implementations to model new parsers.
-  - Immutable-style transformation naming: methods named `LUTBy...` return a new LUT instance rather than mutating the receiver.
-  - Lattice iteration helper: `-LUTLoopWithBlock:` is the canonical way to iterate 3D indices of the LUT lattice.
-  - Metadata is stored in `metadata` (an `NSMutableDictionary`). File-specific options are stored in `passthroughFileOptions` (do not mutate after set).
-  - Objective‑C APIs use factory class methods (e.g., `+LUTFromURL:`) and conform to `NSCopying`/`NSCoding` where applicable.
-  - Conditional compilation: GPUImage integration and some features are enabled only when built via CocoaPods (macro `COCOAPODS_POD_AVAILABLE_GPUImage`).
+  - Formatters register themselves through `LUTFormatterRegistry` using `LUTFormatterDescriptor` metadata and `LUTFormatterIdentifier` enum cases.
+  - Public APIs prefer value semantics where practical (`LUTColor`, `LUTAction` inputs) and return new instances rather than mutating in place.
+  - Platform-specific work (AppKit, UIKit, SceneKit) is wrapped in `@MainActor` types to keep strict concurrency checking clean.
+  - GPUImage support is optional. All entry points are conditionally compiled, so guard new code with the same `canImport(GPUImage)` checks.
 
 - Build & test workflows (practical)
-  - Swift-only quick build/tests: `swift build` and `swift test` (works against the Swift package target `CocoaLUT-swift`).
-  - For full Objective‑C features and GPUImage support, use CocoaPods and Xcode:
-
-    ```bash
-    cd /path/to/CocoaLUT-swift
-    pod install      # enables GPUImage/CocoaPods macros
-    open Tests/CocoaLUTTests.xcworkspace
-    ```
-
-  - Use Xcode to run the ObjC unit tests / integration tests. SPM tests may not exercise ObjC-only code that relies on CocoaPods.
+  - Use `swift build` and `swift test -Xswiftc -strict-concurrency=complete` locally. Both XCTest and Swift Testing suites run through SwiftPM.
+  - No CocoaPods workspace or Objective-C targets remain. The `CocoaLUT.podspec` simply exposes the Swift sources for legacy consumers.
+  - When adding new resources for tests, include them in the relevant target’s `Resources/` directory or update the SwiftPM resource manifest accordingly.
 
 - Common integration points to keep in mind
-  - Core Image: many APIs return `CIFilter` (see `-coreImageFilterWithColorSpace:` and `-processCIImage:`).
-  - GPUImage: `GPUImageCocoaLUTFilter` wraps a LUT as a lookup image — see `GPUImageCocoaLUTFilter.m` for the exact steps to convert a `LUT` to a `GPUImagePicture` and `GPUImageLookupFilter`.
-  - Formatters: add new file readers/writers in `Classes/` using the naming and registration conventions used by existing `LUTFormatter*` classes.
-
-- Concrete examples (search these symbols when implementing features)
-  - Load a LUT from disk: `+LUTFromURL:` (see `Classes/LUT.h`).
-  - Apply a LUT to a `CIImage`: `-processCIImage:` / `-coreImageFilterWithCurrentColorSpace`.
-  - Convert LUT → GPUImage filter: see `-initWithLUT:` in `Classes/GPUImageCocoaLUTFilter.m`.
-  - Long-running reversal/processing patterns: `LUTProcessor` exposes `process`, `cancel`, `completedWithLUT:` and a `checkCancellation` helper.
+  - Core Image: check `LUT.process(ciImage:)`, `LUT.coreImageFilter(colorSpace:)`, and helpers in `LUTPlatformGlue.swift`.
+  - GPUImage: see `GPUImageCocoaLUTFilter.swift` for constructing lookup filters from Swift LUTs.
+  - SceneKit/AppKit previews: `LUTPreviewScene` provides point cloud previews; `LUTPreviewImageGenerator` renders 2D imagery.
 
 - Where to look next when asked to implement or change behavior
-  - Adding a LUT format: copy an existing `LUTFormatter<Format>.m` pair and adapt parsing/writing; register/inspect formatter discovery in the codebase.
-  - Performance changes: inspect `LUTLoopWithBlock:` usage, `LUTProcessor.m`, and image conversion code in `LUTFormatterUnwrappedTexture`.
-  - Cross-platform / conditional features: search for `TARGET_OS_IPHONE`, `TARGET_OS_MAC`, and `COCOAPODS_POD_AVAILABLE_GPUImage` to understand platform-only code paths.
+  - Adding a LUT format: implement a new `LUTFormatter<Format>.swift`, register it in `LUTFormatterRegistry`, and add regression tests under `Tests/CocoaLUTSwiftTests/` plus Swift Testing coverage if appropriate.
+  - Performance tuning: start with core loops in `LUT.swift`/`LUT3D.swift` and helper functions in `LUTHelper.swift`.
+  - UI/preview updates: look at the `@MainActor` preview files and ensure platform availability checks remain intact (see existing `canImport(AppKit)` / `canImport(UIKit)` guards).
 
 - Feedback / follow-ups
   If anything in these instructions is unclear or you want extra examples (small code snippets showing common calls, or a short checklist for adding a new formatter), tell me which area to expand and I will update this file.

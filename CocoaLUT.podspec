@@ -2,30 +2,24 @@ Pod::Spec.new do |s|
   s.name         = "CocoaLUT"
   s.version      = begin; File.read('VERSION'); rescue; '9000.0.0'; end
   s.summary      = "LUTs (1D and 3D color lookup tables) for Cocoa applications."
-  s.homepage     = "http://github.com/videovillage/CocoaLUT"
+  s.homepage     = "https://github.com/videovillage/CocoaLUT-swift"
   s.license      = 'MIT'
   s.author       = { "Wil Gieseler" => "wil@wilgieseler.com", "Greg Cotten" => "greg@gregcotten.com"}
-  s.source       = { :git => "https://github.com/videovillage/CocoaLUT.git", :tag => s.version }
+  s.source       = { :git => "https://github.com/videovillage/CocoaLUT-swift.git", :tag => s.version }
 
   s.resource_bundle = {'TransferFunctionLUTs' => 'Assets/TransferFunctionLUTs/*.cube'}
 
+  s.swift_version = '6.0'
   s.requires_arc = true
-  s.source_files = 'Classes/**/*'
-  s.public_header_files = 'Classes/**/*.h'
-  s.frameworks = ['QuartzCore', 'GLKit']
+  s.source_files = 'Sources/CocoaLUT-swift/**/*.swift'
+  s.frameworks = ['QuartzCore']
 
-  s.dependency 'RegExCategories'
-  s.dependency 'M13OrderedDictionary'
-  s.dependency 'XMLDictionary'
-
-  # iOS
-  s.ios.frameworks = 'UIKit'
-  s.ios.exclude_files = 'Classes/osx'
-  s.ios.deployment_target = '7.0'
-
-  # OS X
-  s.osx.frameworks = 'AppKit'
-  s.osx.exclude_files = 'Classes/ios'
-  s.osx.deployment_target = '10.7'
+  s.platforms = {
+    :ios => '13.0',
+    :osx => '10.15',
+    :tvos => '13.0',
+    :watchos => '6.0',
+    :visionos => '1.0'
+  }
 
 end

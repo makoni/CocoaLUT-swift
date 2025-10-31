@@ -6,9 +6,9 @@ A Swift 6-first library for reading, writing, and manipulating 1D and 3D look up
 
 ## Project status
 
-- **Swift package:** `CocoaLUTSwift` target builds with Swift 6 and strict-concurrency checking.
-- **Objective-C bridge:** Legacy headers remain available for existing apps; new development should consume the Swift module.
-- **Platforms:** macOS (AppKit + SceneKit) and iOS (UIKit) are supported. Conditional compilation keeps GPUImage features behind their original flags.
+- **Swift package:** `CocoaLUT-swift` library builds with Swift 6 and strict concurrency checking.
+- **Platforms:** macOS (AppKit + SceneKit), macCatalyst, iOS, tvOS, watchOS, and visionOS targets are available via SwiftPM resources.
+- **Optional GPUImage:** GPUImage helpers compile when the dependency is supplied (`canImport(GPUImage)` guards remain in place).
 
 ## Installation
 
@@ -29,7 +29,7 @@ let package = Package(
         .target(
             name: "MyApp",
             dependencies: [
-                .product(name: "CocoaLUTSwift", package: "CocoaLUT-swift")
+                .product(name: "CocoaLUT-swift", package: "CocoaLUT-swift")
             ])
     ]
 )
@@ -44,12 +44,12 @@ swift test -Xswiftc -strict-concurrency=complete
 
 ### CocoaPods (maintenance mode)
 
-The original Objective-C pod is still published as `CocoaLUT`. It now forwards to the Swift implementation internally, but new features land in Swift first. Prefer SwiftPM whenever possible.
+`CocoaLUT.podspec` now targets the Swift sources directly. The pod remains for backwards compatibility, but SwiftPM is the actively supported installation path.
 
 ## Quick start
 
 ```swift
-import CocoaLUTSwift
+import CocoaLUT_swift
 import CoreImage
 
 let cubeURL = Bundle.main.url(forResource: "Linear_to_BMDFilm", withExtension: "cube")!
@@ -68,7 +68,6 @@ try CocoaLUT.write(lut: lut, to: outputURL, formatterID: LUTFormatterIdentifier.
 ```
 
 ## Format support
-
 | Type | Formats |
 | ---- | --------|
 | 3D LUT | Cube (`.cube`), Autodesk (`.3dl`), Quantel (`.txt`), FSI DAT (`.dat`), Clipster (`.xml`, `.txt`), Nucoda CMS (`.cms`), Resolve DAT (`.dat`), DaVinci (`.davlut`), Unwrapped texture images (`.tiff`, `.dpx`, `.png`), CMS test pattern images (`.tiff`, `.dpx`, `.png`), Hald CLUT images (`.tiff`, `.dpx`, `.png`), ICC profiles (`.icc`, `.icm`, `.pf`, `.prof` on macOS)
@@ -86,12 +85,11 @@ All formatters are registered through `LUTFormatterRegistry`, so facade calls su
 
 ## Documentation
 
-The active migration checklist and contributor instructions live in [`PORT_TO_SWIFT_PLAN.md`](PORT_TO_SWIFT_PLAN.md). That document tracks remaining Objective-C shims, concurrency work, and documentation tasks.
+The active migration checklist and contributor instructions live in [`PORT_TO_SWIFT_PLAN.md`](PORT_TO_SWIFT_PLAN.md). That document now tracks packaging, concurrency, and documentation follow-ups for the Swift-only implementation.
 
 ## Contributing
 
 - Use `swift test -Xswiftc -strict-concurrency=complete` before opening PRs.
-- Keep Objective-C compatibility shims intact until the deprecation plan is complete.
 - Follow the modern Swift guidelines documented in `.github/instructions`.
 
 ## Authors
