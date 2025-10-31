@@ -97,7 +97,7 @@ public struct LUTFormatterDescriptor {
 
 private enum LUTFormatterRegistry {
     static func descriptors() -> [LUTFormatterDescriptor] {
-        [cubeDescriptor(), threeDLDescriptor(), haldDescriptor(), unwrappedTextureDescriptor()]
+        [cubeDescriptor(), threeDLDescriptor(), haldDescriptor(), ilutDescriptor(), unwrappedTextureDescriptor()]
     }
 
     static func descriptor(for identifier: String) -> LUTFormatterDescriptor? {
@@ -263,6 +263,44 @@ private enum LUTFormatterRegistry {
                 }
 
                 try data.write(to: url, options: .atomic)
+            }
+        )
+    }
+
+    private static func ilutDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterILUT.formatterIdentifier
+        let defaultOptions: [String: Any] = [
+            formatterID: [
+                "fileTypeVariant": "ILUT",
+                "lutSize": 16384
+            ]
+        ]
+
+        let allOptions: [[String: Any]] = [[
+            "fileTypeVariant": "ILUT",
+            "lutSize": [16384]
+        ]]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "Blackmagic Design 1D LUT",
+            fileExtensions: ["ilut"],
+            output: .lut1D,
+            roles: [.read, .write],
+            uti: "com.blackmagicdesign.ilut",
+            defaultOptions: defaultOptions,
+            allOptions: allOptions,
+            alternateIdentifiers: ["com.blackmagicdesign.ilut"],
+            reader: { url in
+                let lut = try LUTFormatterILUT.read(url: url)
+                return .lut1D(lut)
+            },
+            writer: { payload, url, _ in
+                guard case .lut1D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut1D, actual: payload.outputType)
+                }
+                let contents = try LUTFormatterILUT.write(lut)
+                try contents.write(to: url, atomically: true, encoding: .utf8)
             }
         )
     }
