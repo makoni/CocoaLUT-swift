@@ -4,6 +4,7 @@ import SceneKit
 import XCTest
 @testable import CocoaLUT_swift
 
+@MainActor
 final class LUTPreviewSceneTests: XCTestCase {
     func testSceneBuildsExpectedDotCount() {
         var lut = LUT3D.identity(size: 3, inputLowerBound: 0, inputUpperBound: 1)

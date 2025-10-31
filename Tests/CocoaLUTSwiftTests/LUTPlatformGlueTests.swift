@@ -9,6 +9,7 @@ import CoreGraphics
 import AppKit
 #endif
 
+@MainActor
 final class LUTPlatformGlueTests: XCTestCase {
     #if canImport(CoreImage)
     func testCoreImageFilterClampsDimension() {

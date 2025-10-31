@@ -57,7 +57,8 @@ import Testing
     }
 
     #if canImport(AppKit)
-    @Test func nsImageRoundTrip() throws {
+    @Test
+    @MainActor func nsImageRoundTrip() throws {
         var lut = LUT3D.identity(size: 5, inputLowerBound: 0, inputUpperBound: 1)
         let coordinate = (r: 2, g: 3, b: 4)
         let reference = LUTColor.color(red: 0.75, green: 0.5, blue: 0.25)
