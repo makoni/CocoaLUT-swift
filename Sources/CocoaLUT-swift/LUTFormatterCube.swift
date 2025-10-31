@@ -52,7 +52,8 @@ enum LUTCubeResult {
 }
 
 enum LUTCubeFormatter {
-    static let formatterIdentifier = "com.cocoalut.formatter.cube"
+    static let formatterIdentifier = "cube"
+    static let legacyFormatterIdentifier = "com.cocoalut.formatter.cube"
 
     struct ParsedHeader {
         var title: String?

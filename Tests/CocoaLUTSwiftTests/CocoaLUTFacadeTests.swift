@@ -126,7 +126,13 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(descriptor.fileExtensions, ["cube"])
         XCTAssertTrue(descriptor.roles.contains([.read, .write]))
         XCTAssertEqual(descriptor.output, .either)
-        XCTAssertTrue(descriptor.alternateIdentifiers.contains(LUTCubeFormatter.formatterIdentifier))
+        XCTAssertEqual(descriptor.id, LUTCubeFormatter.formatterIdentifier)
+        XCTAssertTrue(descriptor.alternateIdentifiers.contains(LUTCubeFormatter.legacyFormatterIdentifier))
+        XCTAssertTrue(descriptor.alternateIdentifiers.contains("com.blackmagicdesign.cube"))
+
+        let defaultOptions = descriptor.defaultOptions
+        XCTAssertNotNil(defaultOptions?[LUTCubeFormatter.formatterIdentifier] as? [String: Any])
+        XCTAssertNotNil(defaultOptions?[LUTCubeFormatter.legacyFormatterIdentifier] as? [String: Any])
     }
 
     func testDescriptorsLookupByExtensionIncludesCube() {

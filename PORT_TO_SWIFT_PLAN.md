@@ -87,6 +87,7 @@ Test Driven Development rules (strict)
   - [x] Register ILUT/OLUT descriptors with passthrough normalization and round-trip facade coverage.
   - [ ] Incrementally add remaining formatters + legacy aliases with regression coverage.
     - [x] Register FSIDAT, Clipster, Discreet, CMS Test Pattern, Nucoda CMS, and Arri Look descriptors with normalization coverage tests.
+    - [x] Align Cube formatter identifier with Objective-C canonical ID while retaining legacy alias coverage.
     - [ ] Add MatchLight aliases and the remaining legacy sidecars.
       - [x] Support MatchLight alias lookup (camel-case and lowercase identifiers).
       - [ ] Wire remaining legacy sidecar descriptors.

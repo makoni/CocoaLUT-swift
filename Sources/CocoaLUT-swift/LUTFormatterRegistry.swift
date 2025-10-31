@@ -136,11 +136,11 @@ private enum LUTFormatterRegistry {
             ["fileTypeVariant": LUTCubeVariant.highPrecision.rawValue]
         ]
         let defaultVariant = LUTCubeVariant.resolve.rawValue
-        let cubeKey = "cube"
-        let formatterKey = LUTCubeFormatter.formatterIdentifier
+        let cubeKey = LUTCubeFormatter.formatterIdentifier
+        let legacyKey = LUTCubeFormatter.legacyFormatterIdentifier
         let defaultOptions: [String: Any] = [
-            formatterKey: ["fileTypeVariant": defaultVariant],
-            cubeKey: ["fileTypeVariant": defaultVariant]
+            cubeKey: ["fileTypeVariant": defaultVariant],
+            legacyKey: ["fileTypeVariant": defaultVariant]
         ]
 
         return LUTFormatterDescriptor(
@@ -152,7 +152,7 @@ private enum LUTFormatterRegistry {
             uti: "com.blackmagicdesign.cube",
             defaultOptions: defaultOptions,
             allOptions: variants,
-            alternateIdentifiers: [formatterKey, "com.blackmagicdesign.cube"],
+            alternateIdentifiers: [legacyKey, "com.blackmagicdesign.cube"],
             reader: { url in
                 let result = try LUTCubeFormatter.read(url: url)
                 return normalizeCubePayload(result)
@@ -826,11 +826,20 @@ private enum LUTFormatterRegistry {
     private static func normalizeCubePayload(_ result: LUTCubeResult) -> LUTFormatterPayload {
         func optionsByAddingAlias(_ options: [String: Any]) -> [String: Any] {
             var updated = options
-            let formatterKey = LUTCubeFormatter.formatterIdentifier
-            let cubeKey = "cube"
-            if let formatterOptions = options[formatterKey], updated[cubeKey] == nil {
-                updated[cubeKey] = formatterOptions
+            let canonicalKey = LUTCubeFormatter.formatterIdentifier
+            let legacyKey = LUTCubeFormatter.legacyFormatterIdentifier
+
+            if let canonicalOptions = updated[canonicalKey], updated[legacyKey] == nil {
+                updated[legacyKey] = canonicalOptions
+            } else if let legacyOptions = updated[legacyKey], updated[canonicalKey] == nil {
+                updated[canonicalKey] = legacyOptions
             }
+
+            if let referenceOptions = updated[canonicalKey] ?? updated[legacyKey],
+               updated["com.blackmagicdesign.cube"] == nil {
+                updated["com.blackmagicdesign.cube"] = referenceOptions
+            }
+
             return updated
         }
 
@@ -846,7 +855,12 @@ private enum LUTFormatterRegistry {
 
     private static func normalizedCubeOptions(from options: [String: Any]?) -> LUTCubeOptions? {
         guard let options else { return nil }
-        let candidateKeys = [LUTCubeFormatter.formatterIdentifier, "cube"]
+        let candidateKeys = [
+            LUTCubeFormatter.formatterIdentifier,
+            "cube",
+            LUTCubeFormatter.legacyFormatterIdentifier,
+            "com.blackmagicdesign.cube"
+        ]
         for key in candidateKeys {
             if let variantDict = options[key] as? [String: Any],
                let rawValue = variantDict["fileTypeVariant"] as? String,
