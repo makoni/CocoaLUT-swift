@@ -2,6 +2,7 @@
 import AppKit
 import SceneKit
 
+@MainActor
 public final class LUTPreviewScene: SCNScene {
     public final class LUTColorNode: SCNNode {
         public var identityColor: LUTColor

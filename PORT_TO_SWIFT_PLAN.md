@@ -233,6 +233,7 @@ Notes and constraints
 - 2025-10-31: Kicked off concurrency annotation cleanup by isolating `LUT1DGraphViewTests` to `@MainActor` and confirming the suite passes under `-strict-concurrency=complete`.
 - 2025-10-31: Scoped preview and ICC profile test suites to `@MainActor` to unblock strict concurrency warnings; full package still green under `-strict-concurrency=complete`.
 - 2025-10-31: Extended MainActor isolation to SceneKit/Core Image preview tests and Swift Testing suites (`LUTPreviewSceneTests`, `LUTPlatformGlueTests`, `LUTFormatterCMSTestPatternTests.nsImageRoundTrip`); verified strict-concurrency run remains clean.
+- 2025-10-31: Annotated `Sources/CocoaLUT-swift/LUTPreviewScene` with `@MainActor` to align runtime isolation with its preview tests; reconfirmed `swift test -Xswiftc -strict-concurrency=complete` stays green.
 
 Appendix — formatters and small headers (quick map)
 - Files that are subclasses of `LUTFormatter` and should be ported as concrete formatter types (implement `read`, `write`):
