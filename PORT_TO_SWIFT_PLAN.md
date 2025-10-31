@@ -5,8 +5,8 @@ This document is an actionable plan for porting the CocoaLUT Objective‑C codeb
 ## Status (updated 2025-10-31)
 
 - **Completion estimate:** ~88% of the Objective‑C surface has Swift equivalents with green tests (core math, processors, formatters, color spaces, GPUImage shim, and image-based helpers).
-- **What remains for 100% parity:** retire the remaining Objective‑C scaffolding (image-based formatter helpers, transitional headers) and document the Swift-first API surface.
-- **Next focus:** decommission the Objective‑C image-based helpers, smooth out concurrency annotations, and refresh the README/API docs for the Swift facade.
+- **What remains for 100% parity:** retire the remaining Objective‑C transition headers and document the Swift-first API surface.
+- **Next focus:** smooth out concurrency annotations and refresh the README/API docs for the Swift facade.
 
 Summary
 - Goal: Produce a Swift 6 implementation of the library (module name `CocoaLUTSwift`), preserve public API behavior, and keep a SwiftPM-first workflow. Maintain Objective‑C compatibility where needed for existing apps until migration is complete.
@@ -93,7 +93,7 @@ Test Driven Development rules (strict)
       - [x] Support MatchLight alias lookup (camel-case and lowercase identifiers).
       - [x] Wire remaining legacy sidecar descriptors.
 - [x] Replace `CocoaLUT.h` macros with Swift symbols (constants for suggested sizes, `SystemColor` alias) and populate `CocoaLUT_swift.swift` as the public facade.
-- [ ] Remove or port the legacy Objective‑C image-based formatter scaffolding (`LUTFormatterImageBased`) once the Swift helpers cover all use cases.
+- [x] Remove or port the legacy Objective‑C image-based formatter scaffolding (`LUTFormatterImageBased`) once the Swift helpers cover all use cases.
 - [ ] Update README/API docs to describe the Swift-first surface and deprecation path for the Objective‑C headers.
 
 > Maintain TDD discipline: every item above remains unchecked until tests are in place and passing.
@@ -229,6 +229,7 @@ Notes and constraints
 - 2025-10-29: Reviewed headers in `Classes/` and `Classes/osx/`; confirmed every public symbol is already mapped in this plan. No new Objective-C sources require additional tasks. Added explicit progress checklist to track TDD-aligned milestones.
 - 2025-10-30: Resolved swizzle regression by porting direct 1D inverse lookup; tightened tests to ensure LUTAction swizzle matches manual composition. Next focus: implement color-temperature action and supporting color space/white point utilities.
 - 2025-10-30: Confirmed parity against Objective-C by switching to high-resolution curve inversion; `testSwizzleActionMatchesManualComposition` now green.
+- 2025-10-31: Replaced the Objective-C image-based formatter scaffolding with Swift platform bridges, added NSImage round-trip coverage, and updated plan status accordingly.
 
 Appendix — formatters and small headers (quick map)
 - Files that are subclasses of `LUTFormatter` and should be ported as concrete formatter types (implement `read`, `write`):

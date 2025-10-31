@@ -56,6 +56,22 @@ import Testing
         #expect(passthrough?["fileTypeVariant"] as? String == "TIFF")
     }
 
+    #if canImport(AppKit)
+    @Test func nsImageRoundTrip() throws {
+        var lut = LUT3D.identity(size: 5, inputLowerBound: 0, inputUpperBound: 1)
+        let coordinate = (r: 2, g: 3, b: 4)
+        let reference = LUTColor.color(red: 0.75, green: 0.5, blue: 0.25)
+        lut.setColor(reference, r: coordinate.r, g: coordinate.g, b: coordinate.b)
+
+        let nsImage = try LUTFormatterCMSTestPattern.nsImage(from: lut)
+        let decoded = try LUTFormatterCMSTestPattern.read(nsImage: nsImage)
+
+        #expect(decoded.size == lut.size)
+        let sample = decoded.colorAt(r: coordinate.r, g: coordinate.g, b: coordinate.b)
+        #expect(sample.isApproximatelyEqual(to: reference, tolerance: 1e-2))
+    }
+    #endif
+
     private func unwrapLayout(width: Int, height: Int) throws -> Layout {
         try Layout(width: width, height: height)
     }

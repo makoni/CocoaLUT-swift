@@ -5,6 +5,9 @@ import simd
 #if canImport(AppKit)
 import AppKit
 #endif
+#if canImport(UIKit)
+import UIKit
+#endif
 
 enum LUTFormatterCMSTestPatternError: Error, Equatable, LocalizedError {
     case unsupportedBitDepth
@@ -109,10 +112,28 @@ enum LUTFormatterCMSTestPattern {
     #if canImport(AppKit)
     static func nsImage(from lut: LUT3D, options: Options = Options()) throws -> NSImage {
         let cgImage = try image(from: lut, options: options)
-        let size = NSSize(width: cgImage.width, height: cgImage.height)
-        let image = NSImage(size: size)
-        image.addRepresentation(NSBitmapImageRep(cgImage: cgImage))
-        return image
+        return ImageBasedFormatterPlatformBridge.nsImage(from: cgImage)
+    }
+
+    static func read(nsImage: NSImage) throws -> LUT3D {
+        guard let cgImage = ImageBasedFormatterPlatformBridge.cgImage(from: nsImage) else {
+            throw LUTFormatterCMSTestPatternError.unsupportedImage
+        }
+        return try read(image: cgImage)
+    }
+    #endif
+
+    #if canImport(UIKit)
+    static func uiImage(from lut: LUT3D, options: Options = Options()) throws -> UIImage {
+        let cgImage = try image(from: lut, options: options)
+        return ImageBasedFormatterPlatformBridge.uiImage(from: cgImage)
+    }
+
+    static func read(uiImage: UIImage) throws -> LUT3D {
+        guard let cgImage = ImageBasedFormatterPlatformBridge.cgImage(from: uiImage) else {
+            throw LUTFormatterCMSTestPatternError.unsupportedImage
+        }
+        return try read(image: cgImage)
     }
     #endif
 

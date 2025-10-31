@@ -1,4 +1,7 @@
 import XCTest
+#if canImport(AppKit)
+import AppKit
+#endif
 @testable import CocoaLUT_swift
 
 final class LUTFormatterHaldCLUTTests: XCTestCase {
@@ -21,4 +24,13 @@ final class LUTFormatterHaldCLUTTests: XCTestCase {
         let data = try LUTFormatterHaldCLUT.pngData(from: lut)
         XCTAssertFalse(data.isEmpty)
     }
+
+    #if canImport(AppKit)
+    func testNSImageRoundTrip() throws {
+        let lut = LUT3D.identity(size: 4, inputLowerBound: 0, inputUpperBound: 1)
+        let image = try LUTFormatterHaldCLUT.nsImage(from: lut)
+        let decoded = try LUTFormatterHaldCLUT.read(nsImage: image)
+        XCTAssertTrue(decoded.equals(lut, tolerance: 1e-6))
+    }
+    #endif
 }

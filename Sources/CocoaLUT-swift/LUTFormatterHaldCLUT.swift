@@ -2,6 +2,12 @@ import CoreGraphics
 import Foundation
 import ImageIO
 import simd
+#if canImport(AppKit)
+import AppKit
+#endif
+#if canImport(UIKit)
+import UIKit
+#endif
 
 enum LUTHaldCLUTFormatterError: Error, Equatable, LocalizedError {
     case unsupportedBitDepth
@@ -86,6 +92,34 @@ enum LUTFormatterHaldCLUT {
             throw mapUtilitiesError(error)
         }
     }
+
+    #if canImport(AppKit)
+    static func nsImage(from lut: LUT3D, options: Options = Options()) throws -> NSImage {
+        let cgImage = try image(from: lut, options: options)
+        return ImageBasedFormatterPlatformBridge.nsImage(from: cgImage)
+    }
+
+    static func read(nsImage: NSImage) throws -> LUT3D {
+        guard let cgImage = ImageBasedFormatterPlatformBridge.cgImage(from: nsImage) else {
+            throw LUTHaldCLUTFormatterError.unsupportedImage
+        }
+        return try read(image: cgImage)
+    }
+    #endif
+
+    #if canImport(UIKit)
+    static func uiImage(from lut: LUT3D, options: Options = Options()) throws -> UIImage {
+        let cgImage = try image(from: lut, options: options)
+        return ImageBasedFormatterPlatformBridge.uiImage(from: cgImage)
+    }
+
+    static func read(uiImage: UIImage) throws -> LUT3D {
+        guard let cgImage = ImageBasedFormatterPlatformBridge.cgImage(from: uiImage) else {
+            throw LUTHaldCLUTFormatterError.unsupportedImage
+        }
+        return try read(image: cgImage)
+    }
+    #endif
 
     static func read(image: CGImage) throws -> LUT3D {
         guard image.width == image.height else { throw LUTHaldCLUTFormatterError.mismatchedImageDimensions }
