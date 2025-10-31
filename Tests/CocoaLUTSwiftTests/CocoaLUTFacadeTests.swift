@@ -199,6 +199,92 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(integer(from: options?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 16))
     }
 
+    func testFSIDATDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterFSIDAT.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, "FSI DAT 3D LUT")
+        XCTAssertEqual(Set(descriptor.fileExtensions.map { $0.lowercased() }), ["dat"])
+        XCTAssertEqual(descriptor.output, .lut3D)
+        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+
+        let options = descriptor.defaultOptions?[LUTFormatterFSIDAT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, LUTFormatterFSIDAT.Variant.v1.rawValue)
+        XCTAssertEqual(integer(from: options?["lutSize"]), LUTFormatterFSIDAT.Variant.v1.lutSize)
+    }
+
+    func testDescriptorsLookupByExtensionIncludesDATVariants() {
+        let descriptors = CocoaLUT.descriptors(forFileExtension: "DAT")
+        let identifiers = Set(descriptors.map { $0.id })
+        XCTAssertTrue(identifiers.contains(LUTFormatterFSIDAT.formatterIdentifier))
+        XCTAssertTrue(identifiers.contains(LUTFormatterResolveDAT.formatterIdentifier))
+    }
+
+    func testClipsterDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterClipster.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, "DVS Clipster 3D LUT")
+        XCTAssertEqual(Set(descriptor.fileExtensions.map { $0.lowercased() }), ["xml", "txt"])
+        XCTAssertEqual(descriptor.output, .lut3D)
+        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+
+        let options = descriptor.defaultOptions?[LUTFormatterClipster.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, "Clipster")
+        XCTAssertEqual(integer(from: options?["lutSize"]), 17)
+        XCTAssertEqual(integer(from: options?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 16))
+    }
+
+    func testDiscreetDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterDiscreet1DLUT.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, "Discreet 1D LUT")
+        XCTAssertEqual(Set(descriptor.fileExtensions.map { $0.lowercased() }), ["lut"])
+        XCTAssertEqual(descriptor.output, .lut1D)
+        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+
+        let options = descriptor.defaultOptions?[LUTFormatterDiscreet1DLUT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, "Discreet")
+        XCTAssertEqual(integer(from: options?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 12))
+    }
+
+    func testCMSDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterCMSTestPattern.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, "CMS Test Pattern Image 3D LUT")
+        XCTAssertEqual(Set(descriptor.fileExtensions.map { $0.lowercased() }), ["tiff", "tif", "png"])
+        XCTAssertEqual(descriptor.output, .lut3D)
+        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+
+        let options = descriptor.defaultOptions?[LUTFormatterCMSTestPattern.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, ImageBasedFormatterVariant.tiff.rawValue)
+        XCTAssertEqual(integer(from: options?["bitDepth"]), 8)
+    }
+
+    func testNucodaDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterNucodaCMS.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, "Nucoda CMS LUT")
+        XCTAssertEqual(Set(descriptor.fileExtensions.map { $0.lowercased() }), ["cms"])
+        XCTAssertEqual(descriptor.output, .either)
+        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+
+        let options = descriptor.defaultOptions?[LUTFormatterNucodaCMS.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, LUTFormatterNucodaCMS.Variant.v3.rawValue)
+    }
+
+    func testArriLookDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterArriLook.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, "Arri Look")
+        XCTAssertEqual(Set(descriptor.fileExtensions.map { $0.lowercased() }), ["xml"])
+        XCTAssertEqual(descriptor.output, .either)
+        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+
+        let options = descriptor.defaultOptions?[LUTFormatterArriLook.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, "Arri")
+        XCTAssertEqual(integer(from: options?["lutSize"]), 4096)
+    }
+
+    func testDescriptorsLookupByExtensionIncludesXMLFormatters() {
+        let descriptors = CocoaLUT.descriptors(forFileExtension: "xml")
+        let identifiers = Set(descriptors.map { $0.id })
+        XCTAssertTrue(identifiers.contains(LUTFormatterClipster.formatterIdentifier))
+        XCTAssertTrue(identifiers.contains(LUTFormatterArriLook.formatterIdentifier))
+    }
+
     func testDescriptorsLookupByExtensionIncludesQuantel() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "TXT")
         XCTAssertTrue(descriptors.contains { $0.id == LUTFormatterQuantel.formatterIdentifier })
@@ -287,7 +373,9 @@ final class CocoaLUTFacadeTests: XCTestCase {
 
     func testDescriptorsLookupByExtensionIncludesUnwrapped() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "PNG")
-        XCTAssertEqual(descriptors.map { $0.id }, [LUTFormatterUnwrappedTexture.formatterIdentifier])
+        XCTAssertFalse(descriptors.isEmpty)
+        let identifiers = Set(descriptors.map { $0.id })
+        XCTAssertTrue(identifiers.contains(LUTFormatterUnwrappedTexture.formatterIdentifier))
     }
 
     func testReadCubeByIdentifier() throws {

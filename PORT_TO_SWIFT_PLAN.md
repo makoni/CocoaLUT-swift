@@ -85,7 +85,9 @@ Test Driven Development rules (strict)
   - [x] Add Hald CLUT formatter coverage to the registry with TIFF round-trip tests.
   - [x] Add Unwrapped texture formatter coverage (PNG/TIFF) to the registry with read/write facade tests.
   - [x] Register ILUT/OLUT descriptors with passthrough normalization and round-trip facade coverage.
-  - [ ] Incrementally add remaining formatters + legacy aliases with regression coverage (next up: MatchLight aliases and the remaining legacy sidecars).
+  - [ ] Incrementally add remaining formatters + legacy aliases with regression coverage.
+    - [x] Register FSIDAT, Clipster, Discreet, CMS Test Pattern, Nucoda CMS, and Arri Look descriptors with normalization coverage tests.
+    - [ ] Add MatchLight aliases and the remaining legacy sidecars.
 - [ ] Replace `CocoaLUT.h` macros with Swift symbols (constants for suggested sizes, `SystemColor` alias) and populate `CocoaLUT_swift.swift` as the public facade.
 - [ ] Remove or port the legacy Objective‑C image-based formatter scaffolding (`LUTFormatterImageBased`) once the Swift helpers cover all use cases.
 - [ ] Update README/API docs to describe the Swift-first surface and deprecation path for the Objective‑C headers.

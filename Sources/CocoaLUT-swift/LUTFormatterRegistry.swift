@@ -103,9 +103,15 @@ private enum LUTFormatterRegistry {
      ilutDescriptor(),
      olutDescriptor(),
      quantelDescriptor(),
+     fsiDATDescriptor(),
+     clipsterDescriptor(),
+     discreetDescriptor(),
+     cmsDescriptor(),
+     nucodaDescriptor(),
      resolveDATDescriptor(),
      davinciDescriptor(),
      matchLightDescriptor(),
+     arriLookDescriptor(),
      unwrappedTextureDescriptor()]
     }
 
@@ -399,6 +405,242 @@ private enum LUTFormatterRegistry {
         )
     }
 
+    private static func fsiDATDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterFSIDAT.formatterIdentifier
+        let defaultVariant = LUTFormatterFSIDAT.Variant.v1
+        let defaultOptions: [String: Any] = [
+            formatterID: [
+                "fileTypeVariant": defaultVariant.rawValue,
+                "lutSize": defaultVariant.lutSize
+            ]
+        ]
+
+        let allOptions: [[String: Any]] = [
+            [
+                "fileTypeVariant": LUTFormatterFSIDAT.Variant.v1.rawValue,
+                "lutSize": [LUTFormatterFSIDAT.Variant.v1.lutSize]
+            ],
+            [
+                "fileTypeVariant": LUTFormatterFSIDAT.Variant.v2.rawValue,
+                "lutSize": [LUTFormatterFSIDAT.Variant.v2.lutSize]
+            ]
+        ]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "FSI DAT 3D LUT",
+            fileExtensions: ["dat"],
+            output: .lut3D,
+            roles: [.read, .write],
+            uti: "public.dat-lut",
+            defaultOptions: defaultOptions,
+            allOptions: allOptions,
+            alternateIdentifiers: ["FSIDAT"],
+            reader: { url in
+                let lut = try LUTFormatterFSIDAT.read(url: url)
+                return .lut3D(lut)
+            },
+            writer: { payload, url, options in
+                guard case .lut3D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut3D, actual: payload.outputType)
+                }
+
+                let writeOptions = normalizedFSIDATOptions(from: options)
+                    ?? LUTFormatterFSIDAT.Options.default
+                let data = try LUTFormatterFSIDAT.write(lut, options: writeOptions)
+                try data.write(to: url, options: .atomic)
+            }
+        )
+    }
+
+    private static func clipsterDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterClipster.formatterIdentifier
+        let defaultOptions: [String: Any] = [
+            formatterID: [
+                "fileTypeVariant": "Clipster",
+                "lutSize": 17,
+                "integerMaxOutput": LUTMath.maxInteger(bitDepth: 16)
+            ]
+        ]
+
+        let allOptions: [[String: Any]] = [[
+            "fileTypeVariant": "Clipster",
+            "lutSize": [17],
+            "integerMaxOutput": [
+                LUTMath.maxInteger(bitDepth: 10),
+                LUTMath.maxInteger(bitDepth: 12),
+                LUTMath.maxInteger(bitDepth: 16)
+            ]
+        ]]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "DVS Clipster 3D LUT",
+            fileExtensions: ["xml", "txt"],
+            output: .lut3D,
+            roles: [.read, .write],
+            uti: "public.xml",
+            defaultOptions: defaultOptions,
+            allOptions: allOptions,
+            alternateIdentifiers: ["Clipster"],
+            reader: { url in
+                let lut = try LUTFormatterClipster.read(url: url)
+                return .lut3D(lut)
+            },
+            writer: { payload, url, options in
+                guard case .lut3D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut3D, actual: payload.outputType)
+                }
+
+                let writeOptions = normalizedClipsterOptions(from: options)
+                    ?? LUTFormatterClipster.Options()
+                let contents = try LUTFormatterClipster.write(lut, options: writeOptions)
+                try contents.write(to: url, atomically: true, encoding: .utf8)
+            }
+        )
+    }
+
+    private static func discreetDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterDiscreet1DLUT.formatterIdentifier
+        let defaultOptions: [String: Any] = [
+            formatterID: [
+                "fileTypeVariant": "Discreet",
+                "integerMaxOutput": LUTMath.maxInteger(bitDepth: 12)
+            ]
+        ]
+
+        let allOptions: [[String: Any]] = [[
+            "fileTypeVariant": "Discreet",
+            "integerMaxOutput": [
+                LUTMath.maxInteger(bitDepth: 12),
+                LUTMath.maxInteger(bitDepth: 16)
+            ]
+        ]]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "Discreet 1D LUT",
+            fileExtensions: ["lut"],
+            output: .lut1D,
+            roles: [.read, .write],
+            uti: "com.discreet.lut",
+            defaultOptions: defaultOptions,
+            allOptions: allOptions,
+            alternateIdentifiers: ["Discreet"],
+            reader: { url in
+                let lut = try LUTFormatterDiscreet1DLUT.read(url: url)
+                return .lut1D(lut)
+            },
+            writer: { payload, url, options in
+                guard case .lut1D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut1D, actual: payload.outputType)
+                }
+
+                let writeOptions = normalizedDiscreetOptions(from: options)
+                    ?? LUTFormatterDiscreet1DLUT.Options(integerMaxOutput: LUTMath.maxInteger(bitDepth: 12))
+                let contents = try LUTFormatterDiscreet1DLUT.write(lut, options: writeOptions)
+                try contents.write(to: url, atomically: true, encoding: .utf8)
+            }
+        )
+    }
+
+    private static func cmsDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterCMSTestPattern.formatterIdentifier
+        let defaultMetadata = LUTFormatterCMSTestPattern.Options().formatterDictionary()
+        let allOptions: [[String: Any]] = [[
+            "fileTypeVariant": ImageBasedFormatterVariant.tiff.rawValue,
+            "bitDepth": [8, 16]
+        ]]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "CMS Test Pattern Image 3D LUT",
+            fileExtensions: ["tiff", "tif", "png"],
+            output: .lut3D,
+            roles: [.read, .write],
+            uti: "public.image",
+            defaultOptions: defaultMetadata,
+            allOptions: allOptions,
+            alternateIdentifiers: [formatterID.lowercased()],
+            reader: { url in
+                let data = try Data(contentsOf: url)
+                let lut = try LUTFormatterCMSTestPattern.read(data: data)
+                return .lut3D(lut)
+            },
+            writer: { payload, url, options in
+                guard case .lut3D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut3D, actual: payload.outputType)
+                }
+
+                let writeOptions = normalizedCMSOptions(from: options)
+                    ?? LUTFormatterCMSTestPattern.Options()
+
+                let data: Data
+                switch url.pathExtension.lowercased() {
+                case "png":
+                    data = try LUTFormatterCMSTestPattern.pngData(from: lut, options: writeOptions)
+                default:
+                    data = try LUTFormatterCMSTestPattern.data(from: lut, options: writeOptions)
+                }
+
+                try data.write(to: url, options: .atomic)
+            }
+        )
+    }
+
+    private static func nucodaDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterNucodaCMS.formatterIdentifier
+        let defaultVariant = LUTFormatterNucodaCMS.Variant.v3
+        let defaultOptions: [String: Any] = [
+            formatterID: [
+                "fileTypeVariant": defaultVariant.rawValue
+            ]
+        ]
+
+        let allOptions: [[String: Any]] = [[
+            "fileTypeVariant": LUTFormatterNucodaCMS.Variant.v1.rawValue
+        ], [
+            "fileTypeVariant": LUTFormatterNucodaCMS.Variant.v2.rawValue
+        ], [
+            "fileTypeVariant": LUTFormatterNucodaCMS.Variant.v3.rawValue
+        ]]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "Nucoda CMS LUT",
+            fileExtensions: ["cms"],
+            output: .either,
+            roles: [.read, .write],
+            uti: "com.digitalvision.cms",
+            defaultOptions: defaultOptions,
+            allOptions: allOptions,
+            alternateIdentifiers: ["Nucoda"],
+            reader: { url in
+                let result = try LUTFormatterNucodaCMS.read(url: url)
+                switch result {
+                case .lut1D(let lut):
+                    return .lut1D(lut)
+                case .lut3D(let lut):
+                    return .lut3D(lut)
+                }
+            },
+            writer: { payload, url, options in
+                let result: LUTFormatterNucodaCMSResult
+                switch payload {
+                case .lut1D(let lut):
+                    result = .lut1D(lut)
+                case .lut3D(let lut):
+                    result = .lut3D(lut)
+                }
+
+                let writeOptions = normalizedNucodaOptions(from: options)
+                    ?? LUTFormatterNucodaCMS.Options.default
+                let contents = try LUTFormatterNucodaCMS.write(result, options: writeOptions)
+                try contents.write(to: url, atomically: true, encoding: .utf8)
+            }
+        )
+    }
+
     private static func resolveDATDescriptor() -> LUTFormatterDescriptor {
         let formatterID = LUTFormatterResolveDAT.formatterIdentifier
         let defaultVariant: [String: Any] = ["fileTypeVariant": "Resolve"]
@@ -491,6 +733,47 @@ private enum LUTFormatterRegistry {
             reader: { url in
                 let lut = try LUTFormatterMatchLight.read(url: url)
                 return .lut3D(lut)
+            }
+        )
+    }
+
+    private static func arriLookDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterArriLook.formatterIdentifier
+        let defaultOptions: [String: Any] = [
+            formatterID: [
+                "fileTypeVariant": "Arri",
+                "lutSize": 4096
+            ]
+        ]
+
+        let allOptions: [[String: Any]] = [[
+            "fileTypeVariant": "Arri",
+            "lutSize": [4096]
+        ]]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "Arri Look",
+            fileExtensions: ["xml"],
+            output: .either,
+            roles: [.read, .write],
+            uti: "public.xml",
+            defaultOptions: defaultOptions,
+            allOptions: allOptions,
+            alternateIdentifiers: ["arri"],
+            reader: { url in
+                let lut = try LUTFormatterArriLook.read(url: url)
+                return .lut3D(lut)
+            },
+            writer: { payload, url, options in
+                guard case .lut1D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut1D, actual: payload.outputType)
+                }
+
+                let writeOptions = normalizedArriOptions(from: options)
+                    ?? LUTFormatterArriLook.Options(lutSize: 4096)
+                let contents = try LUTFormatterArriLook.write(lut, options: writeOptions)
+                try contents.write(to: url, atomically: true, encoding: .utf8)
             }
         )
     }
@@ -714,6 +997,144 @@ private enum LUTFormatterRegistry {
 
         if let variant = options["fileTypeVariant"] as? String {
             return LUTFormatterResolveDAT.Options(fileTypeVariant: variant)
+        }
+
+        return nil
+    }
+
+    private static func normalizedFSIDATOptions(from options: [String: Any]?) -> LUTFormatterFSIDAT.Options? {
+        guard let options else { return nil }
+
+        let candidateKeys = [
+            LUTFormatterFSIDAT.formatterIdentifier,
+            "fsiDAT",
+            "FSIDAT"
+        ]
+
+        for key in candidateKeys {
+            if let nested = options[key] as? [String: Any],
+               let rawVariant = nested["fileTypeVariant"] as? String,
+               let variant = LUTFormatterFSIDAT.Variant(rawValue: rawVariant) {
+                return LUTFormatterFSIDAT.Options(variant: variant)
+            }
+        }
+
+        if let rawVariant = options["fileTypeVariant"] as? String,
+           let variant = LUTFormatterFSIDAT.Variant(rawValue: rawVariant) {
+            return LUTFormatterFSIDAT.Options(variant: variant)
+        }
+
+        return nil
+    }
+
+    private static func normalizedClipsterOptions(from options: [String: Any]?) -> LUTFormatterClipster.Options? {
+        guard let options else { return nil }
+
+        let candidateKeys = [LUTFormatterClipster.formatterIdentifier, "clipster"]
+        for key in candidateKeys {
+            if let nested = options[key] as? [String: Any] {
+                let lutSize = integerValue(from: nested["lutSize"]) ?? 17
+                let integerMax = integerValue(from: nested["integerMaxOutput"]) ?? LUTMath.maxInteger(bitDepth: 16)
+                return LUTFormatterClipster.Options(lutSize: lutSize, integerMaxOutput: integerMax)
+            }
+        }
+
+        if let lutSize = integerValue(from: options["lutSize"]) {
+            let integerMax = integerValue(from: options["integerMaxOutput"]) ?? LUTMath.maxInteger(bitDepth: 16)
+            return LUTFormatterClipster.Options(lutSize: lutSize, integerMaxOutput: integerMax)
+        }
+
+        if let integerMax = integerValue(from: options["integerMaxOutput"]) {
+            return LUTFormatterClipster.Options(integerMaxOutput: integerMax)
+        }
+
+        return nil
+    }
+
+    private static func normalizedDiscreetOptions(from options: [String: Any]?) -> LUTFormatterDiscreet1DLUT.Options? {
+        guard let options else { return nil }
+
+        let candidateKeys = [LUTFormatterDiscreet1DLUT.formatterIdentifier, "Discreet"]
+        for key in candidateKeys {
+            if let nested = options[key] as? [String: Any],
+               let integerMax = integerValue(from: nested["integerMaxOutput"]) {
+                return LUTFormatterDiscreet1DLUT.Options(integerMaxOutput: integerMax)
+            }
+        }
+
+        if let integerMax = integerValue(from: options["integerMaxOutput"]) {
+            return LUTFormatterDiscreet1DLUT.Options(integerMaxOutput: integerMax)
+        }
+
+        return nil
+    }
+
+    private static func normalizedCMSOptions(from options: [String: Any]?) -> LUTFormatterCMSTestPattern.Options? {
+        guard let options else { return nil }
+
+        if let parsed = LUTFormatterCMSTestPattern.Options.from(passthrough: options) {
+            return parsed
+        }
+
+        if let nested = options[LUTFormatterCMSTestPattern.formatterIdentifier] as? [String: Any] {
+            let payload = [LUTFormatterCMSTestPattern.formatterIdentifier: nested]
+            return LUTFormatterCMSTestPattern.Options.from(passthrough: payload)
+        }
+
+        let variant: ImageBasedFormatterVariant?
+        if let variantName = options["fileTypeVariant"] as? String {
+            variant = ImageBasedFormatterVariant(rawValue: variantName)
+        } else {
+            variant = nil
+        }
+
+        if let bitDepth = integerValue(from: options["bitDepth"]) {
+            if let variant {
+                return LUTFormatterCMSTestPattern.Options(bitDepth: bitDepth, variant: variant)
+            }
+            return LUTFormatterCMSTestPattern.Options(bitDepth: bitDepth)
+        }
+
+        return nil
+    }
+
+    private static func normalizedNucodaOptions(from options: [String: Any]?) -> LUTFormatterNucodaCMS.Options? {
+        guard let options else { return nil }
+
+        let candidateKeys = [
+            LUTFormatterNucodaCMS.formatterIdentifier,
+            "Nucoda"
+        ]
+
+        for key in candidateKeys {
+            if let nested = options[key] as? [String: Any],
+               let rawVariant = nested["fileTypeVariant"] as? String,
+               let variant = LUTFormatterNucodaCMS.Variant(rawValue: rawVariant) {
+                return LUTFormatterNucodaCMS.Options(variant: variant)
+            }
+        }
+
+        if let rawVariant = options["fileTypeVariant"] as? String,
+           let variant = LUTFormatterNucodaCMS.Variant(rawValue: rawVariant) {
+            return LUTFormatterNucodaCMS.Options(variant: variant)
+        }
+
+        return nil
+    }
+
+    private static func normalizedArriOptions(from options: [String: Any]?) -> LUTFormatterArriLook.Options? {
+        guard let options else { return nil }
+
+        let candidateKeys = [LUTFormatterArriLook.formatterIdentifier, "arri"]
+        for key in candidateKeys {
+            if let nested = options[key] as? [String: Any],
+               let lutSize = integerValue(from: nested["lutSize"]) {
+                return LUTFormatterArriLook.Options(lutSize: lutSize)
+            }
+        }
+
+        if let lutSize = integerValue(from: options["lutSize"]) {
+            return LUTFormatterArriLook.Options(lutSize: lutSize)
         }
 
         return nil
