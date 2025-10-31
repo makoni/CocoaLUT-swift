@@ -5,7 +5,7 @@ This document began as an actionable plan for porting the CocoaLUT Objective‑C
 ## Status (updated 2025-10-31)
 
 - **Completion estimate:** 100% of the former Objective‑C surface now lives in the Swift package with passing tests.
-- **What remains for 100% parity:** maintain packaging metadata (CocoaPods spec, README) and keep optional GPUImage adapters working.
+- **What remains for 100% parity:** keep SwiftPM metadata/documentation current and ensure the optional GPUImage adapters continue to compile behind their guards.
 - **Next focus:** exercise concurrency-focused refactors, streamline resource packaging, and document the Swift-only API surface.
 
 Summary
@@ -214,13 +214,13 @@ Tests: what to port first
 
 AI agent instructions (explicit steps)
 1. Keep the test suites (`swift test -Xswiftc -strict-concurrency=complete`) green before and after changes; add Swift Testing coverage for new paths.
-2. Update package metadata (README, `CocoaLUT.podspec`, plan) whenever the public API or installation story changes.
+2. Update package metadata (README, manifest, plan) whenever the public API or installation story changes.
 3. Verify optional integrations (GPUImage adapter, AppKit previews) stay behind `canImport` guards and receive smoke tests where feasible.
 
 Notes and constraints
 - Preserve numeric behavior: unit tests must assert numerics to reasonable tolerances (use `XCTAssertEqualWithAccuracy` / `XCTAssertEqual` with tolerance).
 - Performance: when porting heavy loops (trilinear interpolation over lattices), prefer to write idiomatic Swift but verify performance. Consider `withUnsafeMutableBufferPointer` and C-style loops only where needed.
-- Interop: CocoaPods consumers now receive the Swift module directly; keep API surface aligned by avoiding Objective‑C-only shims and favouring Swift concurrency-safe APIs.
+- Interop: SwiftPM is the supported distribution channel; keep the API surface aligned by avoiding Objective‑C-only shims and favouring Swift concurrency-safe APIs.
 
 ## Audit log
 
@@ -236,8 +236,7 @@ Notes and constraints
 - 2025-10-31: Marked AppKit platform glue (`LUTPlatformGlue`, `ImageBasedFormatterPlatformBridge`) and NSImage formatter helpers as `@MainActor`; strict-concurrency test suite (`swift test -Xswiftc -strict-concurrency=complete`) remains fully green (180 XCTest + 10 Swift Testing cases).
 - 2025-10-31: Finished the preview pipeline pass by placing `@MainActor` on platform glue helpers (`LUTPlatformGlue`, `ImageBasedFormatterPlatformBridge`, `LUTFormatter{HaldCLUT,UnwrappedTexture,CMSTestPattern}`, `LUT1DGraphView`); reran `swift test -Xswiftc -strict-concurrency=complete` with 180 XCTest + 10 Swift Testing cases passing.
 - 2025-10-31: Removed legacy Objective-C sources (`Classes/` tree, CocoaLUTTests workspace, Podfile, Test LUT fixtures) to make the repository Swift-only.
-- 2025-10-31: Updated `CocoaLUT.podspec` to reference the Swift sources, drop the GLKit dependency, and raise minimum platform versions.
-- 2025-10-31: Updated `README.md` for the Swift-first workflow (SwiftPM installation, usage examples, maintenance note for CocoaPods) to close out the documentation task.
+- 2025-10-31: Removed CocoaPods/Travis distribution artifacts, raised SwiftPM platform minimums in `Package.swift`, and refreshed documentation to reflect the SwiftPM-only workflow.
 
 Appendix — formatters and small headers (quick map)
 - Files that are subclasses of `LUTFormatter` and should be ported as concrete formatter types (implement `read`, `write`):

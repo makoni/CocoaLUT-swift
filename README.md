@@ -42,10 +42,6 @@ swift build
 swift test -Xswiftc -strict-concurrency=complete
 ```
 
-### CocoaPods (maintenance mode)
-
-`CocoaLUT.podspec` now targets the Swift sources directly. The pod remains for backwards compatibility, but SwiftPM is the actively supported installation path.
-
 ## Quick start
 
 ```swift
