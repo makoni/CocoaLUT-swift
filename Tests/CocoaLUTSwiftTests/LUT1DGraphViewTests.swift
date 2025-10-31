@@ -3,8 +3,8 @@ import AppKit
 import XCTest
 @testable import CocoaLUT_swift
 
+@MainActor
 final class LUT1DGraphViewTests: XCTestCase {
-    @MainActor
     func testGraphViewProducesDrawableOutput() throws {
         var lut = LUT1D.uniformCurve(size: 16, inputLowerBound: 0, inputUpperBound: 1)
         for index in 0..<lut.size {
