@@ -117,6 +117,35 @@ final class CocoaLUTFacadeTests: XCTestCase {
             .appendingPathExtension(ext)
     }
 
+    func testLegacyIdentifiersResolveRegisteredDescriptors() throws {
+        let canonicalIdentifiers = [
+            LUTCubeFormatter.formatterIdentifier,
+            LUTFormatter3DL.formatterIdentifier,
+            LUTFormatterHaldCLUT.formatterIdentifier,
+            LUTFormatterILUT.formatterIdentifier,
+            LUTFormatterOLUT.formatterIdentifier,
+            LUTFormatterQuantel.formatterIdentifier,
+            LUTFormatterFSIDAT.formatterIdentifier,
+            LUTFormatterClipster.formatterIdentifier,
+            LUTFormatterDiscreet1DLUT.formatterIdentifier,
+            LUTFormatterCMSTestPattern.formatterIdentifier,
+            LUTFormatterNucodaCMS.formatterIdentifier,
+            LUTFormatterResolveDAT.formatterIdentifier,
+            LUTFormatterDaVinciDAVLUT.formatterIdentifier,
+            LUTFormatterMatchLight.formatterIdentifier,
+            LUTFormatterArriLook.formatterIdentifier,
+            LUTFormatterUnwrappedTexture.formatterIdentifier
+        ]
+
+        for identifier in canonicalIdentifiers {
+            let descriptor = try CocoaLUT.descriptor(for: identifier)
+            let legacyIdentifier = legacyKey(for: identifier)
+            let legacyDescriptor = try CocoaLUT.descriptor(for: legacyIdentifier)
+            XCTAssertEqual(legacyDescriptor.id, descriptor.id,
+                           "Legacy identifier \(legacyIdentifier) should resolve to \(identifier)")
+        }
+    }
+
     func testConstantsMirrorHelperValues() {
         XCTAssertEqual(CocoaLUT.suggestedMaxLUT1DSize, LUTConstants.suggestedMax1DSize)
         XCTAssertEqual(CocoaLUT.suggestedMaxLUT3DSize, LUTConstants.suggestedMax3DSize)

@@ -5,8 +5,8 @@ This document is an actionable plan for porting the CocoaLUT Objective‑C codeb
 ## Status (updated 2025-10-31)
 
 - **Completion estimate:** ~88% of the Objective‑C surface has Swift equivalents with green tests (core math, processors, formatters, color spaces, GPUImage shim, and image-based helpers).
-- **What remains for 100% parity:** macOS-only UI/preview utilities, the ICC profile formatter, and a top-level Swift entry point that mirrors `CocoaLUT.h`/formatter discovery APIs.
-- **Next focus:** finish macOS preview pipeline ports, add ICC formatter tests, wire a Swift formatter registry & `CocoaLUT` facade, tighten legacy sidecar coverage, and retire the remaining Objective‑C files.
+- **What remains for 100% parity:** finalize the Swift formatter registry & `CocoaLUT` facade, replace `CocoaLUT.h` macros with Swift-native constants, and retire the remaining Objective‑C scaffolding.
+- **Next focus:** deliver the public Swift facade, migrate the remaining constants/macros, and start decommissioning the Objective‑C helper modules.
 
 Summary
 - Goal: Produce a Swift 6 implementation of the library (module name `CocoaLUTSwift`), preserve public API behavior, and keep a SwiftPM-first workflow. Maintain Objective‑C compatibility where needed for existing apps until migration is complete.
@@ -29,7 +29,7 @@ Test Driven Development rules (strict)
 - Use XCTest with `swift test`. Add tests under `Tests/CocoaLUTSwiftTests/` matching package layout.
 - When porting code that uses global state or singletons, write tests that run in isolation (reset global state between tests).
 
-## Progress tracker (updated 2025-10-30)
+## Progress tracker (updated 2025-10-31)
 
 - [x] Establish Swift test target `CocoaLUTSwiftTests` scaffold.
 - [x] Port `LUTColor` with arithmetic/clamping tests.
@@ -85,13 +85,13 @@ Test Driven Development rules (strict)
   - [x] Add Hald CLUT formatter coverage to the registry with TIFF round-trip tests.
   - [x] Add Unwrapped texture formatter coverage (PNG/TIFF) to the registry with read/write facade tests.
   - [x] Register ILUT/OLUT descriptors with passthrough normalization and round-trip facade coverage.
-  - [ ] Incrementally add remaining formatters + legacy aliases with regression coverage.
+  - [x] Incrementally add remaining formatters + legacy aliases with regression coverage.
     - [x] Register FSIDAT, Clipster, Discreet, CMS Test Pattern, Nucoda CMS, and Arri Look descriptors with normalization coverage tests.
     - [x] Align Cube formatter identifier with Objective-C canonical ID while retaining legacy alias coverage.
     - [x] Mirror default and passthrough options across canonical and legacy identifiers for all registered formatters, with facade regression tests.
-    - [ ] Add MatchLight aliases and the remaining legacy sidecars.
+    - [x] Add MatchLight aliases and the remaining legacy sidecars.
       - [x] Support MatchLight alias lookup (camel-case and lowercase identifiers).
-      - [ ] Wire remaining legacy sidecar descriptors.
+      - [x] Wire remaining legacy sidecar descriptors.
 - [ ] Replace `CocoaLUT.h` macros with Swift symbols (constants for suggested sizes, `SystemColor` alias) and populate `CocoaLUT_swift.swift` as the public facade.
 - [ ] Remove or port the legacy Objective‑C image-based formatter scaffolding (`LUTFormatterImageBased`) once the Swift helpers cover all use cases.
 - [ ] Update README/API docs to describe the Swift-first surface and deprecation path for the Objective‑C headers.

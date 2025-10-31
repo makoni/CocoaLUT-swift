@@ -119,6 +119,22 @@ private enum LUTFormatterRegistry {
         "com.cocoalut.formatter.\(canonicalID.lowercased())"
     }
 
+    private static func alternateIdentifiers(for canonicalID: String,
+                                             additional: [String] = []) -> [String] {
+        var identifiers: [String] = []
+
+        for candidate in additional where !identifiers.contains(candidate) {
+            identifiers.append(candidate)
+        }
+
+        let legacy = legacyIdentifier(for: canonicalID)
+        if !identifiers.contains(legacy) {
+            identifiers.append(legacy)
+        }
+
+        return identifiers
+    }
+
     private static func mirroredDefaultOptions(for canonicalID: String,
                                                 options: [String: Any]) -> [String: Any] {
         var updated = options
@@ -202,7 +218,7 @@ private enum LUTFormatterRegistry {
             uti: "com.blackmagicdesign.cube",
             defaultOptions: defaultOptions,
             allOptions: variants,
-            alternateIdentifiers: [legacyKey, "com.blackmagicdesign.cube"],
+            alternateIdentifiers: alternateIdentifiers(for: cubeKey, additional: ["com.blackmagicdesign.cube"]),
             reader: { url in
                 let result = try LUTCubeFormatter.read(url: url)
                 return normalizeCubePayload(result)
@@ -267,7 +283,7 @@ private enum LUTFormatterRegistry {
             uti: "com.autodesk.3dl",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: ["com.autodesk.3dl"],
+            alternateIdentifiers: alternateIdentifiers(for: formatterKey, additional: ["com.autodesk.3dl"]),
             reader: { url in
                 let lut = try LUTFormatter3DL.read(url: url)
                 return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterKey)
@@ -307,7 +323,7 @@ private enum LUTFormatterRegistry {
             uti: "public.image",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: [formatterID.lowercased()],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: [formatterID.lowercased()]),
             reader: { url in
                 let data = try Data(contentsOf: url)
                 let lut = try LUTFormatterHaldCLUT.read(data: data)
@@ -358,7 +374,7 @@ private enum LUTFormatterRegistry {
             uti: "com.blackmagicdesign.ilut",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: ["com.blackmagicdesign.ilut"],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: ["com.blackmagicdesign.ilut"]),
             reader: { url in
                 let lut = try LUTFormatterILUT.read(url: url)
                 return payloadByAddingLegacyAlias(.lut1D(lut), canonicalID: formatterID)
@@ -397,7 +413,7 @@ private enum LUTFormatterRegistry {
             uti: "com.blackmagicdesign.olut",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: ["com.blackmagicdesign.olut"],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: ["com.blackmagicdesign.olut"]),
             reader: { url in
                 let lut = try LUTFormatterOLUT.read(url: url)
                 return payloadByAddingLegacyAlias(.lut1D(lut), canonicalID: formatterID)
@@ -443,7 +459,7 @@ private enum LUTFormatterRegistry {
             uti: "public.text",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: ["Quantel"],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: ["Quantel"]),
             reader: { url in
                 let lut = try LUTFormatterQuantel.read(url: url)
                 return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
@@ -491,7 +507,7 @@ private enum LUTFormatterRegistry {
             uti: "public.dat-lut",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: ["FSIDAT"],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: ["FSIDAT"]),
             reader: { url in
                 let lut = try LUTFormatterFSIDAT.read(url: url)
                 return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
@@ -539,7 +555,7 @@ private enum LUTFormatterRegistry {
             uti: "public.xml",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: ["Clipster"],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: ["Clipster"]),
             reader: { url in
                 let lut = try LUTFormatterClipster.read(url: url)
                 return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
@@ -584,7 +600,7 @@ private enum LUTFormatterRegistry {
             uti: "com.discreet.lut",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: ["Discreet"],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: ["Discreet"]),
             reader: { url in
                 let lut = try LUTFormatterDiscreet1DLUT.read(url: url)
                 return payloadByAddingLegacyAlias(.lut1D(lut), canonicalID: formatterID)
@@ -620,7 +636,7 @@ private enum LUTFormatterRegistry {
             uti: "public.image",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: [formatterID.lowercased()],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: [formatterID.lowercased()]),
             reader: { url in
                 let data = try Data(contentsOf: url)
                 let lut = try LUTFormatterCMSTestPattern.read(data: data)
@@ -674,7 +690,7 @@ private enum LUTFormatterRegistry {
             uti: "com.digitalvision.cms",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: ["Nucoda"],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: ["Nucoda"]),
             reader: { url in
                 let result = try LUTFormatterNucodaCMS.read(url: url)
                 switch result {
@@ -721,7 +737,7 @@ private enum LUTFormatterRegistry {
             uti: "public.dat-lut",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: ["ResolveDAT"],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: ["ResolveDAT"]),
             reader: { url in
                 let lut = try LUTFormatterResolveDAT.read(url: url)
                 return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
@@ -757,7 +773,7 @@ private enum LUTFormatterRegistry {
             uti: "com.blackmagicdesign.davlut",
             defaultOptions: mirroredDefaults,
             allOptions: [["fileTypeVariant": "DaVinci"]],
-            alternateIdentifiers: ["DaVinci"],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: ["DaVinci"]),
             reader: { url in
                 var lut = try LUTFormatterDaVinciDAVLUT.read(url: url)
                 if lut.passthroughFileOptions[formatterID] == nil,
@@ -796,7 +812,7 @@ private enum LUTFormatterRegistry {
             uti: "com.lightillusion.mlc",
             defaultOptions: mirroredDefaults,
             allOptions: [["fileTypeVariant": "MatchLight"]],
-            alternateIdentifiers: ["MatchLight", formatterID.lowercased()],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: ["MatchLight", formatterID.lowercased()]),
             reader: { url in
                 let lut = try LUTFormatterMatchLight.read(url: url)
                 return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
@@ -828,7 +844,7 @@ private enum LUTFormatterRegistry {
             uti: "public.xml",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: ["arri"],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: ["arri"]),
             reader: { url in
                 let lut = try LUTFormatterArriLook.read(url: url)
                 return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
@@ -865,7 +881,7 @@ private enum LUTFormatterRegistry {
             uti: "public.image",
             defaultOptions: mirroredDefaults,
             allOptions: allOptions,
-            alternateIdentifiers: [formatterID.lowercased()],
+            alternateIdentifiers: alternateIdentifiers(for: formatterID, additional: [formatterID.lowercased()]),
             reader: { url in
                 let data = try Data(contentsOf: url)
                 let lut = try LUTFormatterUnwrappedTexture.read(data: data)
