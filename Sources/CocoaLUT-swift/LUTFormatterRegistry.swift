@@ -97,7 +97,12 @@ public struct LUTFormatterDescriptor {
 
 private enum LUTFormatterRegistry {
     static func descriptors() -> [LUTFormatterDescriptor] {
-        [cubeDescriptor(), threeDLDescriptor(), haldDescriptor(), ilutDescriptor(), unwrappedTextureDescriptor()]
+        [cubeDescriptor(),
+         threeDLDescriptor(),
+         haldDescriptor(),
+         ilutDescriptor(),
+         olutDescriptor(),
+         unwrappedTextureDescriptor()]
     }
 
     static func descriptor(for identifier: String) -> LUTFormatterDescriptor? {
@@ -305,6 +310,46 @@ private enum LUTFormatterRegistry {
         )
     }
 
+    private static func olutDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterOLUT.formatterIdentifier
+        let defaultOptions: [String: Any] = [
+            formatterID: [
+                "fileTypeVariant": "OLUT",
+                "lutSize": 4096
+            ]
+        ]
+
+        let allOptions: [[String: Any]] = [[
+            "fileTypeVariant": "OLUT",
+            "lutSize": [4096]
+        ]]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "Blackmagic Design 1D LUT",
+            fileExtensions: ["olut"],
+            output: .lut1D,
+            roles: [.read, .write],
+            uti: "com.blackmagicdesign.olut",
+            defaultOptions: defaultOptions,
+            allOptions: allOptions,
+            alternateIdentifiers: ["com.blackmagicdesign.olut"],
+            reader: { url in
+                let lut = try LUTFormatterOLUT.read(url: url)
+                return .lut1D(lut)
+            },
+            writer: { payload, url, options in
+                guard case .lut1D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut1D, actual: payload.outputType)
+                }
+
+                let writeOptions = normalizedOLOptions(from: options)
+                let contents = try LUTFormatterOLUT.write(lut, options: writeOptions)
+                try contents.write(to: url, atomically: true, encoding: .utf8)
+            }
+        )
+    }
+
     private static func unwrappedTextureDescriptor() -> LUTFormatterDescriptor {
         let formatterID = LUTFormatterUnwrappedTexture.formatterIdentifier
         let defaultMetadata = LUTFormatterUnwrappedTexture.Options().metadata()
@@ -465,6 +510,21 @@ private enum LUTFormatterRegistry {
 
         if let bitDepth = integerValue(from: options["bitDepth"]) {
             return LUTFormatterUnwrappedTexture.Options(bitDepth: bitDepth)
+        }
+
+        return nil
+    }
+
+    private static func normalizedOLOptions(from options: [String: Any]?) -> LUTFormatterOLUT.Options? {
+        guard let options else { return nil }
+
+        if let nested = options[LUTFormatterOLUT.formatterIdentifier] as? [String: Any],
+           let lutSize = integerValue(from: nested["lutSize"]) {
+            return LUTFormatterOLUT.Options(lutSize: lutSize)
+        }
+
+        if let lutSize = integerValue(from: options["lutSize"]) {
+            return LUTFormatterOLUT.Options(lutSize: lutSize)
         }
 
         return nil

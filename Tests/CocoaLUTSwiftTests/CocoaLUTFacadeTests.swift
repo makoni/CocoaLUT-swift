@@ -35,6 +35,14 @@ final class CocoaLUTFacadeTests: XCTestCase {
         """
     }
 
+    private func sampleOLUTString() -> String {
+        """
+        0,0,0,0,0,0
+        2048,1024,0,2048,1024,0
+        4095,4095,4095,4095,4095,4095
+        """
+    }
+
     func testConstantsMirrorHelperValues() {
         XCTAssertEqual(CocoaLUT.suggestedMaxLUT1DSize, LUTConstants.suggestedMax1DSize)
         XCTAssertEqual(CocoaLUT.suggestedMaxLUT3DSize, LUTConstants.suggestedMax3DSize)
@@ -103,6 +111,23 @@ final class CocoaLUTFacadeTests: XCTestCase {
     func testDescriptorsLookupByExtensionIncludesILUT() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "ILUT")
         XCTAssertEqual(descriptors.map { $0.id }, [LUTFormatterILUT.formatterIdentifier])
+    }
+
+    func testOLUTDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterOLUT.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, "Blackmagic Design 1D LUT")
+        XCTAssertEqual(descriptor.fileExtensions, ["olut"])
+        XCTAssertEqual(descriptor.output, .lut1D)
+        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+
+        let options = descriptor.defaultOptions?[LUTFormatterOLUT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, "OLUT")
+        XCTAssertEqual(integer(from: options?["lutSize"]), 4096)
+    }
+
+    func testDescriptorsLookupByExtensionIncludesOLUT() {
+        let descriptors = CocoaLUT.descriptors(forFileExtension: "OLUT")
+        XCTAssertEqual(descriptors.map { $0.id }, [LUTFormatterOLUT.formatterIdentifier])
     }
 
     func testHaldDescriptorIsRegistered() throws {
@@ -201,6 +226,44 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(lut.valueAtB(2), 8192.0 / 16383.0, accuracy: 1e-9)
     }
 
+    func testReadOLUTByIdentifier() throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("sample.olut")
+        try sampleOLUTString().write(to: fileURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterOLUT.formatterIdentifier)
+        guard case .lut1D(let lut) = payload else {
+            XCTFail("Expected LUT1D payload from OLUT file")
+            return
+        }
+
+        XCTAssertEqual(lut.size, 3)
+        XCTAssertEqual(lut.valueAtR(1), 2048.0 / 4095.0, accuracy: 1e-9)
+        XCTAssertEqual(lut.valueAtG(1), 1024.0 / 4095.0, accuracy: 1e-9)
+        XCTAssertEqual(lut.valueAtB(0), 0, accuracy: 1e-9)
+        let passthrough = lut.passthroughFileOptions[LUTFormatterOLUT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(integer(from: passthrough?["lutSize"]), 3)
+    }
+
+    func testReadOLUTFallsBackToExtensionMatching() throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("fallback.olut")
+        try sampleOLUTString().write(to: fileURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let payload = try CocoaLUT.read(from: fileURL)
+        guard case .lut1D(let lut) = payload else {
+            XCTFail("Expected LUT1D payload from OLUT extension lookup")
+            return
+        }
+
+        XCTAssertEqual(lut.size, 3)
+        XCTAssertEqual(lut.valueAtB(2), 1, accuracy: 1e-9)
+    }
+
     func testWriteCubeRoundTrip() throws {
         let originalPayload = try CocoaLUT.read(from: cubeURL())
         guard case .lut1D(let lut) = originalPayload else {
@@ -251,6 +314,40 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(lut.valueAtR(lut.size - 1), 1, accuracy: 1e-9)
         let passthrough = lut.passthroughFileOptions[LUTFormatterILUT.formatterIdentifier] as? [String: Any]
         XCTAssertNotNil(passthrough)
+    }
+
+    func testWriteOLUTRoundTrip() throws {
+        var original = LUT1D(redCurve: [0, 0.25, 0.5, 0.75],
+                              greenCurve: [0, 0.5, 0.25, 1],
+                              blueCurve: [1, 0.5, 0.25, 0],
+                              inputLowerBound: 0,
+                              inputUpperBound: 1)
+        original.passthroughFileOptions = [
+            LUTFormatterOLUT.formatterIdentifier: ["lutSize": original.size]
+        ]
+
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("roundtrip.olut")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        try CocoaLUT.write(.lut1D(original),
+                           to: fileURL,
+                           formatterIdentifier: LUTFormatterOLUT.formatterIdentifier)
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterOLUT.formatterIdentifier)
+        guard case .lut1D(let lut) = payload else {
+            XCTFail("Expected LUT1D payload from round-tripped OLUT file")
+            return
+        }
+
+        XCTAssertEqual(lut.size, original.size)
+        XCTAssertEqual(lut.valueAtR(0), original.valueAtR(0), accuracy: 1e-9)
+        let quantizedTolerance = (1.0 / 4095.0) + 1e-6
+        XCTAssertEqual(lut.valueAtG(1), original.valueAtG(1), accuracy: quantizedTolerance)
+        XCTAssertEqual(lut.valueAtB(lut.size - 1), original.valueAtB(original.size - 1), accuracy: quantizedTolerance)
+        let passthrough = lut.passthroughFileOptions[LUTFormatterOLUT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(integer(from: passthrough?["lutSize"]), original.size)
     }
 
     func testRead3DLByIdentifier() throws {
