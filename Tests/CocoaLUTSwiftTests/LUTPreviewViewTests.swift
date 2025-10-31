@@ -3,8 +3,8 @@ import AppKit
 import XCTest
 @testable import CocoaLUT_swift
 
+@MainActor
 final class LUTPreviewViewTests: XCTestCase {
-    @MainActor
     func testMaskAmountClampsAndUpdatesLayout() throws {
         let view = LUTPreviewView(frame: NSRect(x: 0, y: 0, width: 200, height: 120))
         view.maskAmount = 1.5
@@ -19,7 +19,6 @@ final class LUTPreviewViewTests: XCTestCase {
         XCTAssertEqual(maskLayer.frame.width, 0.0, accuracy: 0.5)
     }
 
-    @MainActor
     func testSettingPreviewImageUpdatesLayerContents() throws {
         let view = LUTPreviewView(frame: NSRect(x: 0, y: 0, width: 160, height: 90))
         view.previewImage = Self.makeSolidImage(color: .white, size: NSSize(width: 32, height: 32))

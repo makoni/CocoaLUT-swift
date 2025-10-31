@@ -3,8 +3,8 @@ import AppKit
 import XCTest
 @testable import CocoaLUT_swift
 
+@MainActor
 final class LUTFormatterICCProfileTests: XCTestCase {
-    @MainActor
     func testReadGenericRGBProfileProducesIdentityTransform() throws {
         let colorSpace = NSColorSpace.genericRGB
         let data = try XCTUnwrap(colorSpace.iccProfileData)
@@ -30,7 +30,6 @@ final class LUTFormatterICCProfileTests: XCTestCase {
         XCTAssertTrue(passthrough?.isEmpty ?? false)
     }
 
-    @MainActor
     func testReadFromURLMatchesDataPath() throws {
         let colorSpace = NSColorSpace.genericRGB
         let data = try XCTUnwrap(colorSpace.iccProfileData)

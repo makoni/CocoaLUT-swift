@@ -3,8 +3,8 @@ import AppKit
 import XCTest
 @testable import CocoaLUT_swift
 
+@MainActor
 final class LUTPreviewImageGeneratorTests: XCTestCase {
-    @MainActor
     func testGeneratesMaskedPreviewImage() throws {
         let inputImage = Self.makeGradientImage(size: NSSize(width: 40, height: 40))
         var lut = LUT3D.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
