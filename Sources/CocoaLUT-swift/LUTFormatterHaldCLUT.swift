@@ -94,11 +94,13 @@ enum LUTFormatterHaldCLUT {
     }
 
     #if canImport(AppKit)
+    @MainActor
     static func nsImage(from lut: LUT3D, options: Options = Options()) throws -> NSImage {
         let cgImage = try image(from: lut, options: options)
         return ImageBasedFormatterPlatformBridge.nsImage(from: cgImage)
     }
 
+    @MainActor
     static func read(nsImage: NSImage) throws -> LUT3D {
         guard let cgImage = ImageBasedFormatterPlatformBridge.cgImage(from: nsImage) else {
             throw LUTHaldCLUTFormatterError.unsupportedImage

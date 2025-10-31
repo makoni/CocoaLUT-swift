@@ -8,9 +8,11 @@ import CoreGraphics
 #if canImport(UIKit)
 import UIKit
 #endif
+
 #if canImport(AppKit)
 import AppKit
 #endif
+
 
 #if canImport(CoreImage)
 public enum LUTImageRenderPath: Sendable {
@@ -97,6 +99,7 @@ extension LUT {
     #endif
 
     #if canImport(AppKit)
+    @MainActor
     public func process(nsImage: NSImage, renderPath: LUTImageRenderPath = .coreImage) -> NSImage? {
         switch renderPath {
         case .coreImage, .coreImageSoftware:
@@ -163,6 +166,7 @@ extension LUT {
         }
     }
 
+    @MainActor
     private func processNSImageDirectly(_ image: NSImage) -> NSImage? {
         guard let inputRep = Self.bitmapRepresentation(for: image) else {
             return nil
@@ -203,6 +207,7 @@ extension LUT {
         return outputImage
     }
 
+    @MainActor
     private static func bitmapRepresentation(for image: NSImage) -> NSBitmapImageRep? {
         if let existing = image.representations.compactMap({ $0 as? NSBitmapImageRep }).first {
             return existing
@@ -256,6 +261,7 @@ extension LUT {
 
 #if canImport(AppKit) && canImport(CoreImage)
 private extension NSImage {
+    @MainActor
     static func make(from ciImage: CIImage,
                      targetSize: NSSize,
                      useSoftwareRenderer: Bool) -> NSImage? {

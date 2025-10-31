@@ -8,10 +8,12 @@ enum ImageBasedFormatterPlatformBridge {}
 import AppKit
 
 extension ImageBasedFormatterPlatformBridge {
+    @MainActor
     static func nsImage(from cgImage: CGImage) -> NSImage {
         NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
     }
 
+    @MainActor
     static func cgImage(from nsImage: NSImage) -> CGImage? {
         if let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) {
             return cgImage

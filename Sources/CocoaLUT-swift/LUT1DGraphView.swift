@@ -1,6 +1,7 @@
 #if canImport(AppKit)
 import AppKit
 
+@MainActor
 public final class LUT1DGraphView: NSView {
     public enum Interpolation: Int {
         case linear

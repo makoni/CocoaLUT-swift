@@ -234,6 +234,9 @@ Notes and constraints
 - 2025-10-31: Scoped preview and ICC profile test suites to `@MainActor` to unblock strict concurrency warnings; full package still green under `-strict-concurrency=complete`.
 - 2025-10-31: Extended MainActor isolation to SceneKit/Core Image preview tests and Swift Testing suites (`LUTPreviewSceneTests`, `LUTPlatformGlueTests`, `LUTFormatterCMSTestPatternTests.nsImageRoundTrip`); verified strict-concurrency run remains clean.
 - 2025-10-31: Annotated `Sources/CocoaLUT-swift/LUTPreviewScene` with `@MainActor` to align runtime isolation with its preview tests; reconfirmed `swift test -Xswiftc -strict-concurrency=complete` stays green.
+- 2025-10-31: Scoped `Sources/CocoaLUT-swift/LUT1DGraphView` to `@MainActor` to match AppKit-only usage and keep the strict-concurrency suite warning-free.
+- 2025-10-31: Marked AppKit platform glue (`LUTPlatformGlue`, `ImageBasedFormatterPlatformBridge`) and NSImage formatter helpers as `@MainActor`; strict-concurrency test suite (`swift test -Xswiftc -strict-concurrency=complete`) remains fully green (180 XCTest + 10 Swift Testing cases).
+- 2025-10-31: Finished the preview pipeline pass by placing `@MainActor` on platform glue helpers (`LUTPlatformGlue`, `ImageBasedFormatterPlatformBridge`, `LUTFormatter{HaldCLUT,UnwrappedTexture,CMSTestPattern}`, `LUT1DGraphView`); reran `swift test -Xswiftc -strict-concurrency=complete` with 180 XCTest + 10 Swift Testing cases passing.
 
 Appendix — formatters and small headers (quick map)
 - Files that are subclasses of `LUTFormatter` and should be ported as concrete formatter types (implement `read`, `write`):
