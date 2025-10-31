@@ -97,12 +97,13 @@ public struct LUTFormatterDescriptor {
 
 private enum LUTFormatterRegistry {
     static func descriptors() -> [LUTFormatterDescriptor] {
-        [cubeDescriptor(),
-         threeDLDescriptor(),
-         haldDescriptor(),
-         ilutDescriptor(),
-         olutDescriptor(),
-         unwrappedTextureDescriptor()]
+    [cubeDescriptor(),
+     threeDLDescriptor(),
+     haldDescriptor(),
+     ilutDescriptor(),
+     olutDescriptor(),
+     quantelDescriptor(),
+     unwrappedTextureDescriptor()]
     }
 
     static func descriptor(for identifier: String) -> LUTFormatterDescriptor? {
@@ -350,6 +351,51 @@ private enum LUTFormatterRegistry {
         )
     }
 
+    private static func quantelDescriptor() -> LUTFormatterDescriptor {
+        let formatterID = LUTFormatterQuantel.formatterIdentifier
+        let defaultOptions: [String: Any] = [
+            formatterID: [
+                "fileTypeVariant": "Quantel",
+                "integerMaxOutput": LUTMath.maxInteger(bitDepth: 16),
+                "lutSize": 33
+            ]
+        ]
+
+        let allOptions: [[String: Any]] = [[
+            "fileTypeVariant": "Quantel",
+            "integerMaxOutput": [
+                LUTMath.maxInteger(bitDepth: 12),
+                LUTMath.maxInteger(bitDepth: 16)
+            ],
+            "lutSize": [17, 33, 65]
+        ]]
+
+        return LUTFormatterDescriptor(
+            id: formatterID,
+            name: "Quantel 3D LUT",
+            fileExtensions: ["txt"],
+            output: .lut3D,
+            roles: [.read, .write],
+            uti: "public.text",
+            defaultOptions: defaultOptions,
+            allOptions: allOptions,
+            alternateIdentifiers: ["Quantel"],
+            reader: { url in
+                let lut = try LUTFormatterQuantel.read(url: url)
+                return .lut3D(lut)
+            },
+            writer: { payload, url, options in
+                guard case .lut3D(let lut) = payload else {
+                    throw CocoaLUT.Error.invalidPayload(expected: .lut3D, actual: payload.outputType)
+                }
+
+                let writeOptions = normalizedQuantelOptions(from: options)
+                let contents = try LUTFormatterQuantel.write(lut, options: writeOptions)
+                try contents.write(to: url, atomically: true, encoding: .utf8)
+            }
+        )
+    }
+
     private static func unwrappedTextureDescriptor() -> LUTFormatterDescriptor {
         let formatterID = LUTFormatterUnwrappedTexture.formatterIdentifier
         let defaultMetadata = LUTFormatterUnwrappedTexture.Options().metadata()
@@ -525,6 +571,26 @@ private enum LUTFormatterRegistry {
 
         if let lutSize = integerValue(from: options["lutSize"]) {
             return LUTFormatterOLUT.Options(lutSize: lutSize)
+        }
+
+        return nil
+    }
+
+    private static func normalizedQuantelOptions(from options: [String: Any]?) -> LUTFormatterQuantel.Options? {
+        guard let options else { return nil }
+
+        let candidateKeys = [LUTFormatterQuantel.formatterIdentifier, "Quantel"]
+        for key in candidateKeys {
+            if let nested = options[key] as? [String: Any],
+               let integerMax = integerValue(from: nested["integerMaxOutput"]),
+               let lutSize = integerValue(from: nested["lutSize"]) {
+                return LUTFormatterQuantel.Options(integerMaxOutput: integerMax, lutSize: lutSize)
+            }
+        }
+
+        if let integerMax = integerValue(from: options["integerMaxOutput"]),
+           let lutSize = integerValue(from: options["lutSize"]) {
+            return LUTFormatterQuantel.Options(integerMaxOutput: integerMax, lutSize: lutSize)
         }
 
         return nil

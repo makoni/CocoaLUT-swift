@@ -43,6 +43,26 @@ final class CocoaLUTFacadeTests: XCTestCase {
         """
     }
 
+    private func sampleQuantelString() -> String {
+        """
+        max value 1023
+        vertices 2
+        blue is fastest changing
+        red is slowest changing
+
+        cube data
+        R G B
+        0 0 0
+        0 0 1023
+        0 1023 0
+        0 1023 1023
+        1023 0 0
+        1023 0 1023
+        1023 1023 0
+        1023 1023 1023
+        """
+    }
+
     func testConstantsMirrorHelperValues() {
         XCTAssertEqual(CocoaLUT.suggestedMaxLUT1DSize, LUTConstants.suggestedMax1DSize)
         XCTAssertEqual(CocoaLUT.suggestedMaxLUT3DSize, LUTConstants.suggestedMax3DSize)
@@ -128,6 +148,24 @@ final class CocoaLUTFacadeTests: XCTestCase {
     func testDescriptorsLookupByExtensionIncludesOLUT() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "OLUT")
         XCTAssertEqual(descriptors.map { $0.id }, [LUTFormatterOLUT.formatterIdentifier])
+    }
+
+    func testQuantelDescriptorIsRegistered() throws {
+        let descriptor = try CocoaLUT.descriptor(for: LUTFormatterQuantel.formatterIdentifier)
+        XCTAssertEqual(descriptor.name, "Quantel 3D LUT")
+        XCTAssertEqual(Set(descriptor.fileExtensions), ["txt"])
+        XCTAssertEqual(descriptor.output, .lut3D)
+        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+
+        let options = descriptor.defaultOptions?[LUTFormatterQuantel.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, "Quantel")
+        XCTAssertEqual(integer(from: options?["lutSize"]), 33)
+        XCTAssertEqual(integer(from: options?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 16))
+    }
+
+    func testDescriptorsLookupByExtensionIncludesQuantel() {
+        let descriptors = CocoaLUT.descriptors(forFileExtension: "TXT")
+        XCTAssertTrue(descriptors.contains { $0.id == LUTFormatterQuantel.formatterIdentifier })
     }
 
     func testHaldDescriptorIsRegistered() throws {
@@ -264,6 +302,43 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(lut.valueAtB(2), 1, accuracy: 1e-9)
     }
 
+    func testReadQuantelByIdentifier() throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("sample.txt")
+        try sampleQuantelString().write(to: fileURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterQuantel.formatterIdentifier)
+        guard case .lut3D(let lut) = payload else {
+            XCTFail("Expected LUT3D payload from Quantel file")
+            return
+        }
+
+        XCTAssertEqual(lut.size, 2)
+        XCTAssertEqual(lut.colorAt(r: 1, g: 1, b: 1).red, 1, accuracy: 1e-6)
+        let passthrough = lut.passthroughFileOptions[LUTFormatterQuantel.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(integer(from: passthrough?["lutSize"]), 2)
+        XCTAssertEqual(integer(from: passthrough?["integerMaxOutput"]), 1023)
+    }
+
+    func testReadQuantelFallsBackToExtensionMatching() throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("fallback.txt")
+        try sampleQuantelString().write(to: fileURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let payload = try CocoaLUT.read(from: fileURL)
+        guard case .lut3D(let lut) = payload else {
+            XCTFail("Expected LUT3D payload from Quantel extension lookup")
+            return
+        }
+
+        XCTAssertEqual(lut.size, 2)
+        XCTAssertEqual(lut.colorAt(r: 0, g: 0, b: 1).blue, 1023.0 / 1023.0, accuracy: 1e-9)
+    }
+
     func testWriteCubeRoundTrip() throws {
         let originalPayload = try CocoaLUT.read(from: cubeURL())
         guard case .lut1D(let lut) = originalPayload else {
@@ -348,6 +423,38 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(lut.valueAtB(lut.size - 1), original.valueAtB(original.size - 1), accuracy: quantizedTolerance)
         let passthrough = lut.passthroughFileOptions[LUTFormatterOLUT.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(integer(from: passthrough?["lutSize"]), original.size)
+    }
+
+    func testWriteQuantelRoundTrip() throws {
+        var original = LUT3D.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
+        original.passthroughFileOptions = [
+            LUTFormatterQuantel.formatterIdentifier: [
+                "fileTypeVariant": "Quantel",
+                "integerMaxOutput": LUTMath.maxInteger(bitDepth: 10),
+                "lutSize": original.size
+            ]
+        ]
+
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent("roundtrip.txt")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        try CocoaLUT.write(.lut3D(original),
+                           to: fileURL,
+                           formatterIdentifier: LUTFormatterQuantel.formatterIdentifier)
+
+        let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterQuantel.formatterIdentifier)
+        guard case .lut3D(let lut) = payload else {
+            XCTFail("Expected LUT3D payload from round-tripped Quantel file")
+            return
+        }
+
+        XCTAssertEqual(lut.size, original.size)
+        XCTAssertTrue(lut.equals(original, tolerance: 1e-6))
+        let passthrough = lut.passthroughFileOptions[LUTFormatterQuantel.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(integer(from: passthrough?["lutSize"]), original.size)
+        XCTAssertEqual(integer(from: passthrough?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 10))
     }
 
     func testRead3DLByIdentifier() throws {
