@@ -2,11 +2,11 @@
 
 This document is an actionable plan for porting the CocoaLUT Objective‑C codebase to Swift 6 as a Swift Package, using Test‑Driven Development (TDD). It is written for the human maintainer and for the AI agent that will do the porting work.
 
-## Status (updated 2025-10-30)
+## Status (updated 2025-10-31)
 
 - **Completion estimate:** ~88% of the Objective‑C surface has Swift equivalents with green tests (core math, processors, formatters, color spaces, GPUImage shim, and image-based helpers).
 - **What remains for 100% parity:** macOS-only UI/preview utilities, the ICC profile formatter, and a top-level Swift entry point that mirrors `CocoaLUT.h`/formatter discovery APIs.
-- **Next focus:** finish macOS preview pipeline ports, add ICC formatter tests, wire a Swift formatter registry & `CocoaLUT` facade, and retire the remaining Objective‑C files.
+- **Next focus:** finish macOS preview pipeline ports, add ICC formatter tests, wire a Swift formatter registry & `CocoaLUT` facade, tighten legacy sidecar coverage, and retire the remaining Objective‑C files.
 
 Summary
 - Goal: Produce a Swift 6 implementation of the library (module name `CocoaLUTSwift`), preserve public API behavior, and keep a SwiftPM-first workflow. Maintain Objective‑C compatibility where needed for existing apps until migration is complete.
@@ -88,6 +88,7 @@ Test Driven Development rules (strict)
   - [ ] Incrementally add remaining formatters + legacy aliases with regression coverage.
     - [x] Register FSIDAT, Clipster, Discreet, CMS Test Pattern, Nucoda CMS, and Arri Look descriptors with normalization coverage tests.
     - [x] Align Cube formatter identifier with Objective-C canonical ID while retaining legacy alias coverage.
+    - [x] Mirror default and passthrough options across canonical and legacy identifiers for all registered formatters, with facade regression tests.
     - [ ] Add MatchLight aliases and the remaining legacy sidecars.
       - [x] Support MatchLight alias lookup (camel-case and lowercase identifiers).
       - [ ] Wire remaining legacy sidecar descriptors.

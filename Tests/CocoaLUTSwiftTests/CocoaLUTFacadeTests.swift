@@ -99,6 +99,24 @@ final class CocoaLUTFacadeTests: XCTestCase {
         """
     }
 
+    private func legacyKey(for canonicalID: String) -> String {
+        "com.cocoalut.formatter.\(canonicalID.lowercased())"
+    }
+
+    private func assertDefaultOptionsIncludeLegacyAlias(_ descriptor: LUTFormatterDescriptor,
+                                                        canonicalID: String,
+                                                        file: StaticString = #filePath,
+                                                        line: UInt = #line) {
+        let legacyOptions = descriptor.defaultOptions?[legacyKey(for: canonicalID)] as? [String: Any]
+        XCTAssertNotNil(legacyOptions, "Expected default options to include legacy alias for \(canonicalID)", file: file, line: line)
+    }
+
+    private func temporaryFileURL(ext: String) -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension(ext)
+    }
+
     func testConstantsMirrorHelperValues() {
         XCTAssertEqual(CocoaLUT.suggestedMaxLUT1DSize, LUTConstants.suggestedMax1DSize)
         XCTAssertEqual(CocoaLUT.suggestedMaxLUT3DSize, LUTConstants.suggestedMax3DSize)
@@ -151,6 +169,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(defaultOptions?["fileTypeVariant"] as? String, LUTFormatter3DL.Variant.nuke.rawValue)
         XCTAssertEqual(integer(from: defaultOptions?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 16))
         XCTAssertEqual(integer(from: defaultOptions?["lutSize"]), 32)
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatter3DL.formatterIdentifier)
     }
 
     func testDescriptorsLookupByExtensionIncludes3DL() {
@@ -165,9 +184,10 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(descriptor.output, .lut1D)
         XCTAssertTrue(descriptor.roles.contains([.read, .write]))
 
-    let options = descriptor.defaultOptions?[LUTFormatterILUT.formatterIdentifier] as? [String: Any]
-    XCTAssertEqual(options?["fileTypeVariant"] as? String, "ILUT")
-    XCTAssertEqual(integer(from: options?["lutSize"]), 16384)
+        let options = descriptor.defaultOptions?[LUTFormatterILUT.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, "ILUT")
+        XCTAssertEqual(integer(from: options?["lutSize"]), 16384)
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterILUT.formatterIdentifier)
     }
 
     func testDescriptorsLookupByExtensionIncludesILUT() {
@@ -185,6 +205,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
         let options = descriptor.defaultOptions?[LUTFormatterOLUT.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(options?["fileTypeVariant"] as? String, "OLUT")
         XCTAssertEqual(integer(from: options?["lutSize"]), 4096)
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterOLUT.formatterIdentifier)
     }
 
     func testDescriptorsLookupByExtensionIncludesOLUT() {
@@ -203,6 +224,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(options?["fileTypeVariant"] as? String, "Quantel")
         XCTAssertEqual(integer(from: options?["lutSize"]), 33)
         XCTAssertEqual(integer(from: options?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 16))
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterQuantel.formatterIdentifier)
     }
 
     func testFSIDATDescriptorIsRegistered() throws {
@@ -215,6 +237,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
         let options = descriptor.defaultOptions?[LUTFormatterFSIDAT.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(options?["fileTypeVariant"] as? String, LUTFormatterFSIDAT.Variant.v1.rawValue)
         XCTAssertEqual(integer(from: options?["lutSize"]), LUTFormatterFSIDAT.Variant.v1.lutSize)
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterFSIDAT.formatterIdentifier)
     }
 
     func testDescriptorsLookupByExtensionIncludesDATVariants() {
@@ -235,6 +258,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(options?["fileTypeVariant"] as? String, "Clipster")
         XCTAssertEqual(integer(from: options?["lutSize"]), 17)
         XCTAssertEqual(integer(from: options?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 16))
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterClipster.formatterIdentifier)
     }
 
     func testDiscreetDescriptorIsRegistered() throws {
@@ -247,6 +271,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
         let options = descriptor.defaultOptions?[LUTFormatterDiscreet1DLUT.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(options?["fileTypeVariant"] as? String, "Discreet")
         XCTAssertEqual(integer(from: options?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 12))
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterDiscreet1DLUT.formatterIdentifier)
     }
 
     func testCMSDescriptorIsRegistered() throws {
@@ -259,6 +284,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
         let options = descriptor.defaultOptions?[LUTFormatterCMSTestPattern.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(options?["fileTypeVariant"] as? String, ImageBasedFormatterVariant.tiff.rawValue)
         XCTAssertEqual(integer(from: options?["bitDepth"]), 8)
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterCMSTestPattern.formatterIdentifier)
     }
 
     func testNucodaDescriptorIsRegistered() throws {
@@ -270,6 +296,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
 
         let options = descriptor.defaultOptions?[LUTFormatterNucodaCMS.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(options?["fileTypeVariant"] as? String, LUTFormatterNucodaCMS.Variant.v3.rawValue)
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterNucodaCMS.formatterIdentifier)
     }
 
     func testArriLookDescriptorIsRegistered() throws {
@@ -282,6 +309,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
         let options = descriptor.defaultOptions?[LUTFormatterArriLook.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(options?["fileTypeVariant"] as? String, "Arri")
         XCTAssertEqual(integer(from: options?["lutSize"]), 4096)
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterArriLook.formatterIdentifier)
     }
 
     func testDescriptorsLookupByExtensionIncludesXMLFormatters() {
@@ -305,6 +333,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
 
         let options = descriptor.defaultOptions?[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(options?["fileTypeVariant"] as? String, "Resolve")
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterResolveDAT.formatterIdentifier)
     }
 
     func testDescriptorsLookupByExtensionIncludesResolveDAT() {
@@ -321,6 +350,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
 
         let resolveOptions = descriptor.defaultOptions?[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(resolveOptions?["fileTypeVariant"] as? String, "DaVinci")
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterDaVinciDAVLUT.formatterIdentifier)
     }
 
     func testDescriptorsLookupByExtensionIncludesDaVinci() {
@@ -336,8 +366,9 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertTrue(descriptor.roles.contains(.read))
         XCTAssertFalse(descriptor.roles.contains(.write))
 
-    let options = descriptor.defaultOptions?[LUTFormatterMatchLight.formatterIdentifier] as? [String: Any]
-    XCTAssertEqual(options?["fileTypeVariant"] as? String, "MatchLight")
+        let options = descriptor.defaultOptions?[LUTFormatterMatchLight.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(options?["fileTypeVariant"] as? String, "MatchLight")
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterMatchLight.formatterIdentifier)
     }
     
     func testMatchLightAliasLookupResolvesDescriptor() throws {
@@ -364,6 +395,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(options?["fileTypeVariant"] as? String, ImageBasedFormatterVariant.tiff.rawValue)
         XCTAssertEqual(integer(from: options?["bitDepth"]), 16)
         XCTAssertEqual(integer(from: options?["lutSize"]), 36)
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterHaldCLUT.formatterIdentifier)
     }
 
     func testDescriptorsLookupByExtensionIncludesHald() {
@@ -383,6 +415,7 @@ final class CocoaLUTFacadeTests: XCTestCase {
         let options = descriptor.defaultOptions?[LUTFormatterUnwrappedTexture.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(integer(from: options?["bitDepth"]), 8)
         XCTAssertEqual(options?["fileTypeVariant"] as? String, ImageBasedFormatterVariant.tiff.rawValue)
+        assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterUnwrappedTexture.formatterIdentifier)
     }
 
     func testDescriptorsLookupByExtensionIncludesUnwrapped() {
@@ -399,12 +432,16 @@ final class CocoaLUTFacadeTests: XCTestCase {
             return
         }
 
-        let formatterOptions = lut.passthroughFileOptions[LUTCubeFormatter.formatterIdentifier] as? [String: Any]
-        let legacyOptions = lut.passthroughFileOptions["cube"] as? [String: Any]
+        let canonicalKey = LUTCubeFormatter.formatterIdentifier
+        let formatterOptions = lut.passthroughFileOptions[canonicalKey] as? [String: Any]
+        let legacyOptions = lut.passthroughFileOptions[legacyKey(for: canonicalKey)] as? [String: Any]
+        let blackmagicOptions = lut.passthroughFileOptions["com.blackmagicdesign.cube"] as? [String: Any]
 
-        XCTAssertEqual(formatterOptions?["fileTypeVariant"] as? String, legacyOptions?["fileTypeVariant"] as? String)
         XCTAssertNotNil(formatterOptions)
         XCTAssertNotNil(legacyOptions)
+        XCTAssertNotNil(blackmagicOptions)
+        XCTAssertEqual(formatterOptions?["fileTypeVariant"] as? String, legacyOptions?["fileTypeVariant"] as? String)
+        XCTAssertEqual(formatterOptions?["fileTypeVariant"] as? String, blackmagicOptions?["fileTypeVariant"] as? String)
     }
 
     func testReadCubeFallsBackToExtensionMatching() throws {
@@ -432,6 +469,8 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(lut.valueAtR(1), 8192.0 / 16383.0, accuracy: 1e-9)
         let passthrough = lut.passthroughFileOptions[LUTFormatterILUT.formatterIdentifier] as? [String: Any]
         XCTAssertNotNil(passthrough)
+    let legacyOptions = lut.passthroughFileOptions[legacyKey(for: LUTFormatterILUT.formatterIdentifier)] as? [String: Any]
+    XCTAssertNotNil(legacyOptions)
     }
 
     func testReadILUTFallsBackToExtensionMatching() throws {
@@ -470,6 +509,8 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(lut.valueAtB(0), 0, accuracy: 1e-9)
         let passthrough = lut.passthroughFileOptions[LUTFormatterOLUT.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(integer(from: passthrough?["lutSize"]), 3)
+    let legacyOptions = lut.passthroughFileOptions[legacyKey(for: LUTFormatterOLUT.formatterIdentifier)] as? [String: Any]
+    XCTAssertNotNil(legacyOptions)
     }
 
     func testReadOLUTFallsBackToExtensionMatching() throws {
@@ -507,6 +548,8 @@ final class CocoaLUTFacadeTests: XCTestCase {
         let passthrough = lut.passthroughFileOptions[LUTFormatterQuantel.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(integer(from: passthrough?["lutSize"]), 2)
         XCTAssertEqual(integer(from: passthrough?["integerMaxOutput"]), 1023)
+    let legacyOptions = lut.passthroughFileOptions[legacyKey(for: LUTFormatterQuantel.formatterIdentifier)] as? [String: Any]
+    XCTAssertNotNil(legacyOptions)
     }
 
     func testReadQuantelFallsBackToExtensionMatching() throws {
@@ -541,6 +584,8 @@ final class CocoaLUTFacadeTests: XCTestCase {
         XCTAssertEqual(lut.size, 2)
         let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Resolve")
+        let legacyOptions = lut.passthroughFileOptions[legacyKey(for: LUTFormatterResolveDAT.formatterIdentifier)] as? [String: Any]
+        XCTAssertNotNil(legacyOptions)
     }
 
     func testReadResolveDATFallsBackToExtensionMatching() throws {
@@ -572,6 +617,11 @@ final class CocoaLUTFacadeTests: XCTestCase {
 
         let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "DaVinci")
+        let canonicalKey = LUTFormatterDaVinciDAVLUT.formatterIdentifier
+        let canonicalOptions = lut.passthroughFileOptions[canonicalKey] as? [String: Any]
+        XCTAssertNotNil(canonicalOptions)
+        let legacyOptions = lut.passthroughFileOptions[legacyKey(for: canonicalKey)] as? [String: Any]
+        XCTAssertNotNil(legacyOptions)
     }
 
     func testReadDaVinciFallsBackToExtensionMatching() throws {
@@ -603,10 +653,12 @@ final class CocoaLUTFacadeTests: XCTestCase {
 
         XCTAssertEqual(lut.size, 2)
         XCTAssertEqual(lut.colorAt(r: 1, g: 1, b: 1).red, 1, accuracy: 1e-9)
-    let passthrough = lut.passthroughFileOptions[LUTFormatterMatchLight.formatterIdentifier] as? [String: Any]
-    XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "MatchLight")
-    XCTAssertEqual(integer(from: passthrough?["lut1DSize"]), 3)
-    XCTAssertEqual(integer(from: passthrough?["lut3DSize"]), 2)
+        let passthrough = lut.passthroughFileOptions[LUTFormatterMatchLight.formatterIdentifier] as? [String: Any]
+        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "MatchLight")
+        XCTAssertEqual(integer(from: passthrough?["lut1DSize"]), 3)
+        XCTAssertEqual(integer(from: passthrough?["lut3DSize"]), 2)
+        let legacyOptions = lut.passthroughFileOptions[legacyKey(for: LUTFormatterMatchLight.formatterIdentifier)] as? [String: Any]
+        XCTAssertNotNil(legacyOptions)
     }
 
     func testReadMatchLightFallsBackToExtensionMatching() throws {
@@ -741,6 +793,36 @@ final class CocoaLUTFacadeTests: XCTestCase {
         let passthrough = lut.passthroughFileOptions[LUTFormatterQuantel.formatterIdentifier] as? [String: Any]
         XCTAssertEqual(integer(from: passthrough?["lutSize"]), original.size)
         XCTAssertEqual(integer(from: passthrough?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 10))
+    }
+
+    func testWriteQuantelWithLegacyOptions() throws {
+        let lut = LUT3D.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
+        let payload = LUTFormatterPayload.lut3D(lut)
+        let fileURL = temporaryFileURL(ext: "txt")
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+
+        let legacy = legacyKey(for: LUTFormatterQuantel.formatterIdentifier)
+        let options: [String: Any] = [legacy: [
+            "integerMaxOutput": LUTMath.maxInteger(bitDepth: 16),
+            "lutSize": lut.size
+        ]]
+
+        try CocoaLUT.write(payload,
+                           to: fileURL,
+                           formatterIdentifier: LUTFormatterQuantel.formatterIdentifier,
+                           options: options)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path))
+
+        let readPayload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterQuantel.formatterIdentifier)
+        guard case .lut3D(let readLUT) = readPayload else {
+            return XCTFail("Expected LUT3D payload from Quantel file written with legacy options")
+        }
+
+        let canonicalOptions = readLUT.passthroughFileOptions[LUTFormatterQuantel.formatterIdentifier] as? [String: Any]
+        let legacyOptions = readLUT.passthroughFileOptions[legacy] as? [String: Any]
+        XCTAssertNotNil(canonicalOptions)
+        XCTAssertNotNil(legacyOptions)
     }
 
     func testWriteResolveDATRoundTrip() throws {

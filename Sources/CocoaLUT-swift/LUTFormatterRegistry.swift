@@ -115,6 +115,56 @@ private enum LUTFormatterRegistry {
      unwrappedTextureDescriptor()]
     }
 
+    private static func legacyIdentifier(for canonicalID: String) -> String {
+        "com.cocoalut.formatter.\(canonicalID.lowercased())"
+    }
+
+    private static func mirroredDefaultOptions(for canonicalID: String,
+                                                options: [String: Any]) -> [String: Any] {
+        var updated = options
+        let legacyID = legacyIdentifier(for: canonicalID)
+        if let canonicalValue = updated[canonicalID], updated[legacyID] == nil {
+            updated[legacyID] = canonicalValue
+        } else if let legacyValue = updated[legacyID], updated[canonicalID] == nil {
+            updated[canonicalID] = legacyValue
+        }
+        return updated
+    }
+
+    private static func payloadByAddingLegacyAlias(_ payload: LUTFormatterPayload,
+                                                   canonicalID: String) -> LUTFormatterPayload {
+        let legacyID = legacyIdentifier(for: canonicalID)
+
+        func mirroredOptions(_ options: [String: Any]) -> [String: Any] {
+            if let canonicalOptions = options[canonicalID] {
+                var updated = options
+                if updated[legacyID] == nil {
+                    updated[legacyID] = canonicalOptions
+                }
+                return updated
+            }
+
+            if let legacyOptions = options[legacyID] {
+                var updated = options
+                if updated[canonicalID] == nil {
+                    updated[canonicalID] = legacyOptions
+                }
+                return updated
+            }
+
+            return options
+        }
+
+        switch payload {
+        case .lut1D(var lut):
+            lut.passthroughFileOptions = mirroredOptions(lut.passthroughFileOptions)
+            return .lut1D(lut)
+        case .lut3D(var lut):
+            lut.passthroughFileOptions = mirroredOptions(lut.passthroughFileOptions)
+            return .lut3D(lut)
+        }
+    }
+
     static func descriptor(for identifier: String) -> LUTFormatterDescriptor? {
         descriptors().first { descriptor in
             descriptor.id == identifier || descriptor.alternateIdentifiers.contains(identifier)
@@ -182,6 +232,7 @@ private enum LUTFormatterRegistry {
                 "lutSize": 32
             ]
         ]
+        let mirroredDefaults = mirroredDefaultOptions(for: formatterKey, options: defaultOptions)
 
         let allOptions: [[String: Any]] = [
             [
@@ -214,12 +265,12 @@ private enum LUTFormatterRegistry {
             output: .lut3D,
             roles: [.read, .write],
             uti: "com.autodesk.3dl",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: ["com.autodesk.3dl"],
             reader: { url in
                 let lut = try LUTFormatter3DL.read(url: url)
-                return .lut3D(lut)
+                return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterKey)
             },
             writer: { payload, url, options in
                 guard case .lut3D(let lut) = payload else {
@@ -239,7 +290,8 @@ private enum LUTFormatterRegistry {
             lutSize: 36
         )
 
-        let defaultOptions = defaultMetadata.passthroughDictionary(formatterID: formatterID)
+    let defaultOptions = defaultMetadata.passthroughDictionary(formatterID: formatterID)
+    let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
         let allOptions: [[String: Any]] = [[
             "fileTypeVariant": ImageBasedFormatterVariant.tiff.rawValue,
             "bitDepth": ImageBasedFormatterVariant.tiff.supportedBitDepths,
@@ -253,13 +305,13 @@ private enum LUTFormatterRegistry {
             output: .lut3D,
             roles: [.read, .write],
             uti: "public.image",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: [formatterID.lowercased()],
             reader: { url in
                 let data = try Data(contentsOf: url)
                 let lut = try LUTFormatterHaldCLUT.read(data: data)
-                return .lut3D(lut)
+                return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
             },
             writer: { payload, url, options in
                 guard case .lut3D(let lut) = payload else {
@@ -290,6 +342,7 @@ private enum LUTFormatterRegistry {
                 "lutSize": 16384
             ]
         ]
+        let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
 
         let allOptions: [[String: Any]] = [[
             "fileTypeVariant": "ILUT",
@@ -303,12 +356,12 @@ private enum LUTFormatterRegistry {
             output: .lut1D,
             roles: [.read, .write],
             uti: "com.blackmagicdesign.ilut",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: ["com.blackmagicdesign.ilut"],
             reader: { url in
                 let lut = try LUTFormatterILUT.read(url: url)
-                return .lut1D(lut)
+                return payloadByAddingLegacyAlias(.lut1D(lut), canonicalID: formatterID)
             },
             writer: { payload, url, _ in
                 guard case .lut1D(let lut) = payload else {
@@ -328,6 +381,7 @@ private enum LUTFormatterRegistry {
                 "lutSize": 4096
             ]
         ]
+        let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
 
         let allOptions: [[String: Any]] = [[
             "fileTypeVariant": "OLUT",
@@ -341,12 +395,12 @@ private enum LUTFormatterRegistry {
             output: .lut1D,
             roles: [.read, .write],
             uti: "com.blackmagicdesign.olut",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: ["com.blackmagicdesign.olut"],
             reader: { url in
                 let lut = try LUTFormatterOLUT.read(url: url)
-                return .lut1D(lut)
+                return payloadByAddingLegacyAlias(.lut1D(lut), canonicalID: formatterID)
             },
             writer: { payload, url, options in
                 guard case .lut1D(let lut) = payload else {
@@ -369,6 +423,7 @@ private enum LUTFormatterRegistry {
                 "lutSize": 33
             ]
         ]
+        let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
 
         let allOptions: [[String: Any]] = [[
             "fileTypeVariant": "Quantel",
@@ -386,12 +441,12 @@ private enum LUTFormatterRegistry {
             output: .lut3D,
             roles: [.read, .write],
             uti: "public.text",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: ["Quantel"],
             reader: { url in
                 let lut = try LUTFormatterQuantel.read(url: url)
-                return .lut3D(lut)
+                return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
             },
             writer: { payload, url, options in
                 guard case .lut3D(let lut) = payload else {
@@ -414,6 +469,7 @@ private enum LUTFormatterRegistry {
                 "lutSize": defaultVariant.lutSize
             ]
         ]
+        let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
 
         let allOptions: [[String: Any]] = [
             [
@@ -433,12 +489,12 @@ private enum LUTFormatterRegistry {
             output: .lut3D,
             roles: [.read, .write],
             uti: "public.dat-lut",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: ["FSIDAT"],
             reader: { url in
                 let lut = try LUTFormatterFSIDAT.read(url: url)
-                return .lut3D(lut)
+                return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
             },
             writer: { payload, url, options in
                 guard case .lut3D(let lut) = payload else {
@@ -462,6 +518,7 @@ private enum LUTFormatterRegistry {
                 "integerMaxOutput": LUTMath.maxInteger(bitDepth: 16)
             ]
         ]
+        let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
 
         let allOptions: [[String: Any]] = [[
             "fileTypeVariant": "Clipster",
@@ -480,12 +537,12 @@ private enum LUTFormatterRegistry {
             output: .lut3D,
             roles: [.read, .write],
             uti: "public.xml",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: ["Clipster"],
             reader: { url in
                 let lut = try LUTFormatterClipster.read(url: url)
-                return .lut3D(lut)
+                return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
             },
             writer: { payload, url, options in
                 guard case .lut3D(let lut) = payload else {
@@ -508,6 +565,7 @@ private enum LUTFormatterRegistry {
                 "integerMaxOutput": LUTMath.maxInteger(bitDepth: 12)
             ]
         ]
+        let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
 
         let allOptions: [[String: Any]] = [[
             "fileTypeVariant": "Discreet",
@@ -524,12 +582,12 @@ private enum LUTFormatterRegistry {
             output: .lut1D,
             roles: [.read, .write],
             uti: "com.discreet.lut",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: ["Discreet"],
             reader: { url in
                 let lut = try LUTFormatterDiscreet1DLUT.read(url: url)
-                return .lut1D(lut)
+                return payloadByAddingLegacyAlias(.lut1D(lut), canonicalID: formatterID)
             },
             writer: { payload, url, options in
                 guard case .lut1D(let lut) = payload else {
@@ -546,7 +604,8 @@ private enum LUTFormatterRegistry {
 
     private static func cmsDescriptor() -> LUTFormatterDescriptor {
         let formatterID = LUTFormatterCMSTestPattern.formatterIdentifier
-        let defaultMetadata = LUTFormatterCMSTestPattern.Options().formatterDictionary()
+    let defaultMetadata = LUTFormatterCMSTestPattern.Options().formatterDictionary()
+    let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultMetadata)
         let allOptions: [[String: Any]] = [[
             "fileTypeVariant": ImageBasedFormatterVariant.tiff.rawValue,
             "bitDepth": [8, 16]
@@ -559,13 +618,13 @@ private enum LUTFormatterRegistry {
             output: .lut3D,
             roles: [.read, .write],
             uti: "public.image",
-            defaultOptions: defaultMetadata,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: [formatterID.lowercased()],
             reader: { url in
                 let data = try Data(contentsOf: url)
                 let lut = try LUTFormatterCMSTestPattern.read(data: data)
-                return .lut3D(lut)
+                return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
             },
             writer: { payload, url, options in
                 guard case .lut3D(let lut) = payload else {
@@ -596,6 +655,7 @@ private enum LUTFormatterRegistry {
                 "fileTypeVariant": defaultVariant.rawValue
             ]
         ]
+        let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
 
         let allOptions: [[String: Any]] = [[
             "fileTypeVariant": LUTFormatterNucodaCMS.Variant.v1.rawValue
@@ -612,16 +672,16 @@ private enum LUTFormatterRegistry {
             output: .either,
             roles: [.read, .write],
             uti: "com.digitalvision.cms",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: ["Nucoda"],
             reader: { url in
                 let result = try LUTFormatterNucodaCMS.read(url: url)
                 switch result {
                 case .lut1D(let lut):
-                    return .lut1D(lut)
+                    return payloadByAddingLegacyAlias(.lut1D(lut), canonicalID: formatterID)
                 case .lut3D(let lut):
-                    return .lut3D(lut)
+                    return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
                 }
             },
             writer: { payload, url, options in
@@ -643,8 +703,9 @@ private enum LUTFormatterRegistry {
 
     private static func resolveDATDescriptor() -> LUTFormatterDescriptor {
         let formatterID = LUTFormatterResolveDAT.formatterIdentifier
-        let defaultVariant: [String: Any] = ["fileTypeVariant": "Resolve"]
-        let defaultOptions: [String: Any] = [formatterID: defaultVariant]
+    let defaultVariant: [String: Any] = ["fileTypeVariant": "Resolve"]
+    let defaultOptions: [String: Any] = [formatterID: defaultVariant]
+    let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
         let allOptions: [[String: Any]] = [[
             "fileTypeVariant": "Resolve"
         ], [
@@ -658,12 +719,12 @@ private enum LUTFormatterRegistry {
             output: .lut3D,
             roles: [.read, .write],
             uti: "public.dat-lut",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: ["ResolveDAT"],
             reader: { url in
                 let lut = try LUTFormatterResolveDAT.read(url: url)
-                return .lut3D(lut)
+                return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
             },
             writer: { payload, url, options in
                 guard case .lut3D(let lut) = payload else {
@@ -685,6 +746,7 @@ private enum LUTFormatterRegistry {
             resolveKey: defaultVariant,
             formatterID: defaultVariant
         ]
+        let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
 
         return LUTFormatterDescriptor(
             id: formatterID,
@@ -693,12 +755,16 @@ private enum LUTFormatterRegistry {
             output: .lut3D,
             roles: [.read, .write],
             uti: "com.blackmagicdesign.davlut",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: [["fileTypeVariant": "DaVinci"]],
             alternateIdentifiers: ["DaVinci"],
             reader: { url in
-                let lut = try LUTFormatterDaVinciDAVLUT.read(url: url)
-                return .lut3D(lut)
+                var lut = try LUTFormatterDaVinciDAVLUT.read(url: url)
+                if lut.passthroughFileOptions[formatterID] == nil,
+                   let resolveOptions = lut.passthroughFileOptions[resolveKey] {
+                    lut.passthroughFileOptions[formatterID] = resolveOptions
+                }
+                return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
             },
             writer: { payload, url, options in
                 guard case .lut3D(let lut) = payload else {
@@ -719,6 +785,7 @@ private enum LUTFormatterRegistry {
                 "fileTypeVariant": "MatchLight"
             ]
         ]
+        let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
 
         return LUTFormatterDescriptor(
             id: formatterID,
@@ -727,12 +794,12 @@ private enum LUTFormatterRegistry {
             output: .lut3D,
             roles: [.read],
             uti: "com.lightillusion.mlc",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: [["fileTypeVariant": "MatchLight"]],
             alternateIdentifiers: ["MatchLight", formatterID.lowercased()],
             reader: { url in
                 let lut = try LUTFormatterMatchLight.read(url: url)
-                return .lut3D(lut)
+                return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
             }
         )
     }
@@ -745,6 +812,7 @@ private enum LUTFormatterRegistry {
                 "lutSize": 4096
             ]
         ]
+        let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
 
         let allOptions: [[String: Any]] = [[
             "fileTypeVariant": "Arri",
@@ -758,12 +826,12 @@ private enum LUTFormatterRegistry {
             output: .either,
             roles: [.read, .write],
             uti: "public.xml",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: ["arri"],
             reader: { url in
                 let lut = try LUTFormatterArriLook.read(url: url)
-                return .lut3D(lut)
+                return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
             },
             writer: { payload, url, options in
                 guard case .lut1D(let lut) = payload else {
@@ -780,8 +848,9 @@ private enum LUTFormatterRegistry {
 
     private static func unwrappedTextureDescriptor() -> LUTFormatterDescriptor {
         let formatterID = LUTFormatterUnwrappedTexture.formatterIdentifier
-        let defaultMetadata = LUTFormatterUnwrappedTexture.Options().metadata()
-        let defaultOptions = defaultMetadata.passthroughDictionary(formatterID: formatterID)
+    let defaultMetadata = LUTFormatterUnwrappedTexture.Options().metadata()
+    let defaultOptions = defaultMetadata.passthroughDictionary(formatterID: formatterID)
+    let mirroredDefaults = mirroredDefaultOptions(for: formatterID, options: defaultOptions)
         let allOptions: [[String: Any]] = [[
             "fileTypeVariant": ImageBasedFormatterVariant.tiff.rawValue,
             "bitDepth": ImageBasedFormatterVariant.tiff.supportedBitDepths
@@ -794,13 +863,13 @@ private enum LUTFormatterRegistry {
             output: .lut3D,
             roles: [.read, .write],
             uti: "public.image",
-            defaultOptions: defaultOptions,
+            defaultOptions: mirroredDefaults,
             allOptions: allOptions,
             alternateIdentifiers: [formatterID.lowercased()],
             reader: { url in
                 let data = try Data(contentsOf: url)
                 let lut = try LUTFormatterUnwrappedTexture.read(data: data)
-                return .lut3D(lut)
+                return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: formatterID)
             },
             writer: { payload, url, options in
                 guard case .lut3D(let lut) = payload else {
@@ -846,10 +915,10 @@ private enum LUTFormatterRegistry {
         switch result {
         case .lut1D(var lut):
             lut.passthroughFileOptions = optionsByAddingAlias(lut.passthroughFileOptions)
-            return .lut1D(lut)
+            return payloadByAddingLegacyAlias(.lut1D(lut), canonicalID: LUTCubeFormatter.formatterIdentifier)
         case .lut3D(var lut):
             lut.passthroughFileOptions = optionsByAddingAlias(lut.passthroughFileOptions)
-            return .lut3D(lut)
+            return payloadByAddingLegacyAlias(.lut3D(lut), canonicalID: LUTCubeFormatter.formatterIdentifier)
         }
     }
 
@@ -879,8 +948,9 @@ private enum LUTFormatterRegistry {
 
     private static func normalized3DLOptions(from options: [String: Any]?) -> LUTFormatter3DL.Options? {
         guard let options else { return nil }
-    let candidateKeys = [LUTFormatter3DL.formatterIdentifier, "autodesk3dl"]
-    var formatterOptions: [String: Any]? = options
+        let legacyKey = legacyIdentifier(for: LUTFormatter3DL.formatterIdentifier)
+        let candidateKeys = [LUTFormatter3DL.formatterIdentifier, legacyKey, "autodesk3dl"]
+        var formatterOptions: [String: Any]? = options
         for key in candidateKeys {
             if let nested = options[key] as? [String: Any] {
                 formatterOptions = nested
@@ -928,9 +998,18 @@ private enum LUTFormatterRegistry {
             return LUTFormatterHaldCLUT.Options(bitDepth: bitDepth)
         }
 
-        if let nested = options[LUTFormatterHaldCLUT.formatterIdentifier] as? [String: Any] {
-            let payload = [LUTFormatterHaldCLUT.formatterIdentifier: nested]
-            return LUTFormatterHaldCLUT.Options.from(passthrough: payload)
+        let candidateKeys = [
+            LUTFormatterHaldCLUT.formatterIdentifier,
+            legacyIdentifier(for: LUTFormatterHaldCLUT.formatterIdentifier)
+        ]
+
+        for key in candidateKeys {
+            if let nested = options[key] as? [String: Any] {
+                let payload = [LUTFormatterHaldCLUT.formatterIdentifier: nested]
+                if let parsed = LUTFormatterHaldCLUT.Options.from(passthrough: payload) {
+                    return parsed
+                }
+            }
         }
 
         return nil
@@ -943,10 +1022,17 @@ private enum LUTFormatterRegistry {
             return parsed
         }
 
-        if let nested = options[LUTFormatterUnwrappedTexture.formatterIdentifier] as? [String: Any] {
-            let payload = [LUTFormatterUnwrappedTexture.formatterIdentifier: nested]
-            if let parsed = LUTFormatterUnwrappedTexture.Options.from(passthrough: payload) {
-                return parsed
+        let candidateKeys = [
+            LUTFormatterUnwrappedTexture.formatterIdentifier,
+            legacyIdentifier(for: LUTFormatterUnwrappedTexture.formatterIdentifier)
+        ]
+
+        for key in candidateKeys {
+            if let nested = options[key] as? [String: Any] {
+                let payload = [LUTFormatterUnwrappedTexture.formatterIdentifier: nested]
+                if let parsed = LUTFormatterUnwrappedTexture.Options.from(passthrough: payload) {
+                    return parsed
+                }
             }
         }
 
@@ -960,9 +1046,16 @@ private enum LUTFormatterRegistry {
     private static func normalizedOLOptions(from options: [String: Any]?) -> LUTFormatterOLUT.Options? {
         guard let options else { return nil }
 
-        if let nested = options[LUTFormatterOLUT.formatterIdentifier] as? [String: Any],
-           let lutSize = integerValue(from: nested["lutSize"]) {
-            return LUTFormatterOLUT.Options(lutSize: lutSize)
+        let candidateKeys = [
+            LUTFormatterOLUT.formatterIdentifier,
+            legacyIdentifier(for: LUTFormatterOLUT.formatterIdentifier)
+        ]
+
+        for key in candidateKeys {
+            if let nested = options[key] as? [String: Any],
+               let lutSize = integerValue(from: nested["lutSize"]) {
+                return LUTFormatterOLUT.Options(lutSize: lutSize)
+            }
         }
 
         if let lutSize = integerValue(from: options["lutSize"]) {
@@ -975,7 +1068,11 @@ private enum LUTFormatterRegistry {
     private static func normalizedQuantelOptions(from options: [String: Any]?) -> LUTFormatterQuantel.Options? {
         guard let options else { return nil }
 
-        let candidateKeys = [LUTFormatterQuantel.formatterIdentifier, "Quantel"]
+        let candidateKeys = [
+            LUTFormatterQuantel.formatterIdentifier,
+            legacyIdentifier(for: LUTFormatterQuantel.formatterIdentifier),
+            "Quantel"
+        ]
         for key in candidateKeys {
             if let nested = options[key] as? [String: Any],
                let integerMax = integerValue(from: nested["integerMaxOutput"]),
@@ -997,7 +1094,9 @@ private enum LUTFormatterRegistry {
 
         let candidateKeys = [
             LUTFormatterResolveDAT.formatterIdentifier,
+            legacyIdentifier(for: LUTFormatterResolveDAT.formatterIdentifier),
             LUTFormatterDaVinciDAVLUT.formatterIdentifier,
+            legacyIdentifier(for: LUTFormatterDaVinciDAVLUT.formatterIdentifier),
             "ResolveDAT",
             "DaVinci"
         ]
@@ -1021,6 +1120,7 @@ private enum LUTFormatterRegistry {
 
         let candidateKeys = [
             LUTFormatterFSIDAT.formatterIdentifier,
+            legacyIdentifier(for: LUTFormatterFSIDAT.formatterIdentifier),
             "fsiDAT",
             "FSIDAT"
         ]
@@ -1044,7 +1144,11 @@ private enum LUTFormatterRegistry {
     private static func normalizedClipsterOptions(from options: [String: Any]?) -> LUTFormatterClipster.Options? {
         guard let options else { return nil }
 
-        let candidateKeys = [LUTFormatterClipster.formatterIdentifier, "clipster"]
+        let candidateKeys = [
+            LUTFormatterClipster.formatterIdentifier,
+            legacyIdentifier(for: LUTFormatterClipster.formatterIdentifier),
+            "clipster"
+        ]
         for key in candidateKeys {
             if let nested = options[key] as? [String: Any] {
                 let lutSize = integerValue(from: nested["lutSize"]) ?? 17
@@ -1068,7 +1172,11 @@ private enum LUTFormatterRegistry {
     private static func normalizedDiscreetOptions(from options: [String: Any]?) -> LUTFormatterDiscreet1DLUT.Options? {
         guard let options else { return nil }
 
-        let candidateKeys = [LUTFormatterDiscreet1DLUT.formatterIdentifier, "Discreet"]
+        let candidateKeys = [
+            LUTFormatterDiscreet1DLUT.formatterIdentifier,
+            legacyIdentifier(for: LUTFormatterDiscreet1DLUT.formatterIdentifier),
+            "Discreet"
+        ]
         for key in candidateKeys {
             if let nested = options[key] as? [String: Any],
                let integerMax = integerValue(from: nested["integerMaxOutput"]) {
@@ -1090,9 +1198,18 @@ private enum LUTFormatterRegistry {
             return parsed
         }
 
-        if let nested = options[LUTFormatterCMSTestPattern.formatterIdentifier] as? [String: Any] {
-            let payload = [LUTFormatterCMSTestPattern.formatterIdentifier: nested]
-            return LUTFormatterCMSTestPattern.Options.from(passthrough: payload)
+        let candidateKeys = [
+            LUTFormatterCMSTestPattern.formatterIdentifier,
+            legacyIdentifier(for: LUTFormatterCMSTestPattern.formatterIdentifier)
+        ]
+
+        for key in candidateKeys {
+            if let nested = options[key] as? [String: Any] {
+                let payload = [LUTFormatterCMSTestPattern.formatterIdentifier: nested]
+                if let parsed = LUTFormatterCMSTestPattern.Options.from(passthrough: payload) {
+                    return parsed
+                }
+            }
         }
 
         let variant: ImageBasedFormatterVariant?
@@ -1117,6 +1234,7 @@ private enum LUTFormatterRegistry {
 
         let candidateKeys = [
             LUTFormatterNucodaCMS.formatterIdentifier,
+            legacyIdentifier(for: LUTFormatterNucodaCMS.formatterIdentifier),
             "Nucoda"
         ]
 
@@ -1139,7 +1257,11 @@ private enum LUTFormatterRegistry {
     private static func normalizedArriOptions(from options: [String: Any]?) -> LUTFormatterArriLook.Options? {
         guard let options else { return nil }
 
-        let candidateKeys = [LUTFormatterArriLook.formatterIdentifier, "arri"]
+        let candidateKeys = [
+            LUTFormatterArriLook.formatterIdentifier,
+            legacyIdentifier(for: LUTFormatterArriLook.formatterIdentifier),
+            "arri"
+        ]
         for key in candidateKeys {
             if let nested = options[key] as? [String: Any],
                let lutSize = integerValue(from: nested["lutSize"]) {
