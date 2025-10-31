@@ -88,6 +88,8 @@ Test Driven Development rules (strict)
   - [ ] Incrementally add remaining formatters + legacy aliases with regression coverage.
     - [x] Register FSIDAT, Clipster, Discreet, CMS Test Pattern, Nucoda CMS, and Arri Look descriptors with normalization coverage tests.
     - [ ] Add MatchLight aliases and the remaining legacy sidecars.
+      - [x] Support MatchLight alias lookup (camel-case and lowercase identifiers).
+      - [ ] Wire remaining legacy sidecar descriptors.
 - [ ] Replace `CocoaLUT.h` macros with Swift symbols (constants for suggested sizes, `SystemColor` alias) and populate `CocoaLUT_swift.swift` as the public facade.
 - [ ] Remove or port the legacy Objective‑C image-based formatter scaffolding (`LUTFormatterImageBased`) once the Swift helpers cover all use cases.
 - [ ] Update README/API docs to describe the Swift-first surface and deprecation path for the Objective‑C headers.

@@ -729,7 +729,7 @@ private enum LUTFormatterRegistry {
             uti: "com.lightillusion.mlc",
             defaultOptions: defaultOptions,
             allOptions: [["fileTypeVariant": "MatchLight"]],
-            alternateIdentifiers: ["MatchLight"],
+            alternateIdentifiers: ["MatchLight", formatterID.lowercased()],
             reader: { url in
                 let lut = try LUTFormatterMatchLight.read(url: url)
                 return .lut3D(lut)

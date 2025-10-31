@@ -333,6 +333,14 @@ final class CocoaLUTFacadeTests: XCTestCase {
     let options = descriptor.defaultOptions?[LUTFormatterMatchLight.formatterIdentifier] as? [String: Any]
     XCTAssertEqual(options?["fileTypeVariant"] as? String, "MatchLight")
     }
+    
+    func testMatchLightAliasLookupResolvesDescriptor() throws {
+        let camelCase = try CocoaLUT.descriptor(for: "MatchLight")
+        XCTAssertEqual(camelCase.id, LUTFormatterMatchLight.formatterIdentifier)
+
+        let lowercase = try CocoaLUT.descriptor(for: "matchlight")
+        XCTAssertEqual(lowercase.id, LUTFormatterMatchLight.formatterIdentifier)
+    }
 
     func testDescriptorsLookupByExtensionIncludesMatchLight() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "MLC")
