@@ -11,7 +11,7 @@ final class LUTFormatterFSIDATTests: XCTestCase {
         let data = try LUTFormatterFSIDAT.write(lut, options: .init(variant: .v2))
         let decoded = try LUTFormatterFSIDAT.read(data: data)
 
-        XCTAssertTrue(decoded.equals(lut, tolerance: 1e-6))
+        XCTAssertTrue(decoded.equals(lut, tolerance: Self.quantizationTolerance(for: .v2)))
         XCTAssertEqual(decoded.title, "Sample")
         XCTAssertEqual(decoded.descriptionText, "Identity LUT")
         XCTAssertEqual(decoded.metadata["version"] as? String, "1.0")
@@ -25,7 +25,7 @@ final class LUTFormatterFSIDATTests: XCTestCase {
         let lut = LUT3D.identity(size: 64, inputLowerBound: 0, inputUpperBound: 1)
         let data = try LUTFormatterFSIDAT.write(lut, options: .init(variant: .v1))
         let decoded = try LUTFormatterFSIDAT.read(data: data)
-        XCTAssertTrue(decoded.equals(lut, tolerance: 1e-6))
+        XCTAssertTrue(decoded.equals(lut, tolerance: Self.quantizationTolerance(for: .v1)))
     }
 
     func testWriteThrowsForMismatchedSize() throws {
@@ -43,5 +43,13 @@ final class LUTFormatterFSIDATTests: XCTestCase {
     func testReadRejectsInvalidFile() {
         let data = Data(count: 64)
         XCTAssertThrowsError(try LUTFormatterFSIDAT.read(data: data))
+    }
+}
+
+private extension LUTFormatterFSIDATTests {
+    static func quantizationTolerance(for variant: LUTFormatterFSIDAT.Variant) -> Double {
+        // Use half a quantization step per channel and convert to Euclidean space.
+        let scale = variant.dataScale
+        return sqrt(3.0) * 0.5 / scale
     }
 }

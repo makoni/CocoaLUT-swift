@@ -533,9 +533,16 @@ private extension LUTFormatterNucodaCMS {
         }
 
         lines.append("LUT_3D_SIZE \(lut.size)")
+        let lowerBound: Double
+        let upperBound: Double
         if variant == .v3 {
-            lines.append(String(format: "LUT_3D_INPUT_RANGE %.3f %.3f", lut.inputLowerBound, lut.inputUpperBound))
+            lowerBound = lut.inputLowerBound
+            upperBound = lut.inputUpperBound
+        } else {
+            lowerBound = 0
+            upperBound = 1
         }
+        lines.append(String(format: "LUT_3D_INPUT_RANGE %.3f %.3f", lowerBound, upperBound))
         lines.append("")
 
         for index in 0..<(lut.size * lut.size * lut.size) {
