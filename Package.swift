@@ -29,7 +29,8 @@ let package = Package(
             name: "CocoaLUTSwiftTests",
             dependencies: ["CocoaLUTSwift"],
             resources: [
-                .process("Resources")
+                .process("Resources"),
+                .process("../Test LUTs")
             ]
         ),
     ]

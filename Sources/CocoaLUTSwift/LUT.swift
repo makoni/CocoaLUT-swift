@@ -336,61 +336,113 @@ public struct LUT {
         precondition(g >= 0 && g <= Double(size - 1))
         precondition(b >= 0 && b <= Double(size - 1))
 
-        let r0 = Int(floor(r))
-        let g0 = Int(floor(g))
-        let b0 = Int(floor(b))
+        let lowerR = Int(floor(r))
+        let lowerG = Int(floor(g))
+        let lowerB = Int(floor(b))
 
-        let r1 = min(r0 + 1, size - 1)
-        let g1 = min(g0 + 1, size - 1)
-        let b1 = min(b0 + 1, size - 1)
+        let upperR = Int(ceil(r))
+        let upperG = Int(ceil(g))
+        let upperB = Int(ceil(b))
 
-        let dr = r - Double(r0)
-        let dg = g - Double(g0)
-        let db = b - Double(b0)
+        let deltaX = r - Double(lowerR)
+        let deltaY = g - Double(lowerG)
+        let deltaZ = b - Double(lowerB)
 
-        #if DEBUG
-        if !(0..<size).contains(r0) || !(0..<size).contains(g0) || !(0..<size).contains(b0) {
-            fputs("colorInterpolated corner000 out of range size=\(size) r0=\(r0) g0=\(g0) b0=\(b0)\n", stderr)
-        }
-        if !(0..<size).contains(r1) || !(0..<size).contains(g0) || !(0..<size).contains(b0) {
-            fputs("colorInterpolated corner100 out of range size=\(size) r1=\(r1) g0=\(g0) b0=\(b0)\n", stderr)
-        }
-        if !(0..<size).contains(r0) || !(0..<size).contains(g1) || !(0..<size).contains(b0) {
-            fputs("colorInterpolated corner010 out of range size=\(size) r0=\(r0) g1=\(g1) b0=\(b0)\n", stderr)
-        }
-        if !(0..<size).contains(r1) || !(0..<size).contains(g1) || !(0..<size).contains(b0) {
-            fputs("colorInterpolated corner110 out of range size=\(size) r1=\(r1) g1=\(g1) b0=\(b0)\n", stderr)
-        }
-        if !(0..<size).contains(r0) || !(0..<size).contains(g0) || !(0..<size).contains(b1) {
-            fputs("colorInterpolated corner001 out of range size=\(size) r0=\(r0) g0=\(g0) b1=\(b1)\n", stderr)
-        }
-        if !(0..<size).contains(r1) || !(0..<size).contains(g0) || !(0..<size).contains(b1) {
-            fputs("colorInterpolated corner101 out of range size=\(size) r1=\(r1) g0=\(g0) b1=\(b1)\n", stderr)
-        }
-        if !(0..<size).contains(r0) || !(0..<size).contains(g1) || !(0..<size).contains(b1) {
-            fputs("colorInterpolated corner011 out of range size=\(size) r0=\(r0) g1=\(g1) b1=\(b1)\n", stderr)
-        }
-        if !(0..<size).contains(r1) || !(0..<size).contains(g1) || !(0..<size).contains(b1) {
-            fputs("colorInterpolated corner111 out of range size=\(size) r1=\(r1) g1=\(g1) b1=\(b1)\n", stderr)
-        }
-        #endif
-        let c000 = colorAt(r: r0, g: g0, b: b0)
-        let c100 = colorAt(r: r1, g: g0, b: b0)
-        let c010 = colorAt(r: r0, g: g1, b: b0)
-        let c110 = colorAt(r: r1, g: g1, b: b0)
-        let c001 = colorAt(r: r0, g: g0, b: b1)
-        let c101 = colorAt(r: r1, g: g0, b: b1)
-        let c011 = colorAt(r: r0, g: g1, b: b1)
-        let c111 = colorAt(r: r1, g: g1, b: b1)
+        let p000 = colorAt(r: lowerR, g: lowerG, b: lowerB)
+        let p001 = colorAt(r: lowerR, g: lowerG, b: upperB)
+        let p100 = colorAt(r: upperR, g: lowerG, b: lowerB)
+        let p010 = colorAt(r: lowerR, g: upperG, b: lowerB)
+        let p101 = colorAt(r: upperR, g: lowerG, b: upperB)
+        let p111 = colorAt(r: upperR, g: upperG, b: upperB)
+        let p110 = colorAt(r: upperR, g: upperG, b: lowerB)
+        let p011 = colorAt(r: lowerR, g: upperG, b: upperB)
 
-        let c00 = c000.lerping(to: c100, amount: dr)
-        let c10 = c010.lerping(to: c110, amount: dr)
-        let c01 = c001.lerping(to: c101, amount: dr)
-        let c11 = c011.lerping(to: c111, amount: dr)
+        var weights = [Double](repeating: 0, count: 8)
 
-        let c0 = c00.lerping(to: c10, amount: dg)
-        let c1 = c01.lerping(to: c11, amount: dg)
-        return c0.lerping(to: c1, amount: db)
+        if deltaX >= deltaY && deltaY >= deltaZ {
+            weights[0] = 1.0 - deltaX
+            weights[1] = 0
+            weights[2] = 0
+            weights[3] = 0
+            weights[4] = deltaX - deltaY
+            weights[5] = 0
+            weights[6] = deltaY - deltaZ
+            weights[7] = deltaZ
+        } else if deltaX >= deltaZ && deltaZ >= deltaY {
+            weights[0] = 1.0 - deltaX
+            weights[1] = 0
+            weights[2] = 0
+            weights[3] = 0
+            weights[4] = deltaX - deltaZ
+            weights[5] = deltaZ - deltaY
+            weights[6] = 0
+            weights[7] = deltaY
+        } else if deltaZ >= deltaX && deltaX >= deltaY {
+            weights[0] = 1.0 - deltaZ
+            weights[1] = deltaZ - deltaX
+            weights[2] = 0
+            weights[3] = 0
+            weights[4] = 0
+            weights[5] = deltaX - deltaY
+            weights[6] = 0
+            weights[7] = deltaY
+        } else if deltaY >= deltaX && deltaX >= deltaZ {
+            weights[0] = 1.0 - deltaY
+            weights[1] = 0
+            weights[2] = deltaY - deltaX
+            weights[3] = 0
+            weights[4] = 0
+            weights[5] = 0
+            weights[6] = deltaX - deltaZ
+            weights[7] = deltaZ
+        } else if deltaY >= deltaZ && deltaZ >= deltaX {
+            weights[0] = 1.0 - deltaY
+            weights[1] = 0
+            weights[2] = deltaY - deltaZ
+            weights[3] = deltaZ - deltaX
+            weights[4] = 0
+            weights[5] = 0
+            weights[6] = 0
+            weights[7] = deltaX
+        } else {
+            weights[0] = 1.0 - deltaZ
+            weights[1] = deltaZ - deltaY
+            weights[2] = 0
+            weights[3] = deltaY - deltaX
+            weights[4] = 0
+            weights[5] = 0
+            weights[6] = 0
+            weights[7] = deltaX
+        }
+
+        let red = weights[0] * p000.red +
+                  weights[1] * p001.red +
+                  weights[2] * p010.red +
+                  weights[3] * p011.red +
+                  weights[4] * p100.red +
+                  weights[5] * p101.red +
+                  weights[6] * p110.red +
+                  weights[7] * p111.red
+
+        let green = weights[0] * p000.green +
+                    weights[1] * p001.green +
+                    weights[2] * p010.green +
+                    weights[3] * p011.green +
+                    weights[4] * p100.green +
+                    weights[5] * p101.green +
+                    weights[6] * p110.green +
+                    weights[7] * p111.green
+
+        let blue = weights[0] * p000.blue +
+                   weights[1] * p001.blue +
+                   weights[2] * p010.blue +
+                   weights[3] * p011.blue +
+                   weights[4] * p100.blue +
+                   weights[5] * p101.blue +
+                   weights[6] * p110.blue +
+                   weights[7] * p111.blue
+
+        return LUTColor.color(red: red, green: green, blue: blue)
     }
 
     private func linearIndex(r: Int, g: Int, b: Int) -> Int {
