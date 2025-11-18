@@ -17,6 +17,7 @@ DerivedData
 *.hmap
 
 .build/
+.swiftpm/
 
 #CocoaPods
 Pods
