@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "CocoaLUT-swift",
+    name: "CocoaLUTSwift",
     platforms: [
         .macOS(.v10_15),
         .iOS(.v13)
@@ -12,22 +12,22 @@ let package = Package(
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "CocoaLUT-swift",
-            targets: ["CocoaLUT-swift"]
+            name: "CocoaLUTSwift",
+            targets: ["CocoaLUTSwift"]
         ),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "CocoaLUT-swift",
+            name: "CocoaLUTSwift",
             resources: [
                 .process("../../Assets/TransferFunctionLUTs")
             ]
         ),
         .testTarget(
             name: "CocoaLUTSwiftTests",
-            dependencies: ["CocoaLUT-swift"],
+            dependencies: ["CocoaLUTSwift"],
             resources: [
                 .process("Resources")
             ]
