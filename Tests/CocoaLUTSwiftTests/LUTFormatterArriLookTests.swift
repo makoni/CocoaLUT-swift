@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTFormatterArriLookTests: XCTestCase {
+@Suite
+struct LUTFormatterArriLookTests {
+    @Test
     func testReadAppliesSaturationPrinterLightsToneMapAndSOP() throws {
         let xml = """
         <?xml version="1.0" encoding="UTF-8"?>
@@ -68,6 +70,7 @@ final class LUTFormatterArriLookTests: XCTestCase {
         XCTAssertEqual(resultColor.blue, expected.blue, accuracy: 1e-6)
     }
 
+    @Test
     func testWriteProducesExpectedToneMapSection() throws {
         let curve = stride(from: 0, to: 4, by: 1).map { Double($0) / 3.0 }
         let lut = LUT1D(redCurve: curve,

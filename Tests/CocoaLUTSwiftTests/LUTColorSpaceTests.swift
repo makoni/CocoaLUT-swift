@@ -1,8 +1,10 @@
-import XCTest
+import Testing
 import simd
 @testable import CocoaLUTSwift
 
-final class LUTColorSpaceTests: XCTestCase {
+@Suite
+struct LUTColorSpaceTests {
+    @Test
     func testTransformationMatrixWithIdenticalColorSpacesIsIdentity() throws {
         let matrix = try LUTColorSpace.transformationMatrix(from: .rec709,
                                                              sourceWhitePoint: .d65,
@@ -13,6 +15,7 @@ final class LUTColorSpaceTests: XCTestCase {
         XCTAssertTrue(matrix.isApproximatelyEqual(to: identity, tolerance: 1e-9))
     }
 
+    @Test
     func testConvertPreservesIdentityLUTBetweenIdenticalColorSpaces() throws {
         var lut = LUT3D.identity(size: 3, inputLowerBound: 0, inputUpperBound: 1)
         lut.setColor(.color(red: 0.2, green: 0.4, blue: 0.6), r: 0, g: 0, b: 0)
@@ -27,6 +30,7 @@ final class LUTColorSpaceTests: XCTestCase {
         XCTAssertTrue(transformed.equals(lut, tolerance: 1e-9))
     }
 
+    @Test
     func testConvertAppliesFootLambertCompensation() throws {
         let source = LUTColorSpace.forcedNPM(simd_double3x3(rows: [SIMD3(1, 0, 0), SIMD3(0, 1, 0), SIMD3(0, 0, 1)]),
                                              forwardFootlambertCompensation: 0.5,
@@ -51,6 +55,7 @@ final class LUTColorSpaceTests: XCTestCase {
         XCTAssertEqual(convertedColor.blue, 1.0, accuracy: 1e-9)
     }
 
+    @Test
     func testConvertThrowsWhenRequestingBradfordWithForcedNPM() throws {
         let forced = LUTColorSpace.forcedNPM(simd_double3x3(rows: [SIMD3(1, 0, 0), SIMD3(0, 1, 0), SIMD3(0, 0, 1)]),
                                              name: "Forced")
@@ -68,6 +73,7 @@ final class LUTColorSpaceTests: XCTestCase {
         }
     }
 
+    @Test
     func testConvertColorTemperatureMatchesManualTransform() throws {
         var lut = LUT3D.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         lut.setColor(.color(red: 0.3, green: 0.5, blue: 0.7), r: 1, g: 1, b: 1)

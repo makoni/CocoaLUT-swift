@@ -1,4 +1,4 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
 #if canImport(CoreImage)
@@ -10,8 +10,11 @@ import AppKit
 #endif
 
 @MainActor
-final class LUTPlatformGlueTests: XCTestCase {
+
+@Suite
+struct LUTPlatformGlueTests {
     #if canImport(CoreImage)
+    @Test
     func testCoreImageFilterClampsDimension() {
         let lut = LUT.identity(size: 72, inputLowerBound: 0, inputUpperBound: 1)
         guard let filter = try? lut.coreImageFilter() else {
@@ -22,6 +25,7 @@ final class LUTPlatformGlueTests: XCTestCase {
         XCTAssertEqual(dimension?.intValue, 64)
     }
 
+    @Test
     func testCoreImageFilterDataMatchesLUT() {
         var lut = LUT.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         lut.setColor(.color(red: 0.1, green: 0.2, blue: 0.3), r: 0, g: 0, b: 0)
@@ -45,6 +49,7 @@ final class LUTPlatformGlueTests: XCTestCase {
         XCTAssertEqual(floats[3], 1.0, accuracy: 1e-6)
     }
 
+    @Test
     func testProcessCIImageAppliesTransform() {
         let lut = LUT.identity(size: 17, inputLowerBound: 0, inputUpperBound: 1)
             .remappingValues(inputLow: 0, inputHigh: 1, outputLow: 1, outputHigh: 0)
@@ -79,6 +84,7 @@ final class LUTPlatformGlueTests: XCTestCase {
     #endif
 
     #if canImport(AppKit)
+    @Test
     func testProcessNSImageUsesCoreImagePath() {
         let size = NSSize(width: 1, height: 1)
         let image = NSImage(size: size)

@@ -1,7 +1,8 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTFormatterClipsterTests: XCTestCase {
+@Suite
+struct LUTFormatterClipsterTests {
     private let sampleXML = """
     <LUT3D name='Sample' N='2' BitDepth='10'>
     <values>
@@ -17,6 +18,7 @@ final class LUTFormatterClipsterTests: XCTestCase {
     </LUT3D>
     """
 
+    @Test
     func testReadParsesXMLAndNormalizesValues() throws {
         let lut = try LUTFormatterClipster.read(string: sampleXML)
         XCTAssertEqual(lut.size, 2)
@@ -31,6 +33,7 @@ final class LUTFormatterClipsterTests: XCTestCase {
         XCTAssertEqual(passthrough?["integerMaxOutput"] as? Int, Int(maxValue))
     }
 
+    @Test
     func testWriteProducesClipsterXML() throws {
         var lut = LUT3D.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         lut.title = "Sample"
@@ -45,6 +48,7 @@ final class LUTFormatterClipsterTests: XCTestCase {
         XCTAssertTrue(xml.contains("0 0 0"))
     }
 
+    @Test
     func testWriteResizesWhenOptionsDemandDifferentSize() throws {
         let lut = LUT3D.identity(size: 3, inputLowerBound: 0, inputUpperBound: 1)
         let xml = try LUTFormatterClipster.write(lut, options: .init(lutSize: 2, integerMaxOutput: LUTMath.maxInteger(bitDepth: 10)))

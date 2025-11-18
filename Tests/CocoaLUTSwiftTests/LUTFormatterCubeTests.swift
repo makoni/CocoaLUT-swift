@@ -1,8 +1,10 @@
 import Foundation
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTCubeFormatterTests: XCTestCase {
+@Suite
+struct LUTCubeFormatterTests {
+    @Test
     func testReadLinearToBMDFilmCube() throws {
         let url = try XCTUnwrap(Bundle.module.url(
             forResource: "TestLinearToBMDFilm",
@@ -26,6 +28,7 @@ final class LUTCubeFormatterTests: XCTestCase {
     XCTAssertEqual(passthrough?["fileTypeVariant"], LUTCubeVariant.resolve.rawValue)
     }
 
+    @Test
     func testRoundTripWriteRead1D() throws {
         let url = try XCTUnwrap(Bundle.module.url(
             forResource: "TestLinearToBMDFilm",
@@ -57,6 +60,7 @@ final class LUTCubeFormatterTests: XCTestCase {
         }
     }
 
+    @Test
     func testReadAndWrite3DCube() throws {
         let cube = """
         LUT_3D_SIZE 2

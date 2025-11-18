@@ -1,12 +1,15 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
 @MainActor
-final class LUTProcessorTests: XCTestCase {
+
+@Suite
+struct LUTProcessorTests {
     private func makeIdentityLUT(size: Int = 2) -> LUT {
         LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
     }
 
+    @Test
     func testFactoryConfiguresProcessor() {
         let lut = makeIdentityLUT()
         let processor = LUTProcessor.processor(for: lut, completionHandler: nil, cancelHandler: nil)
@@ -18,6 +21,7 @@ final class LUTProcessorTests: XCTestCase {
         XCTAssertNil(processor.progressDescription)
     }
 
+    @Test
     func testCancelMarksProcessorAndDescription() {
         let processor = LUTProcessor.processor(for: makeIdentityLUT(), completionHandler: nil, cancelHandler: nil)
 
@@ -28,6 +32,7 @@ final class LUTProcessorTests: XCTestCase {
         XCTAssertEqual(processor.progress, 0)
     }
 
+    @Test
     func testCheckCancellationTriggersHandlerOnce() {
         var cancelCount = 0
         let processor = LUTProcessor.processor(for: makeIdentityLUT()) { _ in } cancelHandler: {
@@ -43,6 +48,7 @@ final class LUTProcessorTests: XCTestCase {
         XCTAssertEqual(cancelCount, 1)
     }
 
+    @Test
     func testCompletedWithLUTInvokesCompletionOnMainActor() {
         let lut = makeIdentityLUT(size: 4)
         var completionResult: LUT?
@@ -57,6 +63,7 @@ final class LUTProcessorTests: XCTestCase {
         XCTAssertTrue(completionResult?.equals(lut) ?? false)
     }
 
+    @Test
     func testSetProgressNormalizesAcrossSections() {
         let processor = LUTProcessor.processor(for: makeIdentityLUT(), completionHandler: nil, cancelHandler: nil)
 

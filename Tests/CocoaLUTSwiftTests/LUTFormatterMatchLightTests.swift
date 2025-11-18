@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTFormatterMatchLightTests: XCTestCase {
+@Suite
+struct LUTFormatterMatchLightTests {
+    @Test
     func testReadCombines1DAnd3DLUT() throws {
         let source = """
         # MatchLight Example
@@ -31,6 +33,7 @@ final class LUTFormatterMatchLightTests: XCTestCase {
         XCTAssertEqual(passthrough?["lut3DSize"] as? Int, 2)
     }
 
+    @Test
     func testThrowsWhenDataMissing() {
         XCTAssertThrowsError(try LUTFormatterMatchLight.read(string: "# no data")) { error in
             guard case LUTFormatterMatchLightError.missingLUTData = error else {

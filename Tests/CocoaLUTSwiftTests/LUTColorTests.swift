@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTColorTests: XCTestCase {
+@Suite
+struct LUTColorTests {
+    @Test
     func testFactoryMethodsProduceExpectedValues() {
         let custom = LUTColor.color(red: 0.25, green: 0.5, blue: 0.75)
         XCTAssertEqual(custom.red, 0.25)
@@ -22,6 +24,7 @@ final class LUTColorTests: XCTestCase {
         assertEqual(uniform.rgbArray(), [0.42, 0.42, 0.42], accuracy: 1e-12)
     }
 
+    @Test
     func testIntegerFactoriesRescaleToUnitRange() {
         let fromBitDepth = LUTColor.fromIntegers(bitDepth: 10, red: 0, green: 512, blue: 1023)
         XCTAssertEqual(fromBitDepth.red, 0.0, accuracy: 1e-9)
@@ -34,6 +37,7 @@ final class LUTColorTests: XCTestCase {
         XCTAssertEqual(fromMaxValue.blue, 1.0, accuracy: 1e-9)
     }
 
+    @Test
     func testClampAndExtrema() {
         let sample = LUTColor.color(red: -0.25, green: 0.6, blue: 1.5)
         XCTAssertEqual(sample.minimumValue(), -0.25)
@@ -60,6 +64,7 @@ final class LUTColorTests: XCTestCase {
         XCTAssertEqual(upperOnly.blue, 0.4, accuracy: 1e-12)
     }
 
+    @Test
     func testContrastStretchAndRemap() {
         let color = LUTColor.color(red: 0.0, green: 0.5, blue: 1.0)
         let stretched = color.contrastStretched(currentMin: 0.0, currentMax: 1.0, finalMin: 0.1, finalMax: 0.9)
@@ -79,6 +84,7 @@ final class LUTColorTests: XCTestCase {
         XCTAssertEqual(unbounded.blue, 1.4, accuracy: 1e-12)
     }
 
+    @Test
     func testRemapWithColorBounds() {
         let color = LUTColor.color(red: 0.25, green: 0.5, blue: 0.75)
         let low = LUTColor.zeros()
@@ -92,6 +98,7 @@ final class LUTColorTests: XCTestCase {
     XCTAssertEqual(remapped.blue, 0.25, accuracy: 1e-12)
     }
 
+    @Test
     func testArithmeticOperations() {
         let base = LUTColor.color(red: 0.2, green: 0.4, blue: 0.6)
         let other = LUTColor.color(red: 0.5, green: 0.25, blue: 0.125)
@@ -109,6 +116,7 @@ final class LUTColorTests: XCTestCase {
         assertEqual(difference.rgbArray(), [-0.3, 0.15, 0.475], accuracy: 1e-12)
     }
 
+    @Test
     func testSaturationAndSlopeOffsetPower() {
         let color = LUTColor.color(red: 0.8, green: 0.2, blue: 0.4)
         let desaturated = color.changingSaturation(0.0, lumaR: 0.2126, lumaG: 0.7152, lumaB: 0.0722)
@@ -123,6 +131,7 @@ final class LUTColorTests: XCTestCase {
         XCTAssertEqual(applied.blue, 0.2, accuracy: 1e-12)
     }
 
+    @Test
     func testLerpAndDistance() {
         let start = LUTColor.color(red: 0.0, green: 0.0, blue: 0.0)
         let end = LUTColor.color(red: 1.0, green: 1.0, blue: 1.0)
@@ -133,6 +142,7 @@ final class LUTColorTests: XCTestCase {
         XCTAssertEqual(distance, sqrt(3.0), accuracy: 1e-12)
     }
 
+    @Test
     func testColorMatrixApplication() {
         let color = LUTColor.color(red: 0.25, green: 0.5, blue: 0.75)
         let identity = color.applyingColorMatrix(columnMajor: (1, 0, 0, 0, 1, 0, 0, 0, 1))
@@ -147,7 +157,7 @@ final class LUTColorTests: XCTestCase {
     }
 }
 
-private func assertEqual(_ lhs: [Double], _ rhs: [Double], accuracy: Double, file: StaticString = #filePath, line: UInt = #line) {
+private func assertEqual(_ lhs: [Double], _ rhs: [Double], accuracy: Double, file: StaticString = #fileID, line: UInt = #line) {
     XCTAssertEqual(lhs.count, rhs.count, file: file, line: line)
     zip(lhs, rhs).forEach { a, b in
         XCTAssertEqual(a, b, accuracy: accuracy, file: file, line: line)

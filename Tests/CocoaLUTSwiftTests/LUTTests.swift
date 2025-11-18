@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTTests: XCTestCase {
+@Suite
+struct LUTTests {
+    @Test
     func testInitializationStoresParameters() {
         let lut = LUT(size: 4, inputLowerBound: 0.0, inputUpperBound: 1.0)
         XCTAssertEqual(lut.size, 4)
@@ -11,6 +13,7 @@ final class LUTTests: XCTestCase {
         XCTAssertTrue(lut.passthroughFileOptions.isEmpty)
     }
 
+    @Test
     func testSetAndGetColor() {
         var lut = LUT(size: 3, inputLowerBound: 0.0, inputUpperBound: 1.0)
         let target = LUTColor.color(red: 0.2, green: 0.4, blue: 0.6)
@@ -19,6 +22,7 @@ final class LUTTests: XCTestCase {
         XCTAssertEqual(lut.colorAt(r: 0, g: 0, b: 0), .zeros())
     }
 
+    @Test
     func testLoopVisitsAllCoordinates() {
         let lut = LUT.identity(size: 2, inputLowerBound: 0.0, inputUpperBound: 1.0)
         var visited = Set<[Int]>()
@@ -29,6 +33,7 @@ final class LUTTests: XCTestCase {
         XCTAssertTrue(visited.contains([0, 1, 0]))
     }
 
+    @Test
     func testIdentityMatchesBounds() {
         let size = 5
         let lut = LUT.identity(size: size, inputLowerBound: -1.0, inputUpperBound: 2.0)
@@ -44,6 +49,7 @@ final class LUTTests: XCTestCase {
         XCTAssertTrue(lut.equalsIdentity(tolerance: 1e-9))
     }
 
+    @Test
     func testColorAtColorInterpolatesIdentity() {
         let lut = LUT.identity(size: 17, inputLowerBound: 0.0, inputUpperBound: 1.0)
         let input = LUTColor.color(red: 0.42, green: 1.5, blue: -0.4)
@@ -53,6 +59,7 @@ final class LUTTests: XCTestCase {
         XCTAssertEqual(output.blue, 0.0, accuracy: 1e-9)
     }
 
+    @Test
     func testResizingInterpolatesValues() {
         var lut = LUT(size: 2, inputLowerBound: 0.0, inputUpperBound: 1.0)
         lut.setColor(.zeros(), r: 0, g: 0, b: 0)
@@ -72,7 +79,7 @@ final class LUTTests: XCTestCase {
     }
 }
 
-private func assertEqual(_ lhs: [Double], _ rhs: [Double], accuracy: Double, file: StaticString = #filePath, line: UInt = #line) {
+private func assertEqual(_ lhs: [Double], _ rhs: [Double], accuracy: Double, file: StaticString = #fileID, line: UInt = #line) {
     XCTAssertEqual(lhs.count, rhs.count, file: file, line: line)
     zip(lhs, rhs).forEach { a, b in
         XCTAssertEqual(a, b, accuracy: accuracy, file: file, line: line)

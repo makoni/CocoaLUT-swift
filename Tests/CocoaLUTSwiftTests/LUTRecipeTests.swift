@@ -1,8 +1,10 @@
 import CocoaLUTSwift
 import Foundation
-import XCTest
+import Testing
 
-final class LUTRecipeTests: XCTestCase {
+@Suite
+struct LUTRecipeTests {
+    @Test
     func testSerializedRecipeProducesExpectedJSON() throws {
         let action = LUTAction.changeInputBounds(lower: 0.0, upper: 1.0, name: "Bounds")
         let recipe = LUTRecipe(actions: [action])
@@ -23,6 +25,7 @@ final class LUTRecipeTests: XCTestCase {
         XCTAssertEqual(upperBound, 1.0)
     }
 
+    @Test
     func testSerializedRecipeStringUsesUTF8Encoding() throws {
         let action = LUTAction.bypass(named: "Bypass")
         let recipe = LUTRecipe(actions: [action])

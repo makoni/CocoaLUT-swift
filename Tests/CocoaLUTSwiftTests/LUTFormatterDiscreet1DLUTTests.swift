@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTFormatterDiscreet1DLUTTests: XCTestCase {
+@Suite
+struct LUTFormatterDiscreet1DLUTTests {
+    @Test
     func testReadDiscreet1DLUT() throws {
         let source = """
         # Example Discreet LUT
@@ -31,6 +33,7 @@ final class LUTFormatterDiscreet1DLUTTests: XCTestCase {
         XCTAssertEqual(passthrough?["lutSize"] as? Int, 4)
     }
 
+    @Test
     func testWriteDiscreet1DLUT() throws {
         let lut = LUT1D.uniformCurve(size: 4, inputLowerBound: 0, inputUpperBound: 1)
         let output = try LUTFormatterDiscreet1DLUT.write(lut, options: .init(integerMaxOutput: 1023))

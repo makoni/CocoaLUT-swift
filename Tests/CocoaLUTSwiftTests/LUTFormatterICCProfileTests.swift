@@ -1,10 +1,13 @@
 #if canImport(AppKit)
 import AppKit
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
 @MainActor
-final class LUTFormatterICCProfileTests: XCTestCase {
+
+@Suite
+struct LUTFormatterICCProfileTests {
+    @Test
     func testReadGenericRGBProfileProducesIdentityTransform() throws {
         let colorSpace = NSColorSpace.genericRGB
         let data = try XCTUnwrap(colorSpace.iccProfileData)
@@ -30,6 +33,7 @@ final class LUTFormatterICCProfileTests: XCTestCase {
         XCTAssertTrue(passthrough?.isEmpty ?? false)
     }
 
+    @Test
     func testReadFromURLMatchesDataPath() throws {
         let colorSpace = NSColorSpace.genericRGB
         let data = try XCTUnwrap(colorSpace.iccProfileData)
@@ -43,6 +47,7 @@ final class LUTFormatterICCProfileTests: XCTestCase {
         XCTAssertEqual(lut.size, 9)
     }
 
+    @Test
     func testUnsupportedComponentCountThrows() throws {
         let colorSpace = NSColorSpace.genericCMYK
         let data = try XCTUnwrap(colorSpace.iccProfileData)
@@ -52,6 +57,7 @@ final class LUTFormatterICCProfileTests: XCTestCase {
         }
     }
 
+    @Test
     func testInvalidDataThrows() {
         let data = Data(repeating: 0xAA, count: 32)
         XCTAssertThrowsError(try LUTFormatterICCProfile.read(data: data)) { error in

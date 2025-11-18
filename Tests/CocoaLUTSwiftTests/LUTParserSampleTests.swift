@@ -1,8 +1,10 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTParserSampleTests: XCTestCase {
+@Suite
+struct LUTParserSampleTests {
     @MainActor
+    @Test
     func testSampleLUTsProduceExpectedSizes() throws {
         for fixture in ParserFixture.all {
             try XCTContext.runActivity(named: fixture.displayName) { _ in

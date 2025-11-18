@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTFormatterResolveDATTests: XCTestCase {
+@Suite
+struct LUTFormatterResolveDATTests {
+    @Test
     func testReadResolveDATParsesCube() throws {
         let source = """
         # Resolve DAT sample
@@ -26,6 +28,7 @@ final class LUTFormatterResolveDATTests: XCTestCase {
         XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Resolve")
     }
 
+    @Test
     func testReadResolveDATThrowsForIncompletePayload() {
         let source = """
         3DLUTSIZE 2
@@ -42,6 +45,7 @@ final class LUTFormatterResolveDATTests: XCTestCase {
         }
     }
 
+    @Test
     func testWriteResolveDATIncludesHeaderForNonDefaultSize() throws {
     let lut = LUT3D.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         let output = try LUTFormatterResolveDAT.write(lut)
@@ -51,6 +55,7 @@ final class LUTFormatterResolveDATTests: XCTestCase {
         XCTAssertEqual(lines.last, "1.000000 1.000000 1.000000")
     }
 
+    @Test
     func testWriteResolveDATOmitsHeaderForDefaultSize() throws {
     let lut = LUT3D.identity(size: 33, inputLowerBound: 0, inputUpperBound: 1)
         let output = try LUTFormatterResolveDAT.write(lut)
@@ -62,6 +67,7 @@ final class LUTFormatterResolveDATTests: XCTestCase {
         XCTAssertEqual(lines.first, "0.000000 0.000000 0.000000")
     }
 
+    @Test
     func testDaVinciFormatterUsesResolveImplementation() throws {
         let source = """
         3DLUTSIZE 2

@@ -1,8 +1,10 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTIdentityFixturesTests: XCTestCase {
+@Suite
+struct LUTIdentityFixturesTests {
     @MainActor
+    @Test
     func testLegacyIdentityFixturesDecodeToIdentity() throws {
         for fixture in IdentityFixture.all {
             try XCTContext.runActivity(named: fixture.displayName) { _ in

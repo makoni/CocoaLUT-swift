@@ -1,11 +1,14 @@
 #if canImport(AppKit) && canImport(SceneKit)
 import AppKit
 import SceneKit
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
 @MainActor
-final class LUTPreviewSceneTests: XCTestCase {
+
+@Suite
+struct LUTPreviewSceneTests {
+    @Test
     func testSceneBuildsExpectedDotCount() {
         var lut = LUT3D.identity(size: 3, inputLowerBound: 0, inputUpperBound: 1)
         for r in 0..<lut.size {
@@ -26,6 +29,7 @@ final class LUTPreviewSceneTests: XCTestCase {
         }
     }
 
+    @Test
     func testSceneWithUpdatedLUTReusesExistingNodes() {
         let original = LUT3D.identity(size: 4, inputLowerBound: 0, inputUpperBound: 1)
         let scene = LUTPreviewScene.scene(for: original)

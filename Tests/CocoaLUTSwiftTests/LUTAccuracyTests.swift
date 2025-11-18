@@ -1,8 +1,10 @@
 import simd
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTAccuracyTests: XCTestCase {
+@Suite
+struct LUTAccuracyTests {
+    @Test
     func testResizeAccuracy1DIdentity() {
         let identity = LUT1D.uniformCurve(size: 1024,
                                           inputLowerBound: 0,
@@ -16,6 +18,7 @@ final class LUTAccuracyTests: XCTestCase {
         assertEqual(identity, resized, accuracy: 1e-9)
     }
 
+    @Test
     func testResizeAccuracy3DIdentity() {
         let identity = LUT3D.identity(size: 33,
                                       inputLowerBound: 0,
@@ -29,6 +32,7 @@ final class LUTAccuracyTests: XCTestCase {
         XCTAssertTrue(resized.equals(identity), "3D identity resize should remain lossless")
     }
 
+    @Test
     func testAlexaCubeResizeMatchesReference() throws {
         let lut33 = try loadAlexaCube(size: 33)
         let lut65Reference = try loadAlexaCube(size: 65)
@@ -53,6 +57,7 @@ final class LUTAccuracyTests: XCTestCase {
         XCTAssertTrue(downsampled.equals(lut33), "Downsampled LUT should match original 33^3 data")
     }
 
+    @Test
     func testReversingIdentityLUTIsLossless() throws {
         let identity = LUT1D.uniformCurve(size: 1024,
                                           inputLowerBound: 0,
@@ -63,6 +68,7 @@ final class LUTAccuracyTests: XCTestCase {
         assertEqual(identity, reversed, accuracy: 1e-9)
     }
 
+    @Test
     func testReversingGammaLUTProducesStableInverse() throws {
         let identity = LUT1D.uniformCurve(size: 1024,
                                           inputLowerBound: 0,
@@ -101,7 +107,7 @@ private extension LUTAccuracyTests {
     func assertEqual(_ lhs: LUT1D,
                      _ rhs: LUT1D,
                      accuracy: Double,
-                     file: StaticString = #filePath,
+                     file: StaticString = #fileID,
                      line: UInt = #line) {
         XCTAssertEqual(lhs.size, rhs.size, file: file, line: line)
         XCTAssertEqual(lhs.inputLowerBound, rhs.inputLowerBound, accuracy: accuracy, file: file, line: line)

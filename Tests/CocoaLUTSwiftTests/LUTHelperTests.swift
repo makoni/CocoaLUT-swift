@@ -1,9 +1,11 @@
 import CoreGraphics
 import Foundation
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTHelperTests: XCTestCase {
+@Suite
+struct LUTHelperTests {
+    @Test
     func testClampVariants() {
         XCTAssertEqual(LUTMath.clamp(1.5, lower: 0, upper: 1), 1)
         XCTAssertEqual(LUTMath.clamp01(-0.5), 0)
@@ -13,6 +15,7 @@ final class LUTHelperTests: XCTestCase {
         XCTAssertFalse(LUTMath.outOfBounds(1, lowerBound: 0, upperBound: 1, inclusive: true))
     }
 
+    @Test
     func testRemapVariants() {
         XCTAssertEqual(LUTMath.remapNoError(0.5, inputLow: 0, inputHigh: 1, outputLow: 0, outputHigh: 10), 5)
         XCTAssertEqual(LUTMath.remapInt01(128, maxValue: 255), 0.5019607843137255, accuracy: 1e-6)
@@ -22,6 +25,7 @@ final class LUTHelperTests: XCTestCase {
         XCTAssertEqual(LUTMath.smootherstep(0, 1, percentage: 0.5), 0.5, accuracy: 1e-6)
     }
 
+    @Test
     func testIndicesGeneration() {
         XCTAssertEqual(LUTMath.indicesIntegerArray(start: 0, end: 4, count: 5), [0, 1, 2, 3, 4])
         XCTAssertEqual(LUTMath.indicesIntegerArrayLegacy(start: 0, end: 4, count: 5), [0, 1, 3, 4, 4])
@@ -32,11 +36,13 @@ final class LUTHelperTests: XCTestCase {
         }
     }
 
+    @Test
     func testRoundAndBitDepth() {
         XCTAssertEqual(LUTMath.roundToNearest(5.3, nearest: 0.5), 5.0, accuracy: 1e-10)
         XCTAssertEqual(LUTMath.maxInteger(bitDepth: 8), 255)
     }
 
+    @Test
     func testStringHelpers() {
         let components = LUTStringHelper.componentsSeparatedByWhitespace(" 1  2  3 ")
         XCTAssertEqual(components, ["1", "2", "3"])
@@ -49,6 +55,7 @@ final class LUTHelperTests: XCTestCase {
         XCTAssertEqual(LUTStringHelper.stringIsValidNumber("abc"), false)
     }
 
+    @Test
     func testConcurrentRectLoopVisitsAllPoints() {
         let width = 4
         let height = 3
@@ -67,6 +74,7 @@ final class LUTHelperTests: XCTestCase {
         }
     }
 
+    @Test
     func testProportionalScaling() {
         let current = CGSize(width: 400, height: 200)
         let target = CGSize(width: 100, height: 50)

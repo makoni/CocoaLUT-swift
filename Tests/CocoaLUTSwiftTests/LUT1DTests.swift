@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUT1DTests: XCTestCase {
+@Suite
+struct LUT1DTests {
+    @Test
     func testInitializationStoresCurves() {
     let red = stride(from: 0.0, through: 1.0, by: 0.25).map { $0 }
     let green = red.map { pow($0, 2) }
@@ -16,6 +18,7 @@ final class LUT1DTests: XCTestCase {
         XCTAssertEqual(lut.inputUpperBound, 1.0)
     }
 
+    @Test
     func testColorMappingUsesInterpolationAndClamping() {
         let red: [Double] = [0.0, 0.2, 0.6, 0.8, 1.0]
         let green: [Double] = [0.0, 0.1, 0.4, 0.7, 1.0]
@@ -31,6 +34,7 @@ final class LUT1DTests: XCTestCase {
         XCTAssertEqual(output.blue, blue.last!, accuracy: 1e-9)
     }
 
+    @Test
     func testResizingInterpolatesCurves() {
         let red: [Double] = [0.0, 0.5, 1.0]
         let green: [Double] = [0.0, 0.25, 0.5]
@@ -44,6 +48,7 @@ final class LUT1DTests: XCTestCase {
         XCTAssertEqual(resized.valueAtB(4), 1.5, accuracy: 1e-9)
     }
 
+    @Test
     func testToLUT3DProducesExpectedCube() {
         let red: [Double] = [0.0, 0.5, 1.0]
         let green: [Double] = [0.1, 0.6, 1.1]
@@ -58,6 +63,7 @@ final class LUT1DTests: XCTestCase {
         XCTAssertEqual(color.blue, blue[0], accuracy: 1e-9)
     }
 
+    @Test
     func testIsReversibleDetectsMonotonicCurves() {
         let size = 8
         let curve = monotonicCurve(size: size, exponent: 1.0)
@@ -83,6 +89,7 @@ final class LUT1DTests: XCTestCase {
         XCTAssertFalse(nonMonotonic.isReversible(strict: true))
     }
 
+    @Test
     func testReversedCurveRestoresInput() {
         let size = 64
         let curve = monotonicCurve(size: size, exponent: 2.0)
@@ -104,6 +111,7 @@ final class LUT1DTests: XCTestCase {
         XCTAssertEqual(recovered?.blue ?? 0, testValue, accuracy: 1e-3)
     }
 
+    @Test
     func testSwizzledCopiesRedChannel() {
         let size = 6
         let red = monotonicCurve(size: size, exponent: 1.0)
@@ -127,7 +135,9 @@ final class LUT1DTests: XCTestCase {
     }
 }
 
-final class LUT3DTests: XCTestCase {
+@Suite
+struct LUT3DTests {
+    @Test
     func testIdentityMatchesUnderlyingLUT() {
         let identity = LUT3D.identity(size: 4, inputLowerBound: -1.0, inputUpperBound: 2.0)
         for r in 0..<identity.size {

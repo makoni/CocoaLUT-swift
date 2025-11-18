@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTFormatter3DLTests: XCTestCase {
+@Suite
+struct LUTFormatter3DLTests {
+    @Test
     func testReadNuke3DL() throws {
         let contents = """
         # Sample 3DL
@@ -30,6 +32,7 @@ final class LUTFormatter3DLTests: XCTestCase {
         XCTAssertEqual(passthroughLUTSize(passthrough), 2)
     }
 
+    @Test
     func testRoundTripWriteRead3DL() throws {
         let contents = """
         0 4095
@@ -60,6 +63,7 @@ final class LUTFormatter3DLTests: XCTestCase {
         }
     }
 
+    @Test
     func testWriteLegacyVariantProducesLegacyHeader() throws {
         var lut = LUT3D.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         lut.passthroughFileOptions = [:]

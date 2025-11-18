@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTColorSpaceWhitePointTests: XCTestCase {
+@Suite
+struct LUTColorSpaceWhitePointTests {
+    @Test
     func testTristimulusValuesMatchReference() {
         let d65 = LUTColorSpaceWhitePoint.d65.tristimulusValues
     XCTAssertEqual(d65.x, 0.95043, accuracy: 1e-4)
@@ -9,6 +11,7 @@ final class LUTColorSpaceWhitePointTests: XCTestCase {
     XCTAssertEqual(d65.z, 1.08890, accuracy: 1e-4)
     }
 
+    @Test
     func testColorTemperatureWithinSupportedRangeProducesExpectedChromaticity() {
         guard let tungsten = LUTColorSpaceWhitePoint.fromColorTemperature(3200) else {
             XCTFail("Expected 3200K to be supported")
@@ -20,6 +23,7 @@ final class LUTColorSpaceWhitePointTests: XCTestCase {
         XCTAssertEqual(tungsten.name, "3200K")
     }
 
+    @Test
     func testCustomNameOverridePreservedForKnownColorTemperature() {
         guard let custom = LUTColorSpaceWhitePoint.fromColorTemperature(5600, customName: "Daylight") else {
             XCTFail("Expected 5600K to be supported")
@@ -29,6 +33,7 @@ final class LUTColorSpaceWhitePointTests: XCTestCase {
         XCTAssertEqual(custom.name, "Daylight")
     }
 
+    @Test
     func testColorTemperatureOutsideRangeReturnsNil() {
         XCTAssertNil(LUTColorSpaceWhitePoint.fromColorTemperature(1000))
         XCTAssertNil(LUTColorSpaceWhitePoint.fromColorTemperature(50000))

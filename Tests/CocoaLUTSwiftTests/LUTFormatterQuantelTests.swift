@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTFormatterQuantelTests: XCTestCase {
+@Suite
+struct LUTFormatterQuantelTests {
+    @Test
     func testReadQuantelLUT() throws {
         let sample = """
         max value 1023
@@ -28,6 +30,7 @@ final class LUTFormatterQuantelTests: XCTestCase {
     XCTAssertEqual(passthrough?["lutSize"] as? Int, 2)
     }
 
+    @Test
     func testWriteQuantelLUT() throws {
         var lut = LUT3D(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         for r in 0..<2 {

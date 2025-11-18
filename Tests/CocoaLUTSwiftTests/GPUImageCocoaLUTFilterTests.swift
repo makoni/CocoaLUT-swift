@@ -1,11 +1,13 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
 #if canImport(CoreGraphics)
 import CoreGraphics
 #endif
 
-final class GPUImageCocoaLUTFilterTests: XCTestCase {
+@Suite
+struct GPUImageCocoaLUTFilterTests {
+    @Test
     func testLookupImageDimensionsMatchUnwrappedTextureLayout() throws {
         let size = 4
         let lut = LUT3D.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
@@ -15,6 +17,7 @@ final class GPUImageCocoaLUTFilterTests: XCTestCase {
         XCTAssertEqual(image.height, size)
     }
 
+    @Test
     func testLookupImageFirstPixelMatchesIdentityLUT() throws {
         let size = 4
         var lut = LUT3D.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
@@ -32,6 +35,7 @@ final class GPUImageCocoaLUTFilterTests: XCTestCase {
     XCTAssertEqual(colorR100.z, 0.75, accuracy: 0.002)
     }
 
+    @Test
     func testLUTConvenienceInitializerProducesFilter() throws {
         let lut = LUT.identity(size: 3, inputLowerBound: 0, inputUpperBound: 1)
         let filter = try lut.gpuImageLookupFilter(bitDepth: 8)

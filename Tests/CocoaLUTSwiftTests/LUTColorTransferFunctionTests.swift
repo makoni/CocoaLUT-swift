@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTColorTransferFunctionTests: XCTestCase {
+@Suite
+struct LUTColorTransferFunctionTests {
+    @Test
     func testGammaTransferFunctionRoundTrip() {
         let gamma = LUTColorTransferFunction.gammaTransferFunction(gamma: 2.2)
         let source = LUTColor.color(red: 0.5, green: 0.25, blue: 0.75)
@@ -13,6 +15,7 @@ final class LUTColorTransferFunctionTests: XCTestCase {
         XCTAssertEqual(roundTrip.blue, source.blue, accuracy: 1e-9)
     }
 
+    @Test
     func testCompatibilityRelation() {
         let gamma = LUTColorTransferFunction.gammaTransferFunction(gamma: 2.4)
         let linear = LUTColorTransferFunction.linearTransferFunction()
@@ -20,6 +23,7 @@ final class LUTColorTransferFunctionTests: XCTestCase {
         XCTAssertTrue(gamma.isCompatible(with: linear))
     }
 
+    @Test
     func testTransformedLUT1DRoundTrip() {
         var lut = LUT1D.uniformCurve(size: 4, inputLowerBound: 0, inputUpperBound: 1)
         lut.setColor(.color(red: 0.0, green: 0.1, blue: 0.2), index: 0)

@@ -1,45 +1,59 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
 @MainActor
-final class LUTReverserTests: XCTestCase {
-    func testProcessReturnsInputWhenNoReversalLogicProvided() {
+@Suite
+struct LUTReverserTests {
+    @Test
+    func testProcessReturnsInputWhenNoReversalLogicProvided() async {
         let input = LUT.identity(size: 3, inputLowerBound: 0, inputUpperBound: 1)
-        let completionExpectation = expectation(description: "completion")
         var completedLUT: LUT?
+        var reverser: LUTReverser?
 
-        let reverser = LUTReverser.processor(for: input) { lut in
-            completedLUT = lut
-            completionExpectation.fulfill()
-        } cancelHandler: {
-            XCTFail("Unexpected cancellation")
+        await confirmation("reverse completes") { confirmation in
+            reverser = LUTReverser.processor(for: input) { lut in
+                completedLUT = lut
+                confirmation()
+            } cancelHandler: {
+                Issue.record(Comment("Unexpected cancellation"))
+            }
+
+            reverser?.process()
         }
 
-        reverser.process()
+        guard let reverser else {
+            Issue.record(Comment("Reverser was not created"))
+            return
+        }
 
-        wait(for: [completionExpectation], timeout: 0.1)
-        XCTAssertEqual(reverser.progress, 1)
-        XCTAssertTrue(completedLUT?.equals(input) ?? false)
+        #expect(reverser.progress == 1)
+        #expect(completedLUT?.equals(input) == true)
     }
 
-    func testProcessHonorsCancellation() {
+    @Test
+    func testProcessHonorsCancellation() async {
         let input = LUT.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
-        let cancelExpectation = expectation(description: "cancelled")
-        cancelExpectation.expectedFulfillmentCount = 1
         var completionCalled = false
+        var reverser: LUTReverser?
 
-        let reverser = LUTReverser.processor(for: input) { _ in
-            completionCalled = true
-        } cancelHandler: {
-            cancelExpectation.fulfill()
+        await confirmation("cancel handler invoked") { confirmation in
+            reverser = LUTReverser.processor(for: input) { _ in
+                completionCalled = true
+            } cancelHandler: {
+                confirmation()
+            }
+
+            reverser?.cancel()
+            reverser?.process()
         }
 
-        reverser.cancel()
-        reverser.process()
+        guard let reverser else {
+            Issue.record(Comment("Reverser was not created"))
+            return
+        }
 
-        wait(for: [cancelExpectation], timeout: 0.1)
-        XCTAssertTrue(reverser.cancelled)
-        XCTAssertFalse(completionCalled)
-        XCTAssertEqual(reverser.progress, 0)
+        #expect(reverser.cancelled)
+        #expect(!completionCalled)
+        #expect(reverser.progress == 0)
     }
 }

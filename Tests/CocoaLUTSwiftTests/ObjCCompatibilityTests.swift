@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class ObjCCompatibilityTests: XCTestCase {
+@Suite
+struct ObjCCompatibilityTests {
+    @Test
     func testLUTDataRepresentationRoundTrip3D() throws {
         let identity = LUT.identity(size: 17,
                                     inputLowerBound: 0,
@@ -13,6 +15,7 @@ final class ObjCCompatibilityTests: XCTestCase {
         XCTAssertTrue(decoded.equals(identity, tolerance: 1e-9))
     }
 
+    @Test
     func testLUTDataRepresentationRoundTrip1D() throws {
         let curve = LUT1D.uniformCurve(size: 65,
                                        inputLowerBound: 0,
@@ -30,7 +33,7 @@ final class ObjCCompatibilityTests: XCTestCase {
 private func assertEqual(_ lhs: LUT1D,
                          _ rhs: LUT1D,
                          accuracy: Double,
-                         file: StaticString = #filePath,
+                         file: StaticString = #fileID,
                          line: UInt = #line) {
     XCTAssertEqual(lhs.size, rhs.size, file: file, line: line)
     XCTAssertEqual(lhs.inputLowerBound, rhs.inputLowerBound, accuracy: accuracy, file: file, line: line)

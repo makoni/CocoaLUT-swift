@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTFormatterFSIDATTests: XCTestCase {
+@Suite
+struct LUTFormatterFSIDATTests {
+    @Test
     func testVariantV2RoundTripPreservesMetadata() throws {
         var lut = LUT3D.identity(size: 17, inputLowerBound: 0, inputUpperBound: 1)
         lut.title = "Sample"
@@ -21,6 +23,7 @@ final class LUTFormatterFSIDATTests: XCTestCase {
         XCTAssertEqual(passthrough?["lutSize"] as? Int, 17)
     }
 
+    @Test
     func testVariantV1RoundTrip() throws {
         let lut = LUT3D.identity(size: 64, inputLowerBound: 0, inputUpperBound: 1)
         let data = try LUTFormatterFSIDAT.write(lut, options: .init(variant: .v1))
@@ -28,6 +31,7 @@ final class LUTFormatterFSIDATTests: XCTestCase {
         XCTAssertTrue(decoded.equals(lut, tolerance: Self.quantizationTolerance(for: .v1)))
     }
 
+    @Test
     func testWriteThrowsForMismatchedSize() throws {
         let lut = LUT3D.identity(size: 17, inputLowerBound: 0, inputUpperBound: 1)
         XCTAssertThrowsError(try LUTFormatterFSIDAT.write(lut, options: .init(variant: .v1))) { error in
@@ -40,6 +44,7 @@ final class LUTFormatterFSIDATTests: XCTestCase {
         }
     }
 
+    @Test
     func testReadRejectsInvalidFile() {
         let data = Data(count: 64)
         XCTAssertThrowsError(try LUTFormatterFSIDAT.read(data: data))

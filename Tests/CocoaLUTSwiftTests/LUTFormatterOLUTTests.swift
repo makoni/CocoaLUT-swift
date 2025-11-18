@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTFormatterOLUTTests: XCTestCase {
+@Suite
+struct LUTFormatterOLUTTests {
+    @Test
     func testReadParsesCurves() throws {
         let payload = "0,2048,4095,0,2048,4095\n1024,3072,0,1024,3072,0\n"
         let lut = try LUTFormatterOLUT.read(string: payload)
@@ -20,6 +22,7 @@ final class LUTFormatterOLUTTests: XCTestCase {
         XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "OLUT")
     }
 
+    @Test
     func testWriteProducesExpectedCSV() throws {
         var lut = LUT1D(redCurve: [0, 0.25, 0.5],
                         greenCurve: [0, 0.5, 1],
@@ -36,6 +39,7 @@ final class LUTFormatterOLUTTests: XCTestCase {
         XCTAssertEqual(lines[2], "2047,4095,0,2047,4095,0")
     }
 
+    @Test
     func testWriteResizesWhenNeeded() throws {
         let lut = LUT1D(redCurve: [0, 1],
                         greenCurve: [0, 1],

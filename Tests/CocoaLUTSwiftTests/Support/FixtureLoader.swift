@@ -1,12 +1,12 @@
 import Foundation
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
 enum FixtureLoader {
     static func payload(named resource: String,
                         extension fileExtension: String,
                         subdirectory: String,
-                        file: StaticString = #filePath,
+                           file: StaticString = #fileID,
                         line: UInt = #line) throws -> LUTFormatterPayload {
         let url = try resourceURL(named: resource,
                                   extension: fileExtension,
@@ -19,7 +19,7 @@ enum FixtureLoader {
     static func resourceURL(named resource: String,
                             extension fileExtension: String,
                             subdirectory: String,
-                            file: StaticString = #filePath,
+                                file: StaticString = #fileID,
                             line: UInt = #line) throws -> URL {
         try XCTUnwrap(
             Bundle.module.url(forResource: resource,
@@ -34,7 +34,7 @@ enum FixtureLoader {
 
 func XCTAssertIdentity(_ payload: LUTFormatterPayload,
                        tolerance: Double = 5e-4,
-                       file: StaticString = #filePath,
+                       file: StaticString = #fileID,
                        line: UInt = #line) {
     switch payload {
     case .lut1D(let lut):

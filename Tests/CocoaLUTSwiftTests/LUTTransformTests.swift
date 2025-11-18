@@ -1,7 +1,8 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTTransformTests: XCTestCase {
+@Suite
+struct LUTTransformTests {
     private func makeNonUniformLUT() -> LUT {
         var lut = LUT(size: 2, inputLowerBound: -1, inputUpperBound: 2)
         lut.setColor(LUTColor.color(red: -0.5, green: 0.2, blue: 1.5), r: 0, g: 0, b: 0)
@@ -11,6 +12,7 @@ final class LUTTransformTests: XCTestCase {
         return lut
     }
 
+    @Test
     func testChangingInputBoundsProducesExpectedIdentity() {
         let original = LUT.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         let updated = original.changingInputBounds(lower: -0.5, upper: 0.5)
@@ -24,6 +26,7 @@ final class LUTTransformTests: XCTestCase {
         XCTAssertEqual(sample.blue, 0.5, accuracy: 1e-9)
     }
 
+    @Test
     func testClampedRestrictsValuesToBounds() {
         let lut = makeNonUniformLUT()
         let clamped = lut.clamped(lower: 0, upper: 1)
@@ -34,6 +37,7 @@ final class LUTTransformTests: XCTestCase {
         XCTAssertEqual(color.blue, 0.5, accuracy: 1e-9)
     }
 
+    @Test
     func testRemappingValuesAdjustsRange() {
         let lut = LUT.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         let remapped = lut.remappingValues(inputLow: 0,
@@ -48,6 +52,7 @@ final class LUTTransformTests: XCTestCase {
         XCTAssertEqual(color.blue, -1, accuracy: 1e-9)
     }
 
+    @Test
     func testOffsettingAddsColor() {
         let lut = LUT.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         let offset = LUTColor.color(red: 0.1, green: -0.2, blue: 0.3)
@@ -59,6 +64,7 @@ final class LUTTransformTests: XCTestCase {
         XCTAssertEqual(color.blue, 1.3, accuracy: 1e-9)
     }
 
+    @Test
     func testScaledToUnitRangeUsesExtrema() {
         let lut = makeNonUniformLUT()
         let scaled = lut.scaledTo01()
@@ -72,6 +78,7 @@ final class LUTTransformTests: XCTestCase {
         XCTAssertLessThanOrEqual(maxColor.maximumValue(), 1)
     }
 
+    @Test
     func testScaledRGBToUnitRangeTargetsChannelExtrema() {
         let lut = makeNonUniformLUT()
         let scaled = lut.scaledRGBTo01()
@@ -114,6 +121,7 @@ final class LUTTransformTests: XCTestCase {
         XCTAssertEqual(scaledMax.blue, 1, accuracy: 1e-9)
     }
 
+    @Test
     func testScaledCurvesToUnitRangeRespectsDiagonal() {
         let lut = makeNonUniformLUT()
         let scaled = lut.scaledCurvesTo01()
@@ -151,6 +159,7 @@ final class LUTTransformTests: XCTestCase {
         }
     }
 
+    @Test
     func testScaledCurvesRGBToUnitRangeRespectsDiagonalChannels() {
         let lut = makeNonUniformLUT()
         let scaled = lut.scaledCurvesRGBTo01()
@@ -166,6 +175,7 @@ final class LUTTransformTests: XCTestCase {
         XCTAssertEqual(maxCurve.blue, 1, accuracy: 1e-9)
     }
 
+    @Test
     func testScaledLegalToExtendedUsesConstants() {
         var lut = LUT(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         lut.setColor(LUTColor.color(red: LUTConstants.legalLevelsMin,
@@ -189,6 +199,7 @@ final class LUTTransformTests: XCTestCase {
         XCTAssertEqual(maxColor.blue, 1, accuracy: 1e-9)
     }
 
+    @Test
     func testScaledExtendedToLegalUsesConstants() {
         let lut = LUT.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         let scaled = lut.scaledExtendedToLegal()
@@ -204,6 +215,7 @@ final class LUTTransformTests: XCTestCase {
         XCTAssertEqual(maxColor.blue, LUTConstants.legalLevelsMax, accuracy: 1e-9)
     }
 
+    @Test
     func testCombinedWithSameSizeMatchesSelf() {
         let identity = LUT.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         let offset = LUTAction.offset(by: LUTColor.color(red: 0.1, green: -0.1, blue: 0.05)).apply(to: identity)
@@ -212,6 +224,7 @@ final class LUTTransformTests: XCTestCase {
         XCTAssertTrue(combined.equals(offset, tolerance: 1e-9))
     }
 
+    @Test
     func testCombinedWithDifferentSizesUsesSuggestedMaximum() {
         let base = LUT.identity(size: 5, inputLowerBound: 0, inputUpperBound: 1)
         let scaled = base.scaledTo01().resized(to: 33)

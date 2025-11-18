@@ -1,10 +1,13 @@
 #if canImport(AppKit)
 import AppKit
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
 @MainActor
-final class LUTPreviewImageGeneratorTests: XCTestCase {
+
+@Suite
+struct LUTPreviewImageGeneratorTests {
+    @Test
     func testGeneratesMaskedPreviewImage() throws {
         let inputImage = Self.makeGradientImage(size: NSSize(width: 40, height: 40))
         var lut = LUT3D.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)

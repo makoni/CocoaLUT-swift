@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTFormatterNucodaCMSTests: XCTestCase {
+@Suite
+struct LUTFormatterNucodaCMSTests {
+    @Test
     func testReadCombinedVersion3() throws {
         let dataLines = [
             "0.0 0.0 0.0",
@@ -38,6 +40,7 @@ final class LUTFormatterNucodaCMSTests: XCTestCase {
         XCTAssertEqual(passthrough?["lutType"] as? String, "Pre-LUT and LUT")
     }
 
+    @Test
     func testReadCombinedVersion1NormalizesPreLUT() throws {
         let sample = """
         NUCODA_3D_CUBE 1
@@ -66,6 +69,7 @@ final class LUTFormatterNucodaCMSTests: XCTestCase {
         XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Nucoda v1")
     }
 
+    @Test
     func testReadOneDOnly() throws {
         let sample = """
         NUCODA_3D_CUBE 3
@@ -87,6 +91,7 @@ final class LUTFormatterNucodaCMSTests: XCTestCase {
         XCTAssertEqual(passthrough?["lutType"] as? String, "No Pre-LUT")
     }
 
+    @Test
     func testWriteThreeDRespectsPassthroughVariant() throws {
         var lut = LUT3D(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         for r in 0..<lut.size {
@@ -107,6 +112,7 @@ final class LUTFormatterNucodaCMSTests: XCTestCase {
         XCTAssertTrue(output.contains("LUT_3D_INPUT_RANGE 0.000 1.000"))
     }
 
+    @Test
     func testWriteOneDDefaultsToVersion3() throws {
         var lut = LUT1D.uniformCurve(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         lut.setColor(LUTColor.color(red: 0.0, green: 0.0, blue: 0.0), index: 0)

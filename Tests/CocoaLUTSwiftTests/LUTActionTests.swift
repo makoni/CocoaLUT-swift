@@ -1,11 +1,13 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTActionTests: XCTestCase {
+@Suite
+struct LUTActionTests {
     private func identityLUT(size: Int = 2) -> LUT {
         LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
     }
 
+    @Test
     func testChangeInputBoundsActionMatchesDirectResult() {
         let original = identityLUT(size: 4)
         let action = LUTAction.changeInputBounds(lower: -0.5, upper: 1.5)
@@ -19,6 +21,7 @@ final class LUTActionTests: XCTestCase {
         XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "ChangeInputBounds")
     }
 
+    @Test
     func testClampActionMatchesDirectResult() {
         var lut = identityLUT(size: 3)
         lut.loop { r, g, b in
@@ -47,6 +50,7 @@ final class LUTActionTests: XCTestCase {
         XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "Clamp")
     }
 
+    @Test
     func testResizeActionMatchesDirectResult() {
         var lut = identityLUT(size: 2)
         lut.setColor(LUTColor.color(red: 0.1, green: 0.4, blue: 0.7), r: 0, g: 0, b: 0)
@@ -61,6 +65,7 @@ final class LUTActionTests: XCTestCase {
         XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "Resize")
     }
 
+    @Test
     func testCombineActionMatchesDirectCombination() {
         var base = identityLUT()
         base.metadata["tag"] = "base"
@@ -74,6 +79,7 @@ final class LUTActionTests: XCTestCase {
         XCTAssertEqual(result.metadata["tag"] as? String, "base")
     }
 
+    @Test
     func testCombineBehindActionMatchesDirectCombination() {
         var base = identityLUT()
         base.metadata["tag"] = "base"
@@ -87,6 +93,7 @@ final class LUTActionTests: XCTestCase {
         XCTAssertEqual(result.metadata["tag"] as? String, "base")
     }
 
+    @Test
     func testApplyColorMatrixSwapsRedAndBlue() {
         var lut = identityLUT()
         lut.setColor(LUTColor.color(red: 0.2, green: 0.4, blue: 0.6), r: 1, g: 1, b: 1)
@@ -104,6 +111,7 @@ final class LUTActionTests: XCTestCase {
         XCTAssertEqual(action.actionMetadata.value(for: "m02") as? Double, 1)
     }
 
+    @Test
     func testRemapValuesActionProducesExpectedRange() {
         let action = LUTAction.remapValues(inputLow: 0, inputHigh: 1, outputLow: -1, outputHigh: 1)
         let lut = identityLUT()
@@ -116,6 +124,7 @@ final class LUTActionTests: XCTestCase {
         XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "ScaleOutput")
     }
 
+    @Test
     func testOffsetActionEncodesMetadata() {
         let offsetColor = LUTColor.color(red: 0.05, green: -0.1, blue: 0.2)
         let action = LUTAction.offset(by: offsetColor)
@@ -128,6 +137,7 @@ final class LUTActionTests: XCTestCase {
         XCTAssertEqual(action.actionMetadata.value(for: "redOffset") as? Double, offsetColor.red)
     }
 
+    @Test
     func testCachedApplyCopiesMetadataFromSource() {
         let action = LUTAction.scaleToUnitRange()
         var firstInput = identityLUT()
@@ -147,6 +157,7 @@ final class LUTActionTests: XCTestCase {
         XCTAssertEqual(firstResult.metadata["owner"] as? String, "one")
     }
 
+    @Test
     func testSwizzleActionMatchesManualComposition() {
         let size = 5
         let identity = LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
@@ -312,6 +323,7 @@ final class LUTActionTests: XCTestCase {
         }
     }
 
+    @Test
     func testSwizzleActionReturnsInputWhenNotReversible() {
         let size = 3
         let identity = LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
@@ -332,6 +344,7 @@ final class LUTActionTests: XCTestCase {
         XCTAssertTrue(result.equals(lut, tolerance: 1e-9))
     }
 
+    @Test
     func testConvertColorTemperatureMatchesUtility() throws {
         let size = 5
         var base = LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)

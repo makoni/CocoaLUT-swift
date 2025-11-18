@@ -1,7 +1,9 @@
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
-final class LUTFormatterILUTTests: XCTestCase {
+@Suite
+struct LUTFormatterILUTTests {
+    @Test
     func testReadILUTStringParsesCurves() throws {
     let fixture = """
     0,0,0,0
@@ -17,6 +19,7 @@ final class LUTFormatterILUTTests: XCTestCase {
         XCTAssertEqual(lut.passthroughFileOptions.keys.first, LUTFormatterILUT.formatterIdentifier)
     }
 
+    @Test
     func testWriteProducesExpectedILUTContents() throws {
         let lut = LUT1D.uniformCurve(size: 16384,
                                     inputLowerBound: 0,
@@ -29,6 +32,7 @@ final class LUTFormatterILUTTests: XCTestCase {
         XCTAssertEqual(lines.last, "16383,16383,16383,0")
     }
 
+    @Test
     func testWriteResizesSmallerLUT() throws {
         let lut = LUT1D.uniformCurve(size: 16,
                                     inputLowerBound: 0,

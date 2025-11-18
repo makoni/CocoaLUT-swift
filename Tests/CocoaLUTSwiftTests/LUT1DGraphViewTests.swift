@@ -1,10 +1,13 @@
 #if canImport(AppKit)
 import AppKit
-import XCTest
+import Testing
 @testable import CocoaLUTSwift
 
 @MainActor
-final class LUT1DGraphViewTests: XCTestCase {
+
+@Suite
+struct LUT1DGraphViewTests {
+    @Test
     func testGraphViewProducesDrawableOutput() throws {
         var lut = LUT1D.uniformCurve(size: 16, inputLowerBound: 0, inputUpperBound: 1)
         for index in 0..<lut.size {
@@ -22,6 +25,7 @@ final class LUT1DGraphViewTests: XCTestCase {
         XCTAssertNotNil(pngData)
     }
 
+    @Test
     func testRangeUpdatesWhenSettingLUT() {
         let view = LUT1DGraphView(frame: NSRect(x: 0, y: 0, width: 100, height: 100))
         XCTAssertEqual(view.minimumOutputValue, 0)
