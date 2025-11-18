@@ -1,7 +1,7 @@
 #if canImport(AppKit)
 import AppKit
 import XCTest
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 @MainActor
 final class LUT1DGraphViewTests: XCTestCase {

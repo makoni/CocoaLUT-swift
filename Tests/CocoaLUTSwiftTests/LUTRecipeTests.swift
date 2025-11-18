@@ -1,4 +1,4 @@
-import CocoaLUT_swift
+import CocoaLUTSwift
 import Foundation
 import XCTest
 

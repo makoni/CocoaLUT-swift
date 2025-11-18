@@ -45,7 +45,7 @@ swift test -Xswiftc -strict-concurrency=complete
 ## Quick start
 
 ```swift
-import CocoaLUT_swift
+import CocoaLUTSwift
 import CoreImage
 
 let cubeURL = Bundle.main.url(forResource: "Linear_to_BMDFilm", withExtension: "cube")!

@@ -1,5 +1,5 @@
 import XCTest
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 final class LUTActionTests: XCTestCase {
     private func identityLUT(size: Int = 2) -> LUT {

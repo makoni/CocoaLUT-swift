@@ -1,5 +1,5 @@
 import XCTest
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 final class LUTFormatterFSIDATTests: XCTestCase {
     func testVariantV2RoundTripPreservesMetadata() throws {

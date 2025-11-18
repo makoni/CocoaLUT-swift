@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 final class LUTCubeFormatterTests: XCTestCase {
     func testReadLinearToBMDFilmCube() throws {

@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 final class CocoaLUTFacadeTests: XCTestCase {
     private func cubeURL() throws -> URL {

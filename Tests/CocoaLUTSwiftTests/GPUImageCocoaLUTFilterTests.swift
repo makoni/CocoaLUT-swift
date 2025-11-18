@@ -1,5 +1,5 @@
 import XCTest
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 #if canImport(CoreGraphics)
 import CoreGraphics

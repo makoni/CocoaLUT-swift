@@ -9,7 +9,7 @@ This document began as an actionable plan for porting the CocoaLUT Objective‑C
 - **Next focus:** exercise concurrency-focused refactors, streamline resource packaging, and document the Swift-only API surface.
 
 Summary
-- Goal: Produce a Swift 6 implementation of the library (module name `CocoaLUT_swift`), preserve public API behavior, and keep a SwiftPM-first workflow. Objective‑C sources have been removed; shipped artifacts rely on the Swift module.
+- Goal: Produce a Swift 6 implementation of the library (module name `CocoaLUTSwift`), preserve public API behavior, and keep a SwiftPM-first workflow. Objective‑C sources have been removed; shipped artifacts rely on the Swift module.
 - Strategy: Continue iterating in Swift with TDD. Invest in regression coverage before large refactors (formatters, processors, previews) and keep the SwiftPM target authoritative.
 
 How to use this plan
@@ -91,7 +91,7 @@ Test Driven Development rules (strict)
     - [x] Add MatchLight aliases and the remaining legacy sidecars.
       - [x] Support MatchLight alias lookup (camel-case and lowercase identifiers).
       - [x] Wire remaining legacy sidecar descriptors.
-- [x] Replace `CocoaLUT.h` macros with Swift symbols (constants for suggested sizes, `SystemColor` alias) and populate `CocoaLUT_swift.swift` as the public facade.
+- [x] Replace `CocoaLUT.h` macros with Swift symbols (constants for suggested sizes, `SystemColor` alias) and populate `CocoaLUTSwift.swift` as the public facade.
 - [x] Remove or port the legacy Objective‑C image-based formatter scaffolding (`LUTFormatterImageBased`) once the Swift helpers cover all use cases.
 - [x] Update README/API docs to describe the Swift-first surface and deprecation path for the Objective‑C headers.
 

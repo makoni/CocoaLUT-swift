@@ -13,7 +13,7 @@ Purpose: give an AI coding agent the minimal, high-value knowledge to be product
   - `Classes/LUTFormatter*.m` — one file per format (Cube, 3DL, Hald, etc.). Add new formats by following existing formatter patterns.
   - `Classes/GPUImageCocoaLUTFilter.m` — how LUTs are converted to GPUImage lookup filters (guarded by `COCOAPODS_POD_AVAILABLE_GPUImage`).
   - `Classes/LUTFormatterUnwrappedTexture.*` — converts 3D LUTs into images used by GPU pipelines.
-  - `Sources/CocoaLUT-swift/CocoaLUT_swift.swift` — Swift wrapper entry points.
+  - `Sources/CocoaLUT-swift/CocoaLUTSwift.swift` — Swift wrapper entry points.
 
 - Project-specific conventions and patterns
   - Formatters follow a per-file class model: `LUTFormatter<Name>.m` implementing parsing and exporter logic. Search `LUTFormatter` implementations to model new parsers.

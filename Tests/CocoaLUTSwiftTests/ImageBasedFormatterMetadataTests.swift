@@ -1,7 +1,7 @@
 #if canImport(CoreGraphics)
 import CoreGraphics
 import Testing
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 @Suite final class ImageBasedFormatterMetadataTests {
     @Test func passthroughRoundTrip() throws {

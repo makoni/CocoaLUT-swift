@@ -3,7 +3,7 @@ import CoreGraphics
 import Foundation
 import ImageIO
 import Testing
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 @Suite final class LUTFormatterCMSTestPatternTests {
     @Test func imageLayoutMatchesSpecification() throws {

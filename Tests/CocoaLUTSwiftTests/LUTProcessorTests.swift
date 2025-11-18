@@ -1,5 +1,5 @@
 import XCTest
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 @MainActor
 final class LUTProcessorTests: XCTestCase {

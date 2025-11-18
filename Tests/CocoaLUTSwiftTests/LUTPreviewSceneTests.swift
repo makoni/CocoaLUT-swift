@@ -2,7 +2,7 @@
 import AppKit
 import SceneKit
 import XCTest
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 @MainActor
 final class LUTPreviewSceneTests: XCTestCase {

@@ -1,5 +1,5 @@
 import XCTest
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 final class LUTFormatterDiscreet1DLUTTests: XCTestCase {
     func testReadDiscreet1DLUT() throws {

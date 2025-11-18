@@ -2,7 +2,7 @@
 import CoreGraphics
 import ImageIO
 import Testing
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 @Suite final class LUTFormatterHaldCLUTTests {
     @Test func roundTripIdentityLUT() throws {

@@ -1,6 +1,6 @@
 import XCTest
 import simd
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 final class LUTColorSpaceTests: XCTestCase {
     func testTransformationMatrixWithIdenticalColorSpacesIsIdentity() throws {

@@ -2,7 +2,7 @@ import XCTest
 #if canImport(AppKit)
 import AppKit
 #endif
-@testable import CocoaLUT_swift
+@testable import CocoaLUTSwift
 
 final class LUTFormatterHaldCLUTTests: XCTestCase {
     func testEightBitRoundTrip() throws {
