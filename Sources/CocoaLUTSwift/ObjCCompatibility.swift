@@ -69,7 +69,7 @@ public extension LUT {
     }
 
     /// ObjC-style alias for `resized(to:)` used in older APIs.
-    public func resizing(to newSize: Int) -> LUT {
+    func resizing(to newSize: Int) -> LUT {
         resized(to: newSize)
     }
 
