@@ -71,42 +71,18 @@ enum ImageBasedLUTUtilities {
             throw ImageBasedLUTUtilitiesError.unsupportedImage
         }
 
-        let bytesPerPixel = 4
-        let bytesPerRow = width * bytesPerPixel
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-
-        guard let context = CGContext(data: nil,
-                                      width: width,
-                                      height: height,
-                                      bitsPerComponent: 8,
-                                      bytesPerRow: bytesPerRow,
-                                      space: colorSpace,
-                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
-            throw ImageBasedLUTUtilitiesError.unsupportedImage
+        let bitDepth = image.bitsPerComponent
+        guard bitDepth == 8 || bitDepth == 16 else {
+            throw ImageBasedLUTUtilitiesError.unsupportedBitDepth
         }
 
-        let rect = CGRect(x: 0, y: 0, width: width, height: height)
-        context.draw(image, in: rect)
-        guard let dataPointer = context.data else {
-            throw ImageBasedLUTUtilitiesError.unsupportedImage
-        }
-
-        let buffer = dataPointer.bindMemory(to: UInt8.self, capacity: bytesPerRow * height)
-        var pixels = [SIMD3<Double>](repeating: .zero, count: width * height)
-
-        for y in 0..<height {
-            let rowOffset = y * bytesPerRow
-            for x in 0..<width {
-                let columnOffset = x * bytesPerPixel
-                let offset = rowOffset + columnOffset
-                let red = Double(buffer[offset + 0]) / 255.0
-                let green = Double(buffer[offset + 1]) / 255.0
-                let blue = Double(buffer[offset + 2]) / 255.0
-                pixels[y * width + x] = SIMD3(red, green, blue)
+        if bitDepth == 16 {
+            if let pixels = try normalizedPixelData16Bit(from: image, width: width, height: height) {
+                return pixels
             }
         }
 
-        return pixels
+        return try normalizedPixelDataUsing8BitContext(from: image, width: width, height: height)
     }
 
     static func pngData(from image: CGImage) throws -> Data {
@@ -166,6 +142,104 @@ enum ImageBasedLUTUtilities {
         }
 
         return storage
+    }
+
+    private static func normalizedPixelDataUsing8BitContext(from image: CGImage,
+                                                            width: Int,
+                                                            height: Int) throws -> [SIMD3<Double>] {
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+
+        guard let context = CGContext(data: nil,
+                                      width: width,
+                                      height: height,
+                                      bitsPerComponent: 8,
+                                      bytesPerRow: bytesPerRow,
+                                      space: colorSpace,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+            throw ImageBasedLUTUtilitiesError.unsupportedImage
+        }
+
+        let rect = CGRect(x: 0, y: 0, width: width, height: height)
+        context.draw(image, in: rect)
+        guard let dataPointer = context.data else {
+            throw ImageBasedLUTUtilitiesError.unsupportedImage
+        }
+
+        let buffer = dataPointer.bindMemory(to: UInt8.self, capacity: bytesPerRow * height)
+        var pixels = [SIMD3<Double>](repeating: .zero, count: width * height)
+
+        for y in 0..<height {
+            let rowOffset = y * bytesPerRow
+            for x in 0..<width {
+                let columnOffset = x * bytesPerPixel
+                let offset = rowOffset + columnOffset
+                let red = Double(buffer[offset + 0]) / 255.0
+                let green = Double(buffer[offset + 1]) / 255.0
+                let blue = Double(buffer[offset + 2]) / 255.0
+                pixels[y * width + x] = SIMD3(red, green, blue)
+            }
+        }
+
+        return pixels
+    }
+
+    private static func normalizedPixelData16Bit(from image: CGImage,
+                                                  width: Int,
+                                                  height: Int) throws -> [SIMD3<Double>]? {
+        guard let cfData = image.dataProvider?.data else {
+            return nil
+        }
+
+        let data = cfData as Data
+        return try data.withUnsafeBytes { rawBuffer -> [SIMD3<Double>] in
+            guard let baseAddress = rawBuffer.baseAddress else {
+                throw ImageBasedLUTUtilitiesError.unsupportedImage
+            }
+
+            let bytesPerRow = image.bytesPerRow
+            guard rawBuffer.count >= bytesPerRow * height else {
+                throw ImageBasedLUTUtilitiesError.unsupportedImage
+            }
+
+            let bytesPerComponent = 2
+            let componentsPerPixel = max(1, image.bitsPerPixel / image.bitsPerComponent)
+            guard componentsPerPixel >= 3 else {
+                throw ImageBasedLUTUtilitiesError.unsupportedImage
+            }
+
+            let rowComponentCount = bytesPerRow / bytesPerComponent
+            let pixels = UnsafeBufferPointer(start: baseAddress.assumingMemoryBound(to: UInt8.self),
+                                             count: rawBuffer.count)
+
+            var output = [SIMD3<Double>](repeating: .zero, count: width * height)
+            let bitmapInfo = image.bitmapInfo
+            let maxValue = 65535.0
+
+            func convert(_ value: UInt16) -> Double {
+                if bitmapInfo.contains(.byteOrder16Big) {
+                    return Double(UInt16(bigEndian: value)) / maxValue
+                } else {
+                    return Double(UInt16(littleEndian: value)) / maxValue
+                }
+            }
+
+            pixels.baseAddress!.withMemoryRebound(to: UInt16.self, capacity: rawBuffer.count / bytesPerComponent) { pointer in
+                for y in 0..<height {
+                    let rowStart = y * rowComponentCount
+                    for x in 0..<width {
+                        let componentStart = rowStart + x * componentsPerPixel
+                        let red = convert(pointer[componentStart + 0])
+                        let green = convert(pointer[componentStart + 1])
+                        let blue = convert(pointer[componentStart + 2])
+                        output[y * width + x] = SIMD3(red, green, blue)
+                    }
+                }
+            }
+
+            return output
+        }
     }
 
     private enum ExportType {
