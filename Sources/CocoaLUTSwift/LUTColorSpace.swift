@@ -101,12 +101,12 @@ public struct LUTColorSpace: Equatable, Sendable {
         return blue.y
     }
 
-    private var forcesNPM: Bool {
+    public var forcesNPM: Bool {
         if case .forcedNPM = definition { return true }
         return false
     }
 
-    private var forcedNPMMatrix: simd_double3x3? {
+    public var forcedNPMMatrix: simd_double3x3? {
         if case let .forcedNPM(matrix) = definition { return matrix }
         return nil
     }
@@ -207,7 +207,7 @@ public extension LUTColorSpace {
     }
 }
 
-private extension LUTColorSpace {
+public extension LUTColorSpace {
     func npm(using whitePoint: LUTColorSpaceWhitePoint) throws -> simd_double3x3 {
         if let forced = forcedNPMMatrix {
             return forced

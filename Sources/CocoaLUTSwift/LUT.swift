@@ -303,29 +303,16 @@ public struct LUT {
                         bounded: false)
     }
 
-    public func combined(with other: LUT) -> LUT {
-        if size == other.size {
-            return combined(targetSize: size, other: other, sameSize: true)
-        }
-
-        let targetSize = min(max(size, other.size), LUTConstants.suggestedMax3DSize)
-        return combined(targetSize: targetSize, other: other, sameSize: false)
-    }
-
-    public func swizzling1DChannels(method: LUT1D.SwizzleMethod,
-                                     strictness: Bool = false) -> LUT? {
-        let cube = LUT3D(lattice: self)
-        guard let swizzled = cube.swizzling1DChannels(method: method, strictness: strictness) else {
-            return nil
-        }
-        return swizzled.asLUT()
+    public func combined(with other: LUT, targetSize: Int? = nil) -> LUT {
+        let finalSize = targetSize ?? max(self.size, other.size)
+        return combined(targetSize: finalSize, other: other, sameSize: finalSize == self.size)
     }
 
     // MARK: - Private Helpers
 
     // MARK: - Private Helpers
 
-    private func colorInterpolated(r: Double, g: Double, b: Double) -> LUTColor {
+    public func colorInterpolated(r: Double, g: Double, b: Double) -> LUTColor {
         if size == 1 { return storage[0] }
         precondition(r >= 0 && r <= Double(size - 1))
         precondition(g >= 0 && g <= Double(size - 1))
