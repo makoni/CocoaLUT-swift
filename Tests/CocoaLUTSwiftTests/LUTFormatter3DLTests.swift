@@ -20,16 +20,16 @@ struct LUTFormatter3DLTests {
         """
 
         let lut = try LUTFormatter3DL.read(string: contents)
-        XCTAssertEqual(lut.size, 2)
-        XCTAssertEqual(lut.inputLowerBound, 0)
-        XCTAssertEqual(lut.inputUpperBound, 1)
-        XCTAssertEqual(lut.colorAt(r: 1, g: 0, b: 0), LUTColor.color(red: 1, green: 0, blue: 0))
-        XCTAssertEqual(lut.colorAt(r: 0, g: 1, b: 1), LUTColor.color(red: 0, green: 1, blue: 1))
+        #expect(lut.size == 2)
+        #expect(lut.inputLowerBound == 0)
+        #expect(lut.inputUpperBound == 1)
+        #expect(lut.colorAt(r: 1, g: 0, b: 0) == LUTColor.color(red: 1, green: 0, blue: 0))
+        #expect(lut.colorAt(r: 0, g: 1, b: 1) == LUTColor.color(red: 0, green: 1, blue: 1))
 
         let passthrough = lut.passthroughFileOptions[LUTFormatter3DL.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthroughVariant(passthrough), LUTFormatter3DL.Variant.nuke.rawValue)
-        XCTAssertEqual(passthroughIntegerMax(passthrough), 4095)
-        XCTAssertEqual(passthroughLUTSize(passthrough), 2)
+        #expect(passthroughVariant(passthrough) == LUTFormatter3DL.Variant.nuke.rawValue)
+        #expect(passthroughIntegerMax(passthrough) == 4095)
+        #expect(passthroughLUTSize(passthrough) == 2)
     }
 
     @Test
@@ -51,13 +51,14 @@ struct LUTFormatter3DLTests {
         let serialized = try LUTFormatter3DL.write(original)
         let roundTrip = try LUTFormatter3DL.read(string: serialized)
 
-        XCTAssertEqual(roundTrip.size, original.size)
+        #expect(roundTrip.size == original.size)
         for r in 0..<original.size {
             for g in 0..<original.size {
                 for b in 0..<original.size {
-                    XCTAssertEqual(roundTrip.colorAt(r: r, g: g, b: b),
-                                   original.colorAt(r: r, g: g, b: b),
-                                   "Mismatch at r: \(r) g: \(g) b: \(b)")
+                    #expect(
+                        roundTrip.colorAt(r: r, g: g, b: b) == original.colorAt(r: r, g: g, b: b),
+                        Comment("Mismatch at r: \(r) g: \(g) b: \(b)")
+                    )
                 }
             }
         }
@@ -71,11 +72,11 @@ struct LUTFormatter3DLTests {
         let options = LUTFormatter3DL.Options(variant: .legacy, integerMaxOutput: LUTMath.maxInteger(bitDepth: 12))
         let serialized = try LUTFormatter3DL.write(lut, options: options)
 
-        XCTAssertTrue(serialized.contains("0 1023"))
+        #expect(serialized.contains("0 1023"))
 
         let reread = try LUTFormatter3DL.read(string: serialized)
         let passthrough = reread.passthroughFileOptions[LUTFormatter3DL.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthroughVariant(passthrough), LUTFormatter3DL.Variant.legacy.rawValue)
+        #expect(passthroughVariant(passthrough) == LUTFormatter3DL.Variant.legacy.rawValue)
     }
 
     private func passthroughVariant(_ options: [String: Any]?) -> String? {

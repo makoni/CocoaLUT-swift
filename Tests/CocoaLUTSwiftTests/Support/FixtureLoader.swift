@@ -21,13 +21,15 @@ enum FixtureLoader {
                             subdirectory: String,
                                 file: StaticString = #fileID,
                             line: UInt = #line) throws -> URL {
-        try XCTUnwrap(
+        func missingFixtureComment() -> Comment {
+            Comment("Missing fixture \(resource).\(fileExtension) in \(subdirectory)")
+        }
+
+        return try #require(
             Bundle.module.url(forResource: resource,
-                               withExtension: fileExtension,
-                               subdirectory: subdirectory),
-            "Missing fixture \(resource).\(fileExtension) in \(subdirectory)",
-            file: file,
-            line: line
+                              withExtension: fileExtension,
+                              subdirectory: subdirectory),
+            missingFixtureComment()
         )
     }
 }
@@ -40,10 +42,10 @@ func XCTAssertIdentity(_ payload: LUTFormatterPayload,
     case .lut1D(let lut):
         assertIdentity(lut, tolerance: tolerance, file: file, line: line)
     case .lut3D(let lut):
-        XCTAssertTrue(lut.equalsIdentity(tolerance: tolerance),
-                      "Expected 3D LUT to equal identity",
-                      file: file,
-                      line: line)
+        #expect(
+            lut.equalsIdentity(tolerance: tolerance),
+            Comment("Expected 3D LUT to equal identity")
+        )
     }
 }
 
@@ -52,9 +54,9 @@ private func assertIdentity(_ lut: LUT1D,
                             file: StaticString,
                             line: UInt) {
     guard lut.size > 1 else {
-        XCTAssertEqual(lut.valueAtR(0), lut.inputLowerBound, accuracy: tolerance, file: file, line: line)
-        XCTAssertEqual(lut.valueAtG(0), lut.inputLowerBound, accuracy: tolerance, file: file, line: line)
-        XCTAssertEqual(lut.valueAtB(0), lut.inputLowerBound, accuracy: tolerance, file: file, line: line)
+        assertApproximatelyEqual(lut.valueAtR(0), lut.inputLowerBound, tolerance: tolerance, channel: "R0")
+        assertApproximatelyEqual(lut.valueAtG(0), lut.inputLowerBound, tolerance: tolerance, channel: "G0")
+        assertApproximatelyEqual(lut.valueAtB(0), lut.inputLowerBound, tolerance: tolerance, channel: "B0")
         return
     }
 
@@ -64,8 +66,18 @@ private func assertIdentity(_ lut: LUT1D,
                                             inputHigh: Double(lut.size - 1),
                                             outputLow: lut.inputLowerBound,
                                             outputHigh: lut.inputUpperBound)
-        XCTAssertEqual(lut.valueAtR(index), expected, accuracy: tolerance, file: file, line: line)
-        XCTAssertEqual(lut.valueAtG(index), expected, accuracy: tolerance, file: file, line: line)
-        XCTAssertEqual(lut.valueAtB(index), expected, accuracy: tolerance, file: file, line: line)
+        assertApproximatelyEqual(lut.valueAtR(index), expected, tolerance: tolerance, channel: "R\(index)")
+        assertApproximatelyEqual(lut.valueAtG(index), expected, tolerance: tolerance, channel: "G\(index)")
+        assertApproximatelyEqual(lut.valueAtB(index), expected, tolerance: tolerance, channel: "B\(index)")
     }
+}
+
+private func assertApproximatelyEqual(_ actual: Double,
+                                      _ expected: Double,
+                                      tolerance: Double,
+                                      channel: String) {
+    #expect(
+        abs(actual - expected) <= tolerance,
+        Comment("\(channel) expected ≈ \(expected), got \(actual)")
+    )
 }
