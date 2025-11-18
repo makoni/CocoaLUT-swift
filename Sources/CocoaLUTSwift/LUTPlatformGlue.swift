@@ -116,20 +116,7 @@ extension LUT {
                 } else {
                     return nil
                 }
-#if DEBUG
-                if let sample = bitmapRep.colorAt(x: 0, y: 0)?.usingColorSpace(NSColorSpace.genericRGB) {
-                    print("DEBUG Bitmap sample R=\(sample.redComponent) G=\(sample.greenComponent) B=\(sample.blueComponent)")
-                }
-                if let space = ciImage.colorSpace {
-                    print("DEBUG CIImage color space: \(space)")
-                } else {
-                    print("DEBUG CIImage color space: nil")
-                }
-#endif
             } else if let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) {
-#if DEBUG
-                print("DEBUG Falling back to CGImage-based CIImage; representations: \(nsImage.representations.map { String(describing: type(of: $0)) })")
-#endif
                 ciImage = CIImage(cgImage: cgImage)
                 targetSize = NSSize(width: cgImage.width, height: cgImage.height)
             } else {
@@ -138,26 +125,6 @@ extension LUT {
 
             let outputColorSpace = ciImage.colorSpace
             guard let output = process(ciImage: ciImage, colorSpace: outputColorSpace) else { return nil }
-#if DEBUG
-            var debugOptions: [CIContextOption: Any] = [.useSoftwareRenderer: true]
-            if let space = outputColorSpace {
-                debugOptions[.workingColorSpace] = space
-                debugOptions[.outputColorSpace] = space
-            }
-            let debugContext = CIContext(options: debugOptions)
-            if let inputCG = debugContext.createCGImage(ciImage, from: ciImage.extent) {
-                let inputRep = NSBitmapImageRep(cgImage: inputCG)
-                if let sample = inputRep.colorAt(x: 0, y: 0) {
-                    print("DEBUG Input sample R=\(sample.redComponent) G=\(sample.greenComponent) B=\(sample.blueComponent)")
-                }
-            }
-            if let outputCG = debugContext.createCGImage(output, from: output.extent) {
-                let outputRep = NSBitmapImageRep(cgImage: outputCG)
-                if let sample = outputRep.colorAt(x: 0, y: 0) {
-                    print("DEBUG Output sample R=\(sample.redComponent) G=\(sample.greenComponent) B=\(sample.blueComponent)")
-                }
-            }
-#endif
             return NSImage.make(from: output,
                                 targetSize: targetSize,
                                 useSoftwareRenderer: renderPath == .coreImageSoftware)
@@ -246,12 +213,6 @@ extension LUT {
         }
         NSGraphicsContext.restoreGraphicsState()
 
-#if DEBUG
-        if let sample = fallback.colorAt(x: 0, y: 0)?.usingColorSpace(NSColorSpace.genericRGB) {
-            print("DEBUG Fallback bitmap sample R=\(sample.redComponent) G=\(sample.greenComponent) B=\(sample.blueComponent)")
-        }
-#endif
-
         return fallback
     }
     #endif
@@ -314,9 +275,6 @@ private extension NSImage {
 
         let outputImage = NSImage(size: outputSize)
         outputImage.addRepresentation(bitmapRep)
-#if DEBUG
-        print("DEBUG Output representations: \(outputImage.representations.map { String(describing: type(of: $0)) })")
-#endif
         return outputImage
     }
 }

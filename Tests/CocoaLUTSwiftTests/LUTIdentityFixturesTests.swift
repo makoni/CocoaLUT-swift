@@ -9,7 +9,7 @@ struct LUTIdentityFixturesTests {
         let payload = try FixtureLoader.payload(named: fixture.name,
                                                  extension: fixture.fileExtension,
                                                  subdirectory: IdentityFixture.subdirectory)
-        XCTAssertIdentity(payload, tolerance: fixture.tolerance)
+        expectIdentity(payload, tolerance: fixture.tolerance)
     }
 }
 

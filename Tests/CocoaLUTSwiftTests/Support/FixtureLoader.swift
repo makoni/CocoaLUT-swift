@@ -34,7 +34,7 @@ enum FixtureLoader {
     }
 }
 
-func XCTAssertIdentity(_ payload: LUTFormatterPayload,
+func expectIdentity(_ payload: LUTFormatterPayload,
                        tolerance: Double = 5e-4,
                        file: StaticString = #fileID,
                        line: UInt = #line) {

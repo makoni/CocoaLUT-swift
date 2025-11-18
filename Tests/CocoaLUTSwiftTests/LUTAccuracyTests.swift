@@ -1,3 +1,4 @@
+import Foundation
 import simd
 import Testing
 @testable import CocoaLUTSwift

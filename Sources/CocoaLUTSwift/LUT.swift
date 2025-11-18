@@ -91,11 +91,6 @@ public struct LUT {
                                       inputHigh: inputUpperBound,
                                       outputLow: 0,
                                       outputHigh: Double(size - 1))
-#if DEBUG
-        if !(0...Double(size - 1)).contains(r) || !(0...Double(size - 1)).contains(g) || !(0...Double(size - 1)).contains(b) {
-            fputs("color(at:) normalized out of range size=\(size) r=\(r) g=\(g) b=\(b) input=\(clamped) bounds=\(inputLowerBound)..\(inputUpperBound)\n", stderr)
-        }
-#endif
         return colorInterpolated(r: LUTMath.clamp(r, lower: 0, upper: Double(size - 1)),
                                  g: LUTMath.clamp(g, lower: 0, upper: Double(size - 1)),
                                  b: LUTMath.clamp(b, lower: 0, upper: Double(size - 1)))
@@ -447,12 +442,6 @@ public struct LUT {
 
     private func linearIndex(r: Int, g: Int, b: Int) -> Int {
         guard (0..<size).contains(r), (0..<size).contains(g), (0..<size).contains(b) else {
-#if DEBUG
-            fputs("linearIndex out of range size=\(size) r=\(r) g=\(g) b=\(b)\n", stderr)
-            Thread.callStackSymbols.forEach { symbol in
-                fputs(symbol + "\n", stderr)
-            }
-#endif
             preconditionFailure("Index out of range")
         }
         return ((r * size) + g) * size + b

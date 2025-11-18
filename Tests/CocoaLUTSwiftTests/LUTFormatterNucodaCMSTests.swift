@@ -107,9 +107,9 @@ struct LUTFormatterNucodaCMSTests {
         lut.passthroughFileOptions = ["nucoda": ["fileTypeVariant": "Nucoda v2"]]
 
         let output = try LUTFormatterNucodaCMS.write(.lut3D(lut))
-        XCTAssertTrue(output.contains("NUCODA_3D_CUBE 2"))
-        XCTAssertTrue(output.contains("LUT_3D_SIZE 2"))
-        XCTAssertTrue(output.contains("LUT_3D_INPUT_RANGE 0.000 1.000"))
+        #expect(output.contains("NUCODA_3D_CUBE 2"))
+        #expect(output.contains("LUT_3D_SIZE 2"))
+        #expect(output.contains("LUT_3D_INPUT_RANGE 0.000 1.000"))
     }
 
     @Test
@@ -119,10 +119,10 @@ struct LUTFormatterNucodaCMSTests {
         lut.setColor(LUTColor.color(red: 1.0, green: 1.0, blue: 1.0), index: 1)
 
         let output = try LUTFormatterNucodaCMS.write(.lut1D(lut))
-        XCTAssertTrue(output.contains("NUCODA_3D_CUBE 3"))
-        XCTAssertTrue(output.contains("LUT_1D_SIZE 2"))
-        XCTAssertTrue(output.contains("LUT_1D_INPUT_RANGE 0.000 1.000"))
-        XCTAssertTrue(output.contains("0.000000  0.000000  0.000000"))
-        XCTAssertTrue(output.contains("1.000000  1.000000  1.000000"))
+        #expect(output.contains("NUCODA_3D_CUBE 3"))
+        #expect(output.contains("LUT_1D_SIZE 2"))
+        #expect(output.contains("LUT_1D_INPUT_RANGE 0.000 1.000"))
+        #expect(output.contains("0.000000  0.000000  0.000000"))
+        #expect(output.contains("1.000000  1.000000  1.000000"))
     }
 }

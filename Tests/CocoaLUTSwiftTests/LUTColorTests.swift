@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import CocoaLUTSwift
 
@@ -124,15 +125,15 @@ struct LUTColorTests {
     func testSaturationAndSlopeOffsetPower() {
         let color = LUTColor.color(red: 0.8, green: 0.2, blue: 0.4)
         let desaturated = color.changingSaturation(0.0, lumaR: 0.2126, lumaG: 0.7152, lumaB: 0.0722)
-        XCTAssertEqual(desaturated.red, desaturated.green, accuracy: 1e-12)
-        XCTAssertEqual(desaturated.green, desaturated.blue, accuracy: 1e-12)
+        #expect(abs(desaturated.red - desaturated.green) < 1e-12)
+        #expect(abs(desaturated.green - desaturated.blue) < 1e-12)
 
         let applied = color.applyingSlopeOffsetPower(redSlope: 1.0, redOffset: 0.1, redPower: 1.0,
                                                      greenSlope: 1.0, greenOffset: -0.1, greenPower: 2.0,
                                                      blueSlope: 0.5, blueOffset: 0.0, bluePower: 1.0)
-        XCTAssertEqual(applied.red, 0.9, accuracy: 1e-12)
-        XCTAssertEqual(applied.green, pow(0.1, 2.0), accuracy: 1e-12)
-        XCTAssertEqual(applied.blue, 0.2, accuracy: 1e-12)
+        #expect(abs(applied.red - 0.9) < 1e-12)
+        #expect(abs(applied.green - pow(0.1, 2.0)) < 1e-12)
+        #expect(abs(applied.blue - 0.2) < 1e-12)
     }
 
     @Test
@@ -143,7 +144,7 @@ struct LUTColorTests {
         assertEqual(halfway.rgbArray(), [0.5, 0.5, 0.5], accuracy: 1e-12)
 
         let distance = start.distance(to: end)
-        XCTAssertEqual(distance, sqrt(3.0), accuracy: 1e-12)
+        #expect(abs(distance - sqrt(3.0)) < 1e-12)
     }
 
     @Test
@@ -155,15 +156,15 @@ struct LUTColorTests {
         let swapRG = color.applyingColorMatrix(columnMajor: (0, 1, 0,
                                                              1, 0, 0,
                                                              0, 0, 1))
-        XCTAssertEqual(swapRG.red, color.green, accuracy: 1e-12)
-        XCTAssertEqual(swapRG.green, color.red, accuracy: 1e-12)
-        XCTAssertEqual(swapRG.blue, color.blue, accuracy: 1e-12)
+        #expect(abs(swapRG.red - color.green) < 1e-12)
+        #expect(abs(swapRG.green - color.red) < 1e-12)
+        #expect(abs(swapRG.blue - color.blue) < 1e-12)
     }
 }
 
-private func assertEqual(_ lhs: [Double], _ rhs: [Double], accuracy: Double, file: StaticString = #fileID, line: UInt = #line) {
-    XCTAssertEqual(lhs.count, rhs.count, file: file, line: line)
+private func assertEqual(_ lhs: [Double], _ rhs: [Double], accuracy: Double, sourceLocation: SourceLocation = #_sourceLocation) {
+    #expect(lhs.count == rhs.count, sourceLocation: sourceLocation)
     zip(lhs, rhs).forEach { a, b in
-        XCTAssertEqual(a, b, accuracy: accuracy, file: file, line: line)
+        #expect(abs(a - b) <= accuracy, sourceLocation: sourceLocation)
     }
 }

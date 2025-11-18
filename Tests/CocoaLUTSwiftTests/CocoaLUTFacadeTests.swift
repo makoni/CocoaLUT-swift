@@ -193,9 +193,9 @@ struct CocoaLUTFacadeTests {
     func testThreeDLDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatter3DL.formatterIdentifier)
         #expect(descriptor.name == "Autodesk 3D LUT")
-        XCTAssertEqual(descriptor.fileExtensions, ["3dl"])
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
-        XCTAssertEqual(descriptor.output, .lut3D)
+        #expect(descriptor.fileExtensions == ["3dl"])
+        #expect(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.output == .lut3D)
 
         let defaultOptions = descriptor.defaultOptions?[LUTFormatter3DL.formatterIdentifier] as? [String: Any]
         #expect(defaultOptions?["fileTypeVariant"] as? String == LUTFormatter3DL.Variant.nuke.rawValue)
