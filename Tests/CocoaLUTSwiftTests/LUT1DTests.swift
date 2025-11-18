@@ -5,17 +5,17 @@ import Testing
 struct LUT1DTests {
     @Test
     func testInitializationStoresCurves() {
-    let red = stride(from: 0.0, through: 1.0, by: 0.25).map { $0 }
-    let green = red.map { pow($0, 2) }
-    let blue = Array(red.reversed())
+        let red = stride(from: 0.0, through: 1.0, by: 0.25).map { $0 }
+        let green = red.map { pow($0, 2) }
+        let blue = Array(red.reversed())
         let lut = LUT1D(redCurve: red, greenCurve: green, blueCurve: blue, inputLowerBound: 0.0, inputUpperBound: 1.0)
 
-        XCTAssertEqual(lut.size, red.count)
-        XCTAssertEqual(lut.valueAtR(2), red[2])
-        XCTAssertEqual(lut.valueAtG(3), green[3])
-        XCTAssertEqual(lut.valueAtB(1), blue[1])
-        XCTAssertEqual(lut.inputLowerBound, 0.0)
-        XCTAssertEqual(lut.inputUpperBound, 1.0)
+        #expect(lut.size == red.count)
+        #expect(lut.valueAtR(2) == red[2])
+        #expect(lut.valueAtG(3) == green[3])
+        #expect(lut.valueAtB(1) == blue[1])
+        #expect(lut.inputLowerBound == 0.0)
+        #expect(lut.inputUpperBound == 1.0)
     }
 
     @Test
@@ -29,9 +29,9 @@ struct LUT1DTests {
         let output = lut.color(at: input)
 
         let expectedRed = lerp(red[1], red[2], t: 0.42 * 4.0 - 1.0)
-        XCTAssertEqual(output.red, expectedRed, accuracy: 1e-9)
-        XCTAssertEqual(output.green, green.first!, accuracy: 1e-9)
-        XCTAssertEqual(output.blue, blue.last!, accuracy: 1e-9)
+        #expect(abs(output.red - expectedRed) < 1e-9)
+        #expect(abs(output.green - green.first!) < 1e-9)
+        #expect(abs(output.blue - blue.last!) < 1e-9)
     }
 
     @Test
@@ -42,10 +42,10 @@ struct LUT1DTests {
         let lut = LUT1D(redCurve: red, greenCurve: green, blueCurve: blue, inputLowerBound: 0.0, inputUpperBound: 1.0)
 
         let resized = lut.resized(to: 5)
-        XCTAssertEqual(resized.size, 5)
-        XCTAssertEqual(resized.valueAtR(2), 0.5, accuracy: 1e-9)
-        XCTAssertEqual(resized.valueAtG(3), 0.375, accuracy: 1e-9)
-        XCTAssertEqual(resized.valueAtB(4), 1.5, accuracy: 1e-9)
+        #expect(resized.size == 5)
+        #expect(abs(resized.valueAtR(2) - 0.5) < 1e-9)
+        #expect(abs(resized.valueAtG(3) - 0.375) < 1e-9)
+        #expect(abs(resized.valueAtB(4) - 1.5) < 1e-9)
     }
 
     @Test
@@ -56,11 +56,11 @@ struct LUT1DTests {
         let lut1D = LUT1D(redCurve: red, greenCurve: green, blueCurve: blue, inputLowerBound: 0.0, inputUpperBound: 1.0)
 
         let lut3D = lut1D.toLUT3D(size: 3)
-        XCTAssertEqual(lut3D.size, 3)
+        #expect(lut3D.size == 3)
         let color = lut3D.colorAt(r: 1, g: 2, b: 0)
-        XCTAssertEqual(color.red, red[1], accuracy: 1e-9)
-        XCTAssertEqual(color.green, green[2], accuracy: 1e-9)
-        XCTAssertEqual(color.blue, blue[0], accuracy: 1e-9)
+        #expect(abs(color.red - red[1]) < 1e-9)
+        #expect(abs(color.green - green[2]) < 1e-9)
+        #expect(abs(color.blue - blue[0]) < 1e-9)
     }
 
     @Test
@@ -73,7 +73,7 @@ struct LUT1DTests {
                         inputLowerBound: 0,
                         inputUpperBound: 1)
 
-        XCTAssertTrue(lut.isReversible(strict: true))
+        #expect(lut.isReversible(strict: true))
 
         var nonMonotonicCurve = curve
         if nonMonotonicCurve.count > 2 {
@@ -86,7 +86,7 @@ struct LUT1DTests {
                                  inputLowerBound: 0,
                                  inputUpperBound: 1)
 
-        XCTAssertFalse(nonMonotonic.isReversible(strict: true))
+        #expect(!nonMonotonic.isReversible(strict: true))
     }
 
     @Test
@@ -100,15 +100,15 @@ struct LUT1DTests {
                         inputUpperBound: 1)
 
         let reversed = lut.reversed(strictness: true, autoAdjustInputBounds: true)
-        XCTAssertNotNil(reversed)
+        #expect(reversed != nil)
 
         let testValue = 0.42
         let forward = lut.color(at: LUTColor.color(red: testValue, green: testValue, blue: testValue))
         let recovered = reversed?.color(at: forward)
 
-        XCTAssertEqual(recovered?.red ?? 0, testValue, accuracy: 1e-3)
-        XCTAssertEqual(recovered?.green ?? 0, testValue, accuracy: 1e-3)
-        XCTAssertEqual(recovered?.blue ?? 0, testValue, accuracy: 1e-3)
+        #expect(abs((recovered?.red ?? 0) - testValue) < 1e-3)
+        #expect(abs((recovered?.green ?? 0) - testValue) < 1e-3)
+        #expect(abs((recovered?.blue ?? 0) - testValue) < 1e-3)
     }
 
     @Test
@@ -128,9 +128,9 @@ struct LUT1DTests {
 
         for index in 0..<size {
             let redValue = lut.valueAtR(index)
-            XCTAssertEqual(swizzled.valueAtR(index), redValue, accuracy: 1e-9)
-            XCTAssertEqual(swizzled.valueAtG(index), redValue, accuracy: 1e-9)
-            XCTAssertEqual(swizzled.valueAtB(index), redValue, accuracy: 1e-9)
+            #expect(abs(swizzled.valueAtR(index) - redValue) < 1e-9)
+            #expect(abs(swizzled.valueAtG(index) - redValue) < 1e-9)
+            #expect(abs(swizzled.valueAtB(index) - redValue) < 1e-9)
         }
     }
 }
@@ -145,9 +145,9 @@ struct LUT3DTests {
                 for b in 0..<identity.size {
                     let expected = identity.asLUT().identityColorAt(r: Double(r), g: Double(g), b: Double(b))
                     let actual = identity.colorAt(r: r, g: g, b: b)
-                    XCTAssertEqual(actual.red, expected.red, accuracy: 1e-9)
-                    XCTAssertEqual(actual.green, expected.green, accuracy: 1e-9)
-                    XCTAssertEqual(actual.blue, expected.blue, accuracy: 1e-9)
+                    #expect(abs(actual.red - expected.red) < 1e-9)
+                    #expect(abs(actual.green - expected.green) < 1e-9)
+                    #expect(abs(actual.blue - expected.blue) < 1e-9)
                 }
             }
         }

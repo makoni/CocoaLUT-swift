@@ -12,11 +12,11 @@ struct LUTFormatterILUTTests {
     """
 
         let lut = try LUTFormatterILUT.read(string: fixture)
-        XCTAssertEqual(lut.size, 3)
-        XCTAssertEqual(lut.valueAtR(0), 0, accuracy: 1e-9)
-        XCTAssertEqual(lut.valueAtG(1), 4096.0 / 16383.0, accuracy: 1e-9)
-        XCTAssertEqual(lut.valueAtB(2), 8192.0 / 16383.0, accuracy: 1e-9)
-        XCTAssertEqual(lut.passthroughFileOptions.keys.first, LUTFormatterILUT.formatterIdentifier)
+        #expect(lut.size == 3)
+        #expect(abs(lut.valueAtR(0) - 0) < 1e-9)
+        #expect(abs(lut.valueAtG(1) - (4096.0 / 16383.0)) < 1e-9)
+        #expect(abs(lut.valueAtB(2) - (8192.0 / 16383.0)) < 1e-9)
+        #expect(lut.passthroughFileOptions.keys.first == LUTFormatterILUT.formatterIdentifier)
     }
 
     @Test
@@ -27,9 +27,9 @@ struct LUTFormatterILUTTests {
 
         let output = try LUTFormatterILUT.write(lut)
         let lines = output.components(separatedBy: "\n")
-        XCTAssertEqual(lines.count, 16384)
-        XCTAssertEqual(lines.first, "0,0,0,0")
-        XCTAssertEqual(lines.last, "16383,16383,16383,0")
+        #expect(lines.count == 16384)
+        #expect(lines.first == "0,0,0,0")
+        #expect(lines.last == "16383,16383,16383,0")
     }
 
     @Test
@@ -40,8 +40,8 @@ struct LUTFormatterILUTTests {
 
         let output = try LUTFormatterILUT.write(lut)
         let lines = output.components(separatedBy: "\n")
-        XCTAssertEqual(lines.count, 16384)
-        XCTAssertEqual(lines.first, "0,0,0,0")
-        XCTAssertEqual(lines.last, "16383,16383,16383,0")
+        #expect(lines.count == 16384)
+        #expect(lines.first == "0,0,0,0")
+        #expect(lines.last == "16383,16383,16383,0")
     }
 }

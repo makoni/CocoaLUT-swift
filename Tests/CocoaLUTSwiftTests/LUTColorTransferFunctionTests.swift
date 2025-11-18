@@ -10,17 +10,17 @@ struct LUTColorTransferFunctionTests {
         let linear = gamma.transformedToLinear(from: source)
         let roundTrip = gamma.linearToTransformed(from: linear)
 
-        XCTAssertEqual(roundTrip.red, source.red, accuracy: 1e-9)
-        XCTAssertEqual(roundTrip.green, source.green, accuracy: 1e-9)
-        XCTAssertEqual(roundTrip.blue, source.blue, accuracy: 1e-9)
+        #expect(abs(roundTrip.red - source.red) < 1e-9)
+        #expect(abs(roundTrip.green - source.green) < 1e-9)
+        #expect(abs(roundTrip.blue - source.blue) < 1e-9)
     }
 
     @Test
     func testCompatibilityRelation() {
         let gamma = LUTColorTransferFunction.gammaTransferFunction(gamma: 2.4)
         let linear = LUTColorTransferFunction.linearTransferFunction()
-        XCTAssertTrue(linear.isCompatible(with: gamma))
-        XCTAssertTrue(gamma.isCompatible(with: linear))
+        #expect(linear.isCompatible(with: gamma))
+        #expect(gamma.isCompatible(with: linear))
     }
 
     @Test
@@ -44,9 +44,9 @@ struct LUTColorTransferFunctionTests {
         for index in 0..<lut.size {
             let expected = lut.colorAt(index: index)
             let actual = roundTrip.colorAt(index: index)
-            XCTAssertEqual(actual.red, expected.red, accuracy: 1e-9)
-            XCTAssertEqual(actual.green, expected.green, accuracy: 1e-9)
-            XCTAssertEqual(actual.blue, expected.blue, accuracy: 1e-9)
+            #expect(abs(actual.red - expected.red) < 1e-9)
+            #expect(abs(actual.green - expected.green) < 1e-9)
+            #expect(abs(actual.blue - expected.blue) < 1e-9)
         }
     }
 }

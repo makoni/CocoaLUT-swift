@@ -6,82 +6,86 @@ struct LUTColorTests {
     @Test
     func testFactoryMethodsProduceExpectedValues() {
         let custom = LUTColor.color(red: 0.25, green: 0.5, blue: 0.75)
-        XCTAssertEqual(custom.red, 0.25)
-        XCTAssertEqual(custom.green, 0.5)
-        XCTAssertEqual(custom.blue, 0.75)
+        #expect(custom.red == 0.25)
+        #expect(custom.green == 0.5)
+        #expect(custom.blue == 0.75)
 
         let zero = LUTColor.zeros()
-        XCTAssertEqual(zero.red, 0.0)
-        XCTAssertEqual(zero.green, 0.0)
-        XCTAssertEqual(zero.blue, 0.0)
+        #expect(zero.red == 0.0)
+        #expect(zero.green == 0.0)
+        #expect(zero.blue == 0.0)
 
         let ones = LUTColor.ones()
-        XCTAssertEqual(ones.red, 1.0)
-        XCTAssertEqual(ones.green, 1.0)
-        XCTAssertEqual(ones.blue, 1.0)
+        #expect(ones.red == 1.0)
+        #expect(ones.green == 1.0)
+        #expect(ones.blue == 1.0)
 
         let uniform = LUTColor.uniform(0.42)
-        assertEqual(uniform.rgbArray(), [0.42, 0.42, 0.42], accuracy: 1e-12)
+        let rgb = uniform.rgbArray() as! [Double]
+        let expected = [0.42, 0.42, 0.42]
+        for (val, exp) in zip(rgb, expected) {
+            #expect(abs(val - exp) < 1e-12)
+        }
     }
 
     @Test
     func testIntegerFactoriesRescaleToUnitRange() {
         let fromBitDepth = LUTColor.fromIntegers(bitDepth: 10, red: 0, green: 512, blue: 1023)
-        XCTAssertEqual(fromBitDepth.red, 0.0, accuracy: 1e-9)
-    XCTAssertEqual(fromBitDepth.green, 512.0 / 1023.0, accuracy: 1e-9)
-        XCTAssertEqual(fromBitDepth.blue, 1.0, accuracy: 1e-9)
+        #expect(abs(fromBitDepth.red - 0.0) < 1e-9)
+        #expect(abs(fromBitDepth.green - (512.0 / 1023.0)) < 1e-9)
+        #expect(abs(fromBitDepth.blue - 1.0) < 1e-9)
 
         let fromMaxValue = LUTColor.fromIntegers(maxOutputValue: 4095, red: 1024, green: 2048, blue: 4095)
-        XCTAssertEqual(fromMaxValue.red, 1024.0 / 4095.0, accuracy: 1e-9)
-        XCTAssertEqual(fromMaxValue.green, 2048.0 / 4095.0, accuracy: 1e-9)
-        XCTAssertEqual(fromMaxValue.blue, 1.0, accuracy: 1e-9)
+        #expect(abs(fromMaxValue.red - (1024.0 / 4095.0)) < 1e-9)
+        #expect(abs(fromMaxValue.green - (2048.0 / 4095.0)) < 1e-9)
+        #expect(abs(fromMaxValue.blue - 1.0) < 1e-9)
     }
 
     @Test
     func testClampAndExtrema() {
         let sample = LUTColor.color(red: -0.25, green: 0.6, blue: 1.5)
-        XCTAssertEqual(sample.minimumValue(), -0.25)
-        XCTAssertEqual(sample.maximumValue(), 1.5)
+        #expect(sample.minimumValue() == -0.25)
+        #expect(sample.maximumValue() == 1.5)
 
         let clamped = sample.clamped01()
-        XCTAssertEqual(clamped.red, 0.0, accuracy: 1e-12)
-        XCTAssertEqual(clamped.green, 0.6, accuracy: 1e-12)
-        XCTAssertEqual(clamped.blue, 1.0, accuracy: 1e-12)
+        #expect(abs(clamped.red - 0.0) < 1e-12)
+        #expect(abs(clamped.green - 0.6) < 1e-12)
+        #expect(abs(clamped.blue - 1.0) < 1e-12)
 
         let lowerBound = sample.clamped(lowerBound: 0.1, upperBound: 0.9)
-        XCTAssertEqual(lowerBound.red, 0.1, accuracy: 1e-12)
-        XCTAssertEqual(lowerBound.green, 0.6, accuracy: 1e-12)
-        XCTAssertEqual(lowerBound.blue, 0.9, accuracy: 1e-12)
+        #expect(abs(lowerBound.red - 0.1) < 1e-12)
+        #expect(abs(lowerBound.green - 0.6) < 1e-12)
+        #expect(abs(lowerBound.blue - 0.9) < 1e-12)
 
         let lowerOnly = sample.clamped(lowerBound: 0.2)
-        XCTAssertEqual(lowerOnly.red, 0.2, accuracy: 1e-12)
-        XCTAssertEqual(lowerOnly.green, 0.6, accuracy: 1e-12)
-        XCTAssertEqual(lowerOnly.blue, 1.5, accuracy: 1e-12)
+        #expect(abs(lowerOnly.red - 0.2) < 1e-12)
+        #expect(abs(lowerOnly.green - 0.6) < 1e-12)
+        #expect(abs(lowerOnly.blue - 1.5) < 1e-12)
 
         let upperOnly = sample.clamped(upperBound: 0.4)
-        XCTAssertEqual(upperOnly.red, -0.25, accuracy: 1e-12)
-        XCTAssertEqual(upperOnly.green, 0.4, accuracy: 1e-12)
-        XCTAssertEqual(upperOnly.blue, 0.4, accuracy: 1e-12)
+        #expect(abs(upperOnly.red - -0.25) < 1e-12)
+        #expect(abs(upperOnly.green - 0.4) < 1e-12)
+        #expect(abs(upperOnly.blue - 0.4) < 1e-12)
     }
 
     @Test
     func testContrastStretchAndRemap() {
         let color = LUTColor.color(red: 0.0, green: 0.5, blue: 1.0)
         let stretched = color.contrastStretched(currentMin: 0.0, currentMax: 1.0, finalMin: 0.1, finalMax: 0.9)
-        XCTAssertEqual(stretched.red, 0.1, accuracy: 1e-12)
-        XCTAssertEqual(stretched.green, 0.5, accuracy: 1e-12)
-        XCTAssertEqual(stretched.blue, 0.9, accuracy: 1e-12)
+        #expect(abs(stretched.red - 0.1) < 1e-12)
+        #expect(abs(stretched.green - 0.5) < 1e-12)
+        #expect(abs(stretched.blue - 0.9) < 1e-12)
 
         let bounded = color.remapped(inputLow: 0.0, inputHigh: 1.0, outputLow: -1.0, outputHigh: 1.0, bounded: true)
-        XCTAssertEqual(bounded.red, -1.0, accuracy: 1e-12)
-        XCTAssertEqual(bounded.green, 0.0, accuracy: 1e-12)
-        XCTAssertEqual(bounded.blue, 1.0, accuracy: 1e-12)
+        #expect(abs(bounded.red - -1.0) < 1e-12)
+        #expect(abs(bounded.green - 0.0) < 1e-12)
+        #expect(abs(bounded.blue - 1.0) < 1e-12)
 
         let unclampedSource = LUTColor.color(red: -0.2, green: 0.5, blue: 1.2)
         let unbounded = unclampedSource.remapped(inputLow: 0.0, inputHigh: 1.0, outputLow: -1.0, outputHigh: 1.0, bounded: false)
-        XCTAssertEqual(unbounded.red, -1.4, accuracy: 1e-12)
-        XCTAssertEqual(unbounded.green, 0.0, accuracy: 1e-12)
-        XCTAssertEqual(unbounded.blue, 1.4, accuracy: 1e-12)
+        #expect(abs(unbounded.red - -1.4) < 1e-12)
+        #expect(abs(unbounded.green - 0.0) < 1e-12)
+        #expect(abs(unbounded.blue - 1.4) < 1e-12)
     }
 
     @Test
@@ -93,9 +97,9 @@ struct LUTColorTests {
         let offsetHigh = LUTColor.uniform(0.5)
 
         let remapped = color.remapped(inputLowColor: low, inputHighColor: high, outputLowColor: offsetLow, outputHighColor: offsetHigh, bounded: true)
-    XCTAssertEqual(remapped.red, -0.25, accuracy: 1e-12)
-    XCTAssertEqual(remapped.green, 0.0, accuracy: 1e-12)
-    XCTAssertEqual(remapped.blue, 0.25, accuracy: 1e-12)
+        #expect(abs(remapped.red - -0.25) < 1e-12)
+        #expect(abs(remapped.green - 0.0) < 1e-12)
+        #expect(abs(remapped.blue - 0.25) < 1e-12)
     }
 
     @Test

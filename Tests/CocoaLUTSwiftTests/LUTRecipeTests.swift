@@ -11,18 +11,18 @@ struct LUTRecipeTests {
 
         let data = try recipe.serializedRecipe()
         let rawJSON = try JSONSerialization.jsonObject(with: data, options: [])
-        let jsonArray = try XCTUnwrap(rawJSON as? [[String: Any]])
-        XCTAssertEqual(jsonArray.count, 1)
+        let jsonArray = try #require(rawJSON as? [[String: Any]])
+        #expect(jsonArray.count == 1)
 
         let metadata = jsonArray[0]
-        let identifier = try XCTUnwrap(metadata["id"] as? String)
-        XCTAssertEqual(identifier, "ChangeInputBounds")
+        let identifier = try #require(metadata["id"] as? String)
+        #expect(identifier == "ChangeInputBounds")
 
-        let lowerBound = try XCTUnwrap(metadata["inputLowerBound"] as? Double)
-        XCTAssertEqual(lowerBound, 0.0)
+        let lowerBound = try #require(metadata["inputLowerBound"] as? Double)
+        #expect(lowerBound == 0.0)
 
-        let upperBound = try XCTUnwrap(metadata["inputUpperBound"] as? Double)
-        XCTAssertEqual(upperBound, 1.0)
+        let upperBound = try #require(metadata["inputUpperBound"] as? Double)
+        #expect(upperBound == 1.0)
     }
 
     @Test
@@ -31,6 +31,6 @@ struct LUTRecipeTests {
         let recipe = LUTRecipe(actions: [action])
 
         let recipeString = try recipe.serializedRecipeString()
-        XCTAssertTrue(recipeString.contains("\"id\" : \"Bypass\""))
+        #expect(recipeString.contains("\"id\" : \"Bypass\""))
     }
 }

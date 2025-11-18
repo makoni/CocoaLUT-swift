@@ -9,10 +9,10 @@ struct ObjCCompatibilityTests {
                                     inputLowerBound: 0,
                                     inputUpperBound: 1)
 
-        let data = try XCTUnwrap(identity.dataRepresentation, "Expected cube payload for identity LUT")
-        let decoded = try XCTUnwrap(LUT(fromDataRepresentation: data))
+        let data = try #require(identity.dataRepresentation, "Expected cube payload for identity LUT")
+        let decoded = try #require(LUT(fromDataRepresentation: data))
 
-        XCTAssertTrue(decoded.equals(identity, tolerance: 1e-9))
+        #expect(decoded.equals(identity, tolerance: 1e-9))
     }
 
     @Test
@@ -22,8 +22,8 @@ struct ObjCCompatibilityTests {
                                        inputUpperBound: 1)
 
         let cube = curve.toLUT3D(size: curve.size).asLUT()
-        let data = try XCTUnwrap(cube.dataRepresentation, "Expected cube payload for converted 1D LUT")
-        let decoded = try XCTUnwrap(LUT(fromDataRepresentation: data))
+        let data = try #require(cube.dataRepresentation, "Expected cube payload for converted 1D LUT")
+        let decoded = try #require(LUT(fromDataRepresentation: data))
 
         let reconstructedCurve = LUT3D(lattice: decoded).toLUT1D()
         assertEqual(curve, reconstructedCurve, accuracy: 1e-9)
@@ -33,15 +33,14 @@ struct ObjCCompatibilityTests {
 private func assertEqual(_ lhs: LUT1D,
                          _ rhs: LUT1D,
                          accuracy: Double,
-                         file: StaticString = #fileID,
-                         line: UInt = #line) {
-    XCTAssertEqual(lhs.size, rhs.size, file: file, line: line)
-    XCTAssertEqual(lhs.inputLowerBound, rhs.inputLowerBound, accuracy: accuracy, file: file, line: line)
-    XCTAssertEqual(lhs.inputUpperBound, rhs.inputUpperBound, accuracy: accuracy, file: file, line: line)
+                         sourceLocation: SourceLocation = #_sourceLocation) {
+    #expect(lhs.size == rhs.size, sourceLocation: sourceLocation)
+    #expect(abs(lhs.inputLowerBound - rhs.inputLowerBound) < accuracy, sourceLocation: sourceLocation)
+    #expect(abs(lhs.inputUpperBound - rhs.inputUpperBound) < accuracy, sourceLocation: sourceLocation)
 
     for index in 0..<lhs.size {
-        XCTAssertEqual(lhs.valueAtR(index), rhs.valueAtR(index), accuracy: accuracy, file: file, line: line)
-        XCTAssertEqual(lhs.valueAtG(index), rhs.valueAtG(index), accuracy: accuracy, file: file, line: line)
-        XCTAssertEqual(lhs.valueAtB(index), rhs.valueAtB(index), accuracy: accuracy, file: file, line: line)
+        #expect(abs(lhs.valueAtR(index) - rhs.valueAtR(index)) < accuracy, sourceLocation: sourceLocation)
+        #expect(abs(lhs.valueAtG(index) - rhs.valueAtG(index)) < accuracy, sourceLocation: sourceLocation)
+        #expect(abs(lhs.valueAtB(index) - rhs.valueAtB(index)) < accuracy, sourceLocation: sourceLocation)
     }
 }

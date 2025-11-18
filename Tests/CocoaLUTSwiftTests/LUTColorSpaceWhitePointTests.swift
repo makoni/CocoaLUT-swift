@@ -6,36 +6,36 @@ struct LUTColorSpaceWhitePointTests {
     @Test
     func testTristimulusValuesMatchReference() {
         let d65 = LUTColorSpaceWhitePoint.d65.tristimulusValues
-    XCTAssertEqual(d65.x, 0.95043, accuracy: 1e-4)
-    XCTAssertEqual(d65.y, 1.0, accuracy: 1e-4)
-    XCTAssertEqual(d65.z, 1.08890, accuracy: 1e-4)
+        #expect(abs(d65.x - 0.95043) < 1e-4)
+        #expect(abs(d65.y - 1.0) < 1e-4)
+        #expect(abs(d65.z - 1.08890) < 1e-4)
     }
 
     @Test
     func testColorTemperatureWithinSupportedRangeProducesExpectedChromaticity() {
         guard let tungsten = LUTColorSpaceWhitePoint.fromColorTemperature(3200) else {
-            XCTFail("Expected 3200K to be supported")
+            Issue.record("Expected 3200K to be supported")
             return
         }
 
-    XCTAssertEqual(tungsten.whiteChromaticityX, 0.42318, accuracy: 1e-4)
-    XCTAssertEqual(tungsten.whiteChromaticityY, 0.39908, accuracy: 5e-5)
-        XCTAssertEqual(tungsten.name, "3200K")
+        #expect(abs(tungsten.whiteChromaticityX - 0.42318) < 1e-4)
+        #expect(abs(tungsten.whiteChromaticityY - 0.39908) < 5e-5)
+        #expect(tungsten.name == "3200K")
     }
 
     @Test
     func testCustomNameOverridePreservedForKnownColorTemperature() {
         guard let custom = LUTColorSpaceWhitePoint.fromColorTemperature(5600, customName: "Daylight") else {
-            XCTFail("Expected 5600K to be supported")
+            Issue.record("Expected 5600K to be supported")
             return
         }
 
-        XCTAssertEqual(custom.name, "Daylight")
+        #expect(custom.name == "Daylight")
     }
 
     @Test
     func testColorTemperatureOutsideRangeReturnsNil() {
-        XCTAssertNil(LUTColorSpaceWhitePoint.fromColorTemperature(1000))
-        XCTAssertNil(LUTColorSpaceWhitePoint.fromColorTemperature(50000))
+        #expect(LUTColorSpaceWhitePoint.fromColorTemperature(1000) == nil)
+        #expect(LUTColorSpaceWhitePoint.fromColorTemperature(50000) == nil)
     }
 }

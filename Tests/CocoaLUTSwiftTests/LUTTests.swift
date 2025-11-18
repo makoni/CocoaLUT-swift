@@ -6,11 +6,11 @@ struct LUTTests {
     @Test
     func testInitializationStoresParameters() {
         let lut = LUT(size: 4, inputLowerBound: 0.0, inputUpperBound: 1.0)
-        XCTAssertEqual(lut.size, 4)
-        XCTAssertEqual(lut.inputLowerBound, 0.0)
-        XCTAssertEqual(lut.inputUpperBound, 1.0)
-        XCTAssertTrue(lut.metadata.isEmpty)
-        XCTAssertTrue(lut.passthroughFileOptions.isEmpty)
+        #expect(lut.size == 4)
+        #expect(lut.inputLowerBound == 0.0)
+        #expect(lut.inputUpperBound == 1.0)
+        #expect(lut.metadata.isEmpty)
+        #expect(lut.passthroughFileOptions.isEmpty)
     }
 
     @Test
@@ -18,8 +18,8 @@ struct LUTTests {
         var lut = LUT(size: 3, inputLowerBound: 0.0, inputUpperBound: 1.0)
         let target = LUTColor.color(red: 0.2, green: 0.4, blue: 0.6)
         lut.setColor(target, r: 1, g: 2, b: 0)
-        XCTAssertEqual(lut.colorAt(r: 1, g: 2, b: 0), target)
-        XCTAssertEqual(lut.colorAt(r: 0, g: 0, b: 0), .zeros())
+        #expect(lut.colorAt(r: 1, g: 2, b: 0) == target)
+        #expect(lut.colorAt(r: 0, g: 0, b: 0) == .zeros())
     }
 
     @Test
@@ -29,8 +29,8 @@ struct LUTTests {
         lut.loop { r, g, b in
             visited.insert([r, g, b])
         }
-        XCTAssertEqual(visited.count, 8)
-        XCTAssertTrue(visited.contains([0, 1, 0]))
+        #expect(visited.count == 8)
+        #expect(visited.contains([0, 1, 0]))
     }
 
     @Test
@@ -46,7 +46,7 @@ struct LUTTests {
                 }
             }
         }
-        XCTAssertTrue(lut.equalsIdentity(tolerance: 1e-9))
+        #expect(lut.equalsIdentity(tolerance: 1e-9))
     }
 
     @Test
@@ -54,9 +54,9 @@ struct LUTTests {
         let lut = LUT.identity(size: 17, inputLowerBound: 0.0, inputUpperBound: 1.0)
         let input = LUTColor.color(red: 0.42, green: 1.5, blue: -0.4)
         let output = lut.color(at: input)
-        XCTAssertEqual(output.red, 0.42, accuracy: 1e-9)
-        XCTAssertEqual(output.green, 1.0, accuracy: 1e-9)
-        XCTAssertEqual(output.blue, 0.0, accuracy: 1e-9)
+        #expect(abs(output.red - 0.42) < 1e-9)
+        #expect(abs(output.green - 1.0) < 1e-9)
+        #expect(abs(output.blue - 0.0) < 1e-9)
     }
 
     @Test
@@ -73,15 +73,15 @@ struct LUTTests {
 
         let resized = lut.resized(to: 3)
         let center = resized.colorAt(r: 1, g: 1, b: 1)
-        XCTAssertEqual(center.red, 0.5, accuracy: 1e-9)
-        XCTAssertEqual(center.green, 0.5, accuracy: 1e-9)
-        XCTAssertEqual(center.blue, 0.5, accuracy: 1e-9)
+        #expect(abs(center.red - 0.5) < 1e-9)
+        #expect(abs(center.green - 0.5) < 1e-9)
+        #expect(abs(center.blue - 0.5) < 1e-9)
     }
 }
 
-private func assertEqual(_ lhs: [Double], _ rhs: [Double], accuracy: Double, file: StaticString = #fileID, line: UInt = #line) {
-    XCTAssertEqual(lhs.count, rhs.count, file: file, line: line)
+private func assertEqual(_ lhs: [Double], _ rhs: [Double], accuracy: Double, sourceLocation: SourceLocation = #_sourceLocation) {
+    #expect(lhs.count == rhs.count, sourceLocation: sourceLocation)
     zip(lhs, rhs).forEach { a, b in
-        XCTAssertEqual(a, b, accuracy: accuracy, file: file, line: line)
+        #expect(abs(a - b) < accuracy, sourceLocation: sourceLocation)
     }
 }

@@ -21,13 +21,13 @@ struct LUTFormatterQuantelTests {
         """
 
         let lut = try LUTFormatterQuantel.read(string: sample)
-    XCTAssertEqual(lut.size, 2)
-    XCTAssertEqual(lut.colorAt(r: 1, g: 1, b: 1).red, 1.0, accuracy: 1e-6)
-    XCTAssertEqual(lut.colorAt(r: 0, g: 1, b: 0).green, 1.0, accuracy: 1e-6)
+    #expect(lut.size == 2)
+    #expect(abs(lut.colorAt(r: 1, g: 1, b: 1).red - 1.0) < 1e-6)
+    #expect(abs(lut.colorAt(r: 0, g: 1, b: 0).green - 1.0) < 1e-6)
     let passthrough = lut.passthroughFileOptions["quantel"] as? [String: Any]
-    XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Quantel")
-    XCTAssertEqual(passthrough?["integerMaxOutput"] as? Int, 1023)
-    XCTAssertEqual(passthrough?["lutSize"] as? Int, 2)
+    #expect(passthrough?["fileTypeVariant"] as? String == "Quantel")
+    #expect(passthrough?["integerMaxOutput"] as? Int == 1023)
+    #expect(passthrough?["lutSize"] as? Int == 2)
     }
 
     @Test
@@ -43,7 +43,7 @@ struct LUTFormatterQuantelTests {
         }
 
         let string = try LUTFormatterQuantel.write(lut, options: .init(integerMaxOutput: 1023, lutSize: 2))
-        XCTAssertTrue(string.contains("max value 1023"))
-        XCTAssertTrue(string.contains("vertices 2"))
+        #expect(string.contains("max value 1023"))
+        #expect(string.contains("vertices 2"))
     }
 }

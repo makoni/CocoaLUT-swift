@@ -20,12 +20,12 @@ struct LUTFormatterResolveDATTests {
         """
 
         let lut = try LUTFormatterResolveDAT.read(string: source)
-        XCTAssertEqual(lut.size, 2)
-        XCTAssertEqual(lut.colorAt(r: 0, g: 0, b: 0).red, 0.0, accuracy: 1e-9)
-        XCTAssertEqual(lut.colorAt(r: 1, g: 0, b: 1).green, 0.2, accuracy: 1e-9)
-        XCTAssertEqual(lut.colorAt(r: 1, g: 1, b: 1).blue, 1.0, accuracy: 1e-9)
+        #expect(lut.size == 2)
+        #expect(abs(lut.colorAt(r: 0, g: 0, b: 0).red - 0.0) < 1e-9)
+        #expect(abs(lut.colorAt(r: 1, g: 0, b: 1).green - 0.2) < 1e-9)
+        #expect(abs(lut.colorAt(r: 1, g: 1, b: 1).blue - 1.0) < 1e-9)
         let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Resolve")
+        #expect(passthrough?["fileTypeVariant"] as? String == "Resolve")
     }
 
     @Test
@@ -36,12 +36,13 @@ struct LUTFormatterResolveDATTests {
         0.0 0.0 1.0
         """
 
-        XCTAssertThrowsError(try LUTFormatterResolveDAT.read(string: source)) { error in
+        #expect {
+            try LUTFormatterResolveDAT.read(string: source)
+        } throws: { error in
             guard case LUTFormatterResolveDATErrors.incompleteData(let expected, let found) = error else {
-                return XCTFail("Unexpected error: \(error)")
+                return false
             }
-            XCTAssertEqual(expected, 8)
-            XCTAssertEqual(found, 2)
+            return expected == 8 && found == 2
         }
     }
 
@@ -49,22 +50,22 @@ struct LUTFormatterResolveDATTests {
     func testWriteResolveDATIncludesHeaderForNonDefaultSize() throws {
     let lut = LUT3D.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
         let output = try LUTFormatterResolveDAT.write(lut)
-        XCTAssertTrue(output.hasPrefix("3DLUTSIZE 2"))
+        #expect(output.hasPrefix("3DLUTSIZE 2"))
         let lines = output.components(separatedBy: "\n")
-        XCTAssertEqual(lines.count, 10)
-        XCTAssertEqual(lines.last, "1.000000 1.000000 1.000000")
+        #expect(lines.count == 10)
+        #expect(lines.last == "1.000000 1.000000 1.000000")
     }
 
     @Test
     func testWriteResolveDATOmitsHeaderForDefaultSize() throws {
     let lut = LUT3D.identity(size: 33, inputLowerBound: 0, inputUpperBound: 1)
         let output = try LUTFormatterResolveDAT.write(lut)
-        XCTAssertFalse(output.contains("3DLUTSIZE"))
-        XCTAssertTrue(output.hasPrefix("0.000000"))
+        #expect(!output.contains("3DLUTSIZE"))
+        #expect(output.hasPrefix("0.000000"))
         // spot check a late entry to ensure ordering is stable
         let lines = output.components(separatedBy: "\n")
-        XCTAssertEqual(lines.count, 33 * 33 * 33)
-        XCTAssertEqual(lines.first, "0.000000 0.000000 0.000000")
+        #expect(lines.count == 33 * 33 * 33)
+        #expect(lines.first == "0.000000 0.000000 0.000000")
     }
 
     @Test
@@ -82,8 +83,8 @@ struct LUTFormatterResolveDATTests {
         """
 
         let lut = try LUTFormatterDaVinciDAVLUT.read(string: source)
-        XCTAssertEqual(lut.size, 2)
+        #expect(lut.size == 2)
         let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "DaVinci")
+        #expect(passthrough?["fileTypeVariant"] as? String == "DaVinci")
     }
 }

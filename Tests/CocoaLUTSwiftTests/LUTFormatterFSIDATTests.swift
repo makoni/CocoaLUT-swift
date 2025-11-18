@@ -13,14 +13,14 @@ struct LUTFormatterFSIDATTests {
         let data = try LUTFormatterFSIDAT.write(lut, options: .init(variant: .v2))
         let decoded = try LUTFormatterFSIDAT.read(data: data)
 
-        XCTAssertTrue(decoded.equals(lut, tolerance: Self.quantizationTolerance(for: .v2)))
-        XCTAssertEqual(decoded.title, "Sample")
-        XCTAssertEqual(decoded.descriptionText, "Identity LUT")
-        XCTAssertEqual(decoded.metadata["version"] as? String, "1.0")
-        XCTAssertEqual(decoded.metadata["model"] as? String, "XM55")
+        #expect(decoded.equals(lut, tolerance: Self.quantizationTolerance(for: .v2)))
+        #expect(decoded.title == "Sample")
+        #expect(decoded.descriptionText == "Identity LUT")
+        #expect(decoded.metadata["version"] as? String == "1.0")
+        #expect(decoded.metadata["model"] as? String == "XM55")
         let passthrough = decoded.passthroughFileOptions["fsiDAT"] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "v2")
-        XCTAssertEqual(passthrough?["lutSize"] as? Int, 17)
+        #expect(passthrough?["fileTypeVariant"] as? String == "v2")
+        #expect(passthrough?["lutSize"] as? Int == 17)
     }
 
     @Test
@@ -28,26 +28,28 @@ struct LUTFormatterFSIDATTests {
         let lut = LUT3D.identity(size: 64, inputLowerBound: 0, inputUpperBound: 1)
         let data = try LUTFormatterFSIDAT.write(lut, options: .init(variant: .v1))
         let decoded = try LUTFormatterFSIDAT.read(data: data)
-        XCTAssertTrue(decoded.equals(lut, tolerance: Self.quantizationTolerance(for: .v1)))
+        #expect(decoded.equals(lut, tolerance: Self.quantizationTolerance(for: .v1)))
     }
 
     @Test
     func testWriteThrowsForMismatchedSize() throws {
         let lut = LUT3D.identity(size: 17, inputLowerBound: 0, inputUpperBound: 1)
-        XCTAssertThrowsError(try LUTFormatterFSIDAT.write(lut, options: .init(variant: .v1))) { error in
+        #expect {
+            try LUTFormatterFSIDAT.write(lut, options: .init(variant: .v1))
+        } throws: { error in
             guard case let LUTFormatterFSIDATError.invalidLUTSize(expected, actual) = error else {
-                XCTFail("Unexpected error type: \(error)")
-                return
+                return false
             }
-            XCTAssertEqual(expected, 64)
-            XCTAssertEqual(actual, 17)
+            return expected == 64 && actual == 17
         }
     }
 
     @Test
     func testReadRejectsInvalidFile() {
         let data = Data(count: 64)
-        XCTAssertThrowsError(try LUTFormatterFSIDAT.read(data: data))
+        #expect(throws: Error.self) {
+            try LUTFormatterFSIDAT.read(data: data)
+        }
     }
 }
 

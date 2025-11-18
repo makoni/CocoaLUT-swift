@@ -29,7 +29,7 @@ struct LUTAccuracyTests {
             .resized(to: 35)
             .resized(to: 33)
 
-        XCTAssertTrue(resized.equals(identity), "3D identity resize should remain lossless")
+        #expect(resized.equals(identity), "3D identity resize should remain lossless")
     }
 
     @Test
@@ -41,20 +41,20 @@ struct LUTAccuracyTests {
         let metrics = upsampled.comparisonMetrics(against: lut65Reference)
 
         // With tetrahedral interpolation, we expect to match the CocoaLUT reference tolerances.
-        XCTAssertLessThanOrEqual(metrics.sMAPE.red, 0.010395)
-        XCTAssertLessThanOrEqual(metrics.sMAPE.green, 0.010160)
-        XCTAssertLessThanOrEqual(metrics.sMAPE.blue, 0.007201)
+        #expect(metrics.sMAPE.red <= 0.010395)
+        #expect(metrics.sMAPE.green <= 0.010160)
+        #expect(metrics.sMAPE.blue <= 0.007201)
 
-        XCTAssertLessThanOrEqual(metrics.maxAbsoluteError.red, 0.132559)
-        XCTAssertLessThanOrEqual(metrics.maxAbsoluteError.green, 0.114145)
-        XCTAssertLessThanOrEqual(metrics.maxAbsoluteError.blue, 0.078125)
+        #expect(metrics.maxAbsoluteError.red <= 0.132559)
+        #expect(metrics.maxAbsoluteError.green <= 0.114145)
+        #expect(metrics.maxAbsoluteError.blue <= 0.078125)
 
-        XCTAssertLessThanOrEqual(metrics.averageAbsoluteError.red, 0.001069)
-        XCTAssertLessThanOrEqual(metrics.averageAbsoluteError.green, 0.000813)
-        XCTAssertLessThanOrEqual(metrics.averageAbsoluteError.blue, 0.000516)
+        #expect(metrics.averageAbsoluteError.red <= 0.001069)
+        #expect(metrics.averageAbsoluteError.green <= 0.000813)
+        #expect(metrics.averageAbsoluteError.blue <= 0.000516)
 
         let downsampled = lut65Reference.resized(to: 33)
-        XCTAssertTrue(downsampled.equals(lut33), "Downsampled LUT should match original 33^3 data")
+        #expect(downsampled.equals(lut33), "Downsampled LUT should match original 33^3 data")
     }
 
     @Test
@@ -63,7 +63,7 @@ struct LUTAccuracyTests {
                                           inputLowerBound: 0,
                                           inputUpperBound: 1)
 
-        let reversed = try XCTUnwrap(identity.reversed(strictness: true,
+        let reversed = try #require(identity.reversed(strictness: true,
                                                         autoAdjustInputBounds: false))
         assertEqual(identity, reversed, accuracy: 1e-9)
     }
@@ -80,9 +80,9 @@ struct LUTAccuracyTests {
                                                                sourceTransferFunction: linear,
                                                                destinationTransferFunction: gamma26)
 
-        let inverse = try XCTUnwrap(gammaLUT.reversed(strictness: true,
+        let inverse = try #require(gammaLUT.reversed(strictness: true,
                                                        autoAdjustInputBounds: false))
-        let doubleInverse = try XCTUnwrap(inverse.reversed(strictness: true,
+        let doubleInverse = try #require(inverse.reversed(strictness: true,
                                                             autoAdjustInputBounds: false))
 
         assertEqual(gammaLUT, doubleInverse, accuracy: 2e-4)
@@ -94,9 +94,9 @@ struct LUTAccuracyTests {
             let encoded = gammaLUT.color(at: source)
             let restored = inverse.color(at: encoded)
 
-            XCTAssertEqual(restored.red, input, accuracy: 1e-4)
-            XCTAssertEqual(restored.green, input, accuracy: 1e-4)
-            XCTAssertEqual(restored.blue, input, accuracy: 1e-4)
+            #expect(abs(restored.red - input) < 1e-4)
+            #expect(abs(restored.green - input) < 1e-4)
+            #expect(abs(restored.blue - input) < 1e-4)
         }
     }
 }
@@ -107,22 +107,21 @@ private extension LUTAccuracyTests {
     func assertEqual(_ lhs: LUT1D,
                      _ rhs: LUT1D,
                      accuracy: Double,
-                     file: StaticString = #fileID,
-                     line: UInt = #line) {
-        XCTAssertEqual(lhs.size, rhs.size, file: file, line: line)
-        XCTAssertEqual(lhs.inputLowerBound, rhs.inputLowerBound, accuracy: accuracy, file: file, line: line)
-        XCTAssertEqual(lhs.inputUpperBound, rhs.inputUpperBound, accuracy: accuracy, file: file, line: line)
+                     sourceLocation: SourceLocation = #_sourceLocation) {
+        #expect(lhs.size == rhs.size, sourceLocation: sourceLocation)
+        #expect(abs(lhs.inputLowerBound - rhs.inputLowerBound) < accuracy, sourceLocation: sourceLocation)
+        #expect(abs(lhs.inputUpperBound - rhs.inputUpperBound) < accuracy, sourceLocation: sourceLocation)
 
         for index in 0..<lhs.size {
-            XCTAssertEqual(lhs.valueAtR(index), rhs.valueAtR(index), accuracy: accuracy, file: file, line: line)
-            XCTAssertEqual(lhs.valueAtG(index), rhs.valueAtG(index), accuracy: accuracy, file: file, line: line)
-            XCTAssertEqual(lhs.valueAtB(index), rhs.valueAtB(index), accuracy: accuracy, file: file, line: line)
+            #expect(abs(lhs.valueAtR(index) - rhs.valueAtR(index)) < accuracy, sourceLocation: sourceLocation)
+            #expect(abs(lhs.valueAtG(index) - rhs.valueAtG(index)) < accuracy, sourceLocation: sourceLocation)
+            #expect(abs(lhs.valueAtB(index) - rhs.valueAtB(index)) < accuracy, sourceLocation: sourceLocation)
         }
     }
 
     func loadAlexaCube(size: Int) throws -> LUT3D {
         let resourceName = "AlexaV3_K1S1_LogC2Video_Rec709_EE_\(size)"
-        let url = try XCTUnwrap(Bundle.module.url(
+        let url = try #require(Bundle.module.url(
             forResource: resourceName,
             withExtension: "cube",
             subdirectory: "Test LUTs"
@@ -130,7 +129,7 @@ private extension LUTAccuracyTests {
 
         let result = try LUTCubeFormatter.read(url: url)
         guard case let .lut3D(lut) = result else {
-            XCTFail("Expected 3D LUT in \(resourceName).cube")
+            Issue.record("Expected 3D LUT in \(resourceName).cube")
             throw FixtureError.invalidResource
         }
         return lut

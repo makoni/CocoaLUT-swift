@@ -15,10 +15,10 @@ struct LUTActionTests {
         let actionResult = action.apply(to: original)
         let expected = original.changingInputBounds(lower: -0.5, upper: 1.5)
 
-        XCTAssertEqual(actionResult.inputLowerBound, -0.5)
-        XCTAssertEqual(actionResult.inputUpperBound, 1.5)
-        XCTAssertTrue(actionResult.equals(expected, tolerance: 1e-9))
-        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "ChangeInputBounds")
+        #expect(actionResult.inputLowerBound == -0.5)
+        #expect(actionResult.inputUpperBound == 1.5)
+        #expect(actionResult.equals(expected, tolerance: 1e-9))
+        #expect(action.actionMetadata.value(for: "id") as? String == "ChangeInputBounds")
     }
 
     @Test
@@ -38,16 +38,16 @@ struct LUTActionTests {
 
         lut.loop { r, g, b in
             let color = actionResult.colorAt(r: r, g: g, b: b)
-            XCTAssertGreaterThanOrEqual(color.red, 0 - 1e-9)
-            XCTAssertLessThanOrEqual(color.red, 1 + 1e-9)
-            XCTAssertGreaterThanOrEqual(color.green, 0 - 1e-9)
-            XCTAssertLessThanOrEqual(color.green, 1 + 1e-9)
-            XCTAssertGreaterThanOrEqual(color.blue, 0 - 1e-9)
-            XCTAssertLessThanOrEqual(color.blue, 1 + 1e-9)
+            #expect(color.red >= 0 - 1e-9)
+            #expect(color.red <= 1 + 1e-9)
+            #expect(color.green >= 0 - 1e-9)
+            #expect(color.green <= 1 + 1e-9)
+            #expect(color.blue >= 0 - 1e-9)
+            #expect(color.blue <= 1 + 1e-9)
         }
 
-        XCTAssertTrue(actionResult.equals(expected, tolerance: 1e-9))
-        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "Clamp")
+        #expect(actionResult.equals(expected, tolerance: 1e-9))
+        #expect(action.actionMetadata.value(for: "id") as? String == "Clamp")
     }
 
     @Test
@@ -60,9 +60,9 @@ struct LUTActionTests {
         let actionResult = action.apply(to: lut)
         let expected = lut.resized(to: 5)
 
-        XCTAssertEqual(actionResult.size, 5)
-        XCTAssertTrue(actionResult.equals(expected, tolerance: 1e-9))
-        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "Resize")
+        #expect(actionResult.size == 5)
+        #expect(actionResult.equals(expected, tolerance: 1e-9))
+        #expect(action.actionMetadata.value(for: "id") as? String == "Resize")
     }
 
     @Test
@@ -74,9 +74,9 @@ struct LUTActionTests {
         let action = LUTAction.combine(with: other)
         let result = action.apply(to: base)
 
-        XCTAssertTrue(result.equals(base.combined(with: other), tolerance: 1e-9))
-        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "Combine")
-        XCTAssertEqual(result.metadata["tag"] as? String, "base")
+        #expect(result.equals(base.combined(with: other), tolerance: 1e-9))
+        #expect(action.actionMetadata.value(for: "id") as? String == "Combine")
+        #expect(result.metadata["tag"] as? String == "base")
     }
 
     @Test
@@ -88,9 +88,9 @@ struct LUTActionTests {
         let action = LUTAction.combineBehind(lut: other)
         let result = action.apply(to: base)
 
-        XCTAssertTrue(result.equals(other.combined(with: base), tolerance: 1e-9))
-        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "CombineBehind")
-        XCTAssertEqual(result.metadata["tag"] as? String, "base")
+        #expect(result.equals(other.combined(with: base), tolerance: 1e-9))
+        #expect(action.actionMetadata.value(for: "id") as? String == "CombineBehind")
+        #expect(result.metadata["tag"] as? String == "base")
     }
 
     @Test
@@ -105,10 +105,10 @@ struct LUTActionTests {
         let transformed = action.apply(to: lut)
         let color = transformed.colorAt(r: 1, g: 1, b: 1)
 
-        XCTAssertEqual(color.red, 0.6, accuracy: 1e-9)
-        XCTAssertEqual(color.green, 0.4, accuracy: 1e-9)
-        XCTAssertEqual(color.blue, 0.2, accuracy: 1e-9)
-        XCTAssertEqual(action.actionMetadata.value(for: "m02") as? Double, 1)
+        #expect(abs(color.red - 0.6) < 1e-9)
+        #expect(abs(color.green - 0.4) < 1e-9)
+        #expect(abs(color.blue - 0.2) < 1e-9)
+        #expect(action.actionMetadata.value(for: "m02") as? Double == 1)
     }
 
     @Test
@@ -118,10 +118,10 @@ struct LUTActionTests {
         let result = action.apply(to: lut)
 
         let color = result.colorAt(r: 1, g: 0, b: 0)
-        XCTAssertEqual(color.red, 1, accuracy: 1e-9)
-        XCTAssertEqual(color.green, -1, accuracy: 1e-9)
-        XCTAssertEqual(color.blue, -1, accuracy: 1e-9)
-        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "ScaleOutput")
+        #expect(abs(color.red - 1) < 1e-9)
+        #expect(abs(color.green - -1) < 1e-9)
+        #expect(abs(color.blue - -1) < 1e-9)
+        #expect(action.actionMetadata.value(for: "id") as? String == "ScaleOutput")
     }
 
     @Test
@@ -131,10 +131,10 @@ struct LUTActionTests {
         let result = action.apply(to: identityLUT())
 
         let color = result.colorAt(r: 0, g: 1, b: 1)
-        XCTAssertEqual(color.red, 0.05, accuracy: 1e-9)
-        XCTAssertEqual(color.green, 0.9, accuracy: 1e-9)
-        XCTAssertEqual(color.blue, 1.2, accuracy: 1e-9)
-        XCTAssertEqual(action.actionMetadata.value(for: "redOffset") as? Double, offsetColor.red)
+        #expect(abs(color.red - 0.05) < 1e-9)
+        #expect(abs(color.green - 0.9) < 1e-9)
+        #expect(abs(color.blue - 1.2) < 1e-9)
+        #expect(action.actionMetadata.value(for: "redOffset") as? Double == offsetColor.red)
     }
 
     @Test
@@ -144,17 +144,17 @@ struct LUTActionTests {
         firstInput.title = "First"
         firstInput.metadata["owner"] = "one"
         let firstResult = action.apply(to: firstInput)
-        XCTAssertEqual(firstResult.title, "First")
-        XCTAssertEqual(firstResult.metadata["owner"] as? String, "one")
+        #expect(firstResult.title == "First")
+        #expect(firstResult.metadata["owner"] as? String == "one")
 
         var secondInput = firstInput
         secondInput.title = "Second"
         secondInput.metadata["owner"] = "two"
         let secondResult = action.apply(to: secondInput)
-        XCTAssertEqual(secondResult.title, "Second")
-        XCTAssertEqual(secondResult.metadata["owner"] as? String, "two")
+        #expect(secondResult.title == "Second")
+        #expect(secondResult.metadata["owner"] as? String == "two")
 
-        XCTAssertEqual(firstResult.metadata["owner"] as? String, "one")
+        #expect(firstResult.metadata["owner"] as? String == "one")
     }
 
     @Test
@@ -319,7 +319,7 @@ struct LUTActionTests {
             let (manualReversed, manualPreResizeSamples, manualInterpolatedSamples) = manualReverseFull(base1DSource)
             let manualReverseFirstFiveValues = (0..<5).map { manualReversed.colorAt(index: $0).red }
 
-            XCTFail("Swizzle mismatch max distance \(maxDistance), returnedInput=\(returnedInput), reversible=\(reversible), colorShiftDelta=\(colorShiftDelta), swizzled1DDiff=\(oneDDifference), originalSample=\(originalSample), reversedSample=\(String(describing: reversedSample)), firstFive=\(firstFive), workingFirstFive=\(workingFirst), manualPreResizeSamples=\(manualPreResizeSamples), manualInterpolatedSamples=\(manualInterpolatedSamples), manualReverseFirstFive=\(manualReverseFirstFiveValues), reversedFirstFive=\(String(describing: reversedFive)), outputRange=(\(minOutput), \(maxOutput)), resultBounds=(\(result.inputLowerBound), \(result.inputUpperBound)), expectedBounds=(\(expected.inputLowerBound), \(expected.inputUpperBound)))\(sampleMessage)")
+            #expect(Bool(false), "Swizzle mismatch max distance \(maxDistance), returnedInput=\(returnedInput), reversible=\(reversible), colorShiftDelta=\(colorShiftDelta), swizzled1DDiff=\(oneDDifference), originalSample=\(originalSample), reversedSample=\(String(describing: reversedSample)), firstFive=\(firstFive), workingFirstFive=\(workingFirst), manualPreResizeSamples=\(manualPreResizeSamples), manualInterpolatedSamples=\(manualInterpolatedSamples), manualReverseFirstFive=\(manualReverseFirstFiveValues), reversedFirstFive=\(String(describing: reversedFive)), outputRange=(\(minOutput), \(maxOutput)), resultBounds=(\(result.inputLowerBound), \(result.inputUpperBound)), expectedBounds=(\(expected.inputLowerBound), \(expected.inputUpperBound)))\(sampleMessage)")
         }
     }
 
@@ -341,7 +341,7 @@ struct LUTActionTests {
         let action = LUTAction.swizzle(method: .averageRGB, strictness: true)
         let result = action.apply(to: lut)
 
-        XCTAssertTrue(result.equals(lut, tolerance: 1e-9))
+        #expect(result.equals(lut, tolerance: 1e-9))
     }
 
     @Test
@@ -353,11 +353,8 @@ struct LUTActionTests {
 
         let sourceColorSpace = LUTColorSpace.rec709
         let transfer = LUTColorTransferFunction.gammaTransferFunction(gamma: 2.2)
-        guard let sourceTemperature = LUTColorSpaceWhitePoint.fromColorTemperature(5600),
-              let destinationTemperature = LUTColorSpaceWhitePoint.fromColorTemperature(3200) else {
-            XCTFail("Failed to create white points")
-            return
-        }
+        let sourceTemperature = try #require(LUTColorSpaceWhitePoint.fromColorTemperature(5600))
+        let destinationTemperature = try #require(LUTColorSpaceWhitePoint.fromColorTemperature(3200))
 
         let action = LUTAction.convertColorTemperature(sourceColorSpace: sourceColorSpace,
                                                         sourceTransferFunction: transfer,
@@ -373,14 +370,14 @@ struct LUTActionTests {
                                                                     destinationColorTemperature: destinationTemperature)
         let expected = expected3D.asLUT()
 
-        XCTAssertTrue(result.equals(expected, tolerance: 1e-6))
-        XCTAssertEqual(result.title, base.title)
-        XCTAssertEqual(result.metadata["note"] as? String, "metadata")
+        #expect(result.equals(expected, tolerance: 1e-6))
+        #expect(result.title == base.title)
+        #expect(result.metadata["note"] as? String == "metadata")
 
-        XCTAssertEqual(action.actionMetadata.value(for: "id") as? String, "ConvertColorTemperature")
-        XCTAssertEqual(action.actionMetadata.value(for: "sourceColorSpace") as? String, sourceColorSpace.name)
-        XCTAssertEqual(action.actionMetadata.value(for: "sourceTransferFunction") as? String, transfer.name)
-        XCTAssertEqual(action.actionMetadata.value(for: "sourceColorTemperature") as? String, sourceTemperature.name)
-        XCTAssertEqual(action.actionMetadata.value(for: "destinationColorTemperature") as? String, destinationTemperature.name)
+        #expect(action.actionMetadata.value(for: "id") as? String == "ConvertColorTemperature")
+        #expect(action.actionMetadata.value(for: "sourceColorSpace") as? String == sourceColorSpace.name)
+        #expect(action.actionMetadata.value(for: "sourceTransferFunction") as? String == transfer.name)
+        #expect(action.actionMetadata.value(for: "sourceColorTemperature") as? String == sourceTemperature.name)
+        #expect(action.actionMetadata.value(for: "destinationColorTemperature") as? String == destinationTemperature.name)
     }
 }

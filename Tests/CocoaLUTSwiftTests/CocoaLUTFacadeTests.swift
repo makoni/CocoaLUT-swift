@@ -5,7 +5,7 @@ import Testing
 @Suite
 struct CocoaLUTFacadeTests {
     private func cubeURL() throws -> URL {
-        try XCTUnwrap(Bundle.module.url(
+        try #require(Bundle.module.url(
             forResource: "TestLinearToBMDFilm",
             withExtension: "cube",
             subdirectory: nil
@@ -106,10 +106,9 @@ struct CocoaLUTFacadeTests {
 
     private func assertDefaultOptionsIncludeLegacyAlias(_ descriptor: LUTFormatterDescriptor,
                                                         canonicalID: String,
-                                                        file: StaticString = #fileID,
-                                                        line: UInt = #line) {
+                                                        sourceLocation: SourceLocation = #_sourceLocation) {
         let legacyOptions = descriptor.defaultOptions?[legacyKey(for: canonicalID)] as? [String: Any]
-        XCTAssertNotNil(legacyOptions, "Expected default options to include legacy alias for \(canonicalID)", file: file, line: line)
+        #expect(legacyOptions != nil, "Expected default options to include legacy alias for \(canonicalID)", sourceLocation: sourceLocation)
     }
 
     private func temporaryFileURL(ext: String) -> URL {
@@ -143,144 +142,140 @@ struct CocoaLUTFacadeTests {
             let descriptor = try CocoaLUT.descriptor(for: identifier)
             let legacyIdentifier = legacyKey(for: identifier)
             let legacyDescriptor = try CocoaLUT.descriptor(for: legacyIdentifier)
-            XCTAssertEqual(legacyDescriptor.id, descriptor.id,
+            #expect(legacyDescriptor.id == descriptor.id,
                            "Legacy identifier \(legacyIdentifier) should resolve to \(identifier)")
         }
     }
 
     @Test
     func testConstantsMirrorHelperValues() {
-        XCTAssertEqual(CocoaLUT.suggestedMaxLUT1DSize, LUTConstants.suggestedMax1DSize)
-        XCTAssertEqual(CocoaLUT.suggestedMaxLUT3DSize, LUTConstants.suggestedMax3DSize)
-        XCTAssertEqual(CocoaLUT.maxCIColorCubeSize, LUTConstants.maxCIColorCubeSize)
-        XCTAssertEqual(CocoaLUT.maxVVLUT1DFilterSize, LUTConstants.maxVVLUT1DFilterSize)
+        #expect(CocoaLUT.suggestedMaxLUT1DSize == LUTConstants.suggestedMax1DSize)
+        #expect(CocoaLUT.suggestedMaxLUT3DSize == LUTConstants.suggestedMax3DSize)
+        #expect(CocoaLUT.maxCIColorCubeSize == LUTConstants.maxCIColorCubeSize)
+        #expect(CocoaLUT.maxVVLUT1DFilterSize == LUTConstants.maxVVLUT1DFilterSize)
     }
 
     @Test
     func testDescriptorLookupThrowsForUnknownIdentifier() {
-        XCTAssertThrowsError(try CocoaLUT.descriptor(for: "does-not-exist")) { error in
-            guard case CocoaLUT.Error.formatterNotFound(let identifier) = error else {
-                XCTFail("Expected formatterNotFound error, got \(error)")
-                return
-            }
-            XCTAssertEqual(identifier, "does-not-exist")
+        #expect(throws: CocoaLUT.Error.self) {
+            try CocoaLUT.descriptor(for: "does-not-exist")
         }
     }
 
     @Test
     func testDescriptorsForUnknownExtensionAreEmpty() {
-        XCTAssertTrue(CocoaLUT.descriptors(forFileExtension: "unknown").isEmpty)
+        #expect(CocoaLUT.descriptors(forFileExtension: "unknown").isEmpty)
     }
 
     @Test
     func testCubeDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: "cube")
-        XCTAssertEqual(descriptor.name, "Cube LUT")
-        XCTAssertEqual(descriptor.fileExtensions, ["cube"])
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
-        XCTAssertEqual(descriptor.output, .either)
-        XCTAssertEqual(descriptor.id, LUTCubeFormatter.formatterIdentifier)
-        XCTAssertTrue(descriptor.alternateIdentifiers.contains(LUTCubeFormatter.legacyFormatterIdentifier))
-        XCTAssertTrue(descriptor.alternateIdentifiers.contains("com.blackmagicdesign.cube"))
+        #expect(descriptor.name == "Cube LUT")
+        #expect(descriptor.fileExtensions == ["cube"])
+        #expect(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.output == .either)
+        #expect(descriptor.id == LUTCubeFormatter.formatterIdentifier)
+        #expect(descriptor.alternateIdentifiers.contains(LUTCubeFormatter.legacyFormatterIdentifier))
+        #expect(descriptor.alternateIdentifiers.contains("com.blackmagicdesign.cube"))
 
         let defaultOptions = descriptor.defaultOptions
-        XCTAssertNotNil(defaultOptions?[LUTCubeFormatter.formatterIdentifier] as? [String: Any])
-        XCTAssertNotNil(defaultOptions?[LUTCubeFormatter.legacyFormatterIdentifier] as? [String: Any])
+        #expect(defaultOptions?[LUTCubeFormatter.formatterIdentifier] as? [String: Any] != nil)
+        #expect(defaultOptions?[LUTCubeFormatter.legacyFormatterIdentifier] as? [String: Any] != nil)
     }
 
     @Test
     func testDescriptorsLookupByExtensionIncludesCube() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "CUBE")
-        XCTAssertEqual(descriptors.map { $0.id }, ["cube"])
+        #expect(descriptors.map { $0.id } == ["cube"])
     }
 
     @Test
     func testThreeDLDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatter3DL.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "Autodesk 3D LUT")
+        #expect(descriptor.name == "Autodesk 3D LUT")
         XCTAssertEqual(descriptor.fileExtensions, ["3dl"])
         XCTAssertTrue(descriptor.roles.contains([.read, .write]))
         XCTAssertEqual(descriptor.output, .lut3D)
 
         let defaultOptions = descriptor.defaultOptions?[LUTFormatter3DL.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(defaultOptions?["fileTypeVariant"] as? String, LUTFormatter3DL.Variant.nuke.rawValue)
-        XCTAssertEqual(integer(from: defaultOptions?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 16))
-        XCTAssertEqual(integer(from: defaultOptions?["lutSize"]), 32)
+        #expect(defaultOptions?["fileTypeVariant"] as? String == LUTFormatter3DL.Variant.nuke.rawValue)
+        #expect(integer(from: defaultOptions?["integerMaxOutput"]) == LUTMath.maxInteger(bitDepth: 16))
+        #expect(integer(from: defaultOptions?["lutSize"]) == 32)
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatter3DL.formatterIdentifier)
     }
 
     @Test
     func testDescriptorsLookupByExtensionIncludes3DL() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "3DL")
-        XCTAssertEqual(descriptors.map { $0.id }, [LUTFormatter3DL.formatterIdentifier])
+        #expect(descriptors.map { $0.id } == [LUTFormatter3DL.formatterIdentifier])
     }
 
     @Test
     func testILUTDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterILUT.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "Blackmagic Design 1D LUT")
-        XCTAssertEqual(descriptor.fileExtensions, ["ilut"])
-        XCTAssertEqual(descriptor.output, .lut1D)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == "Blackmagic Design 1D LUT")
+        #expect(descriptor.fileExtensions == ["ilut"])
+        #expect(descriptor.output == .lut1D)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let options = descriptor.defaultOptions?[LUTFormatterILUT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, "ILUT")
-        XCTAssertEqual(integer(from: options?["lutSize"]), 16384)
+        #expect(options?["fileTypeVariant"] as? String == "ILUT")
+        #expect(integer(from: options?["lutSize"]) == 16384)
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterILUT.formatterIdentifier)
     }
 
     @Test
     func testDescriptorsLookupByExtensionIncludesILUT() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "ILUT")
-        XCTAssertEqual(descriptors.map { $0.id }, [LUTFormatterILUT.formatterIdentifier])
+        #expect(descriptors.map { $0.id } == [LUTFormatterILUT.formatterIdentifier])
     }
 
     @Test
     func testOLUTDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterOLUT.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "Blackmagic Design 1D LUT")
-        XCTAssertEqual(descriptor.fileExtensions, ["olut"])
-        XCTAssertEqual(descriptor.output, .lut1D)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == "Blackmagic Design 1D LUT")
+        #expect(descriptor.fileExtensions == ["olut"])
+        #expect(descriptor.output == .lut1D)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let options = descriptor.defaultOptions?[LUTFormatterOLUT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, "OLUT")
-        XCTAssertEqual(integer(from: options?["lutSize"]), 4096)
+        #expect(options?["fileTypeVariant"] as? String == "OLUT")
+        #expect(integer(from: options?["lutSize"]) == 4096)
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterOLUT.formatterIdentifier)
     }
 
     @Test
     func testDescriptorsLookupByExtensionIncludesOLUT() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "OLUT")
-        XCTAssertEqual(descriptors.map { $0.id }, [LUTFormatterOLUT.formatterIdentifier])
+        #expect(descriptors.map { $0.id } == [LUTFormatterOLUT.formatterIdentifier])
     }
 
     @Test
     func testQuantelDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterQuantel.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "Quantel 3D LUT")
-        XCTAssertEqual(Set(descriptor.fileExtensions), ["txt"])
-        XCTAssertEqual(descriptor.output, .lut3D)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == "Quantel 3D LUT")
+        #expect(Set(descriptor.fileExtensions) == ["txt"])
+        #expect(descriptor.output == .lut3D)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let options = descriptor.defaultOptions?[LUTFormatterQuantel.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, "Quantel")
-        XCTAssertEqual(integer(from: options?["lutSize"]), 33)
-        XCTAssertEqual(integer(from: options?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 16))
+        #expect(options?["fileTypeVariant"] as? String == "Quantel")
+        #expect(integer(from: options?["lutSize"]) == 33)
+        #expect(integer(from: options?["integerMaxOutput"]) == LUTMath.maxInteger(bitDepth: 16))
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterQuantel.formatterIdentifier)
     }
 
     @Test
     func testFSIDATDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterFSIDAT.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "FSI DAT 3D LUT")
-        XCTAssertEqual(Set(descriptor.fileExtensions.map { $0.lowercased() }), ["dat"])
-        XCTAssertEqual(descriptor.output, .lut3D)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == "FSI DAT 3D LUT")
+        #expect(Set(descriptor.fileExtensions.map { $0.lowercased() }) == ["dat"])
+        #expect(descriptor.output == .lut3D)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let options = descriptor.defaultOptions?[LUTFormatterFSIDAT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, LUTFormatterFSIDAT.Variant.v1.rawValue)
-        XCTAssertEqual(integer(from: options?["lutSize"]), LUTFormatterFSIDAT.Variant.v1.lutSize)
+        #expect(options?["fileTypeVariant"] as? String == LUTFormatterFSIDAT.Variant.v1.rawValue)
+        #expect(integer(from: options?["lutSize"]) == LUTFormatterFSIDAT.Variant.v1.lutSize)
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterFSIDAT.formatterIdentifier)
     }
 
@@ -288,77 +283,77 @@ struct CocoaLUTFacadeTests {
     func testDescriptorsLookupByExtensionIncludesDATVariants() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "DAT")
         let identifiers = Set(descriptors.map { $0.id })
-        XCTAssertTrue(identifiers.contains(LUTFormatterFSIDAT.formatterIdentifier))
-        XCTAssertTrue(identifiers.contains(LUTFormatterResolveDAT.formatterIdentifier))
+        #expect(identifiers.contains(LUTFormatterFSIDAT.formatterIdentifier))
+        #expect(identifiers.contains(LUTFormatterResolveDAT.formatterIdentifier))
     }
 
     @Test
     func testClipsterDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterClipster.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "DVS Clipster 3D LUT")
-        XCTAssertEqual(Set(descriptor.fileExtensions.map { $0.lowercased() }), ["xml", "txt"])
-        XCTAssertEqual(descriptor.output, .lut3D)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == "DVS Clipster 3D LUT")
+        #expect(Set(descriptor.fileExtensions.map { $0.lowercased() }) == ["xml", "txt"])
+        #expect(descriptor.output == .lut3D)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let options = descriptor.defaultOptions?[LUTFormatterClipster.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, "Clipster")
-        XCTAssertEqual(integer(from: options?["lutSize"]), 17)
-        XCTAssertEqual(integer(from: options?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 16))
+        #expect(options?["fileTypeVariant"] as? String == "Clipster")
+        #expect(integer(from: options?["lutSize"]) == 17)
+        #expect(integer(from: options?["integerMaxOutput"]) == LUTMath.maxInteger(bitDepth: 16))
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterClipster.formatterIdentifier)
     }
 
     @Test
     func testDiscreetDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterDiscreet1DLUT.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "Discreet 1D LUT")
-        XCTAssertEqual(Set(descriptor.fileExtensions.map { $0.lowercased() }), ["lut"])
-        XCTAssertEqual(descriptor.output, .lut1D)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == "Discreet 1D LUT")
+        #expect(Set(descriptor.fileExtensions.map { $0.lowercased() }) == ["lut"])
+        #expect(descriptor.output == .lut1D)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let options = descriptor.defaultOptions?[LUTFormatterDiscreet1DLUT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, "Discreet")
-        XCTAssertEqual(integer(from: options?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 12))
+        #expect(options?["fileTypeVariant"] as? String == "Discreet")
+        #expect(integer(from: options?["integerMaxOutput"]) == LUTMath.maxInteger(bitDepth: 12))
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterDiscreet1DLUT.formatterIdentifier)
     }
 
     @Test
     func testCMSDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterCMSTestPattern.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "CMS Test Pattern Image 3D LUT")
-        XCTAssertEqual(Set(descriptor.fileExtensions.map { $0.lowercased() }), ["tiff", "tif", "png"])
-        XCTAssertEqual(descriptor.output, .lut3D)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == "CMS Test Pattern Image 3D LUT")
+        #expect(Set(descriptor.fileExtensions.map { $0.lowercased() }) == ["tiff", "tif", "png"])
+        #expect(descriptor.output == .lut3D)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let options = descriptor.defaultOptions?[LUTFormatterCMSTestPattern.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, ImageBasedFormatterVariant.tiff.rawValue)
-        XCTAssertEqual(integer(from: options?["bitDepth"]), 8)
+        #expect(options?["fileTypeVariant"] as? String == ImageBasedFormatterVariant.tiff.rawValue)
+        #expect(integer(from: options?["bitDepth"]) == 8)
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterCMSTestPattern.formatterIdentifier)
     }
 
     @Test
     func testNucodaDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterNucodaCMS.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "Nucoda CMS LUT")
-        XCTAssertEqual(Set(descriptor.fileExtensions.map { $0.lowercased() }), ["cms"])
-        XCTAssertEqual(descriptor.output, .either)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == "Nucoda CMS LUT")
+        #expect(Set(descriptor.fileExtensions.map { $0.lowercased() }) == ["cms"])
+        #expect(descriptor.output == .either)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let options = descriptor.defaultOptions?[LUTFormatterNucodaCMS.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, LUTFormatterNucodaCMS.Variant.v3.rawValue)
+        #expect(options?["fileTypeVariant"] as? String == LUTFormatterNucodaCMS.Variant.v3.rawValue)
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterNucodaCMS.formatterIdentifier)
     }
 
     @Test
     func testArriLookDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterArriLook.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "Arri Look")
-        XCTAssertEqual(Set(descriptor.fileExtensions.map { $0.lowercased() }), ["xml"])
-        XCTAssertEqual(descriptor.output, .either)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == "Arri Look")
+        #expect(Set(descriptor.fileExtensions.map { $0.lowercased() }) == ["xml"])
+        #expect(descriptor.output == .either)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let options = descriptor.defaultOptions?[LUTFormatterArriLook.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, "Arri")
-        XCTAssertEqual(integer(from: options?["lutSize"]), 4096)
+        #expect(options?["fileTypeVariant"] as? String == "Arri")
+        #expect(integer(from: options?["lutSize"]) == 4096)
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterArriLook.formatterIdentifier)
     }
 
@@ -366,65 +361,65 @@ struct CocoaLUTFacadeTests {
     func testDescriptorsLookupByExtensionIncludesXMLFormatters() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "xml")
         let identifiers = Set(descriptors.map { $0.id })
-        XCTAssertTrue(identifiers.contains(LUTFormatterClipster.formatterIdentifier))
-        XCTAssertTrue(identifiers.contains(LUTFormatterArriLook.formatterIdentifier))
+        #expect(identifiers.contains(LUTFormatterClipster.formatterIdentifier))
+        #expect(identifiers.contains(LUTFormatterArriLook.formatterIdentifier))
     }
 
     @Test
     func testDescriptorsLookupByExtensionIncludesQuantel() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "TXT")
-        XCTAssertTrue(descriptors.contains { $0.id == LUTFormatterQuantel.formatterIdentifier })
+        #expect(descriptors.contains { $0.id == LUTFormatterQuantel.formatterIdentifier })
     }
 
     @Test
     func testResolveDATDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterResolveDAT.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "Resolve DAT 3D LUT")
-        XCTAssertEqual(descriptor.fileExtensions, ["dat"])
-        XCTAssertEqual(descriptor.output, .lut3D)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == "Resolve DAT 3D LUT")
+        #expect(descriptor.fileExtensions == ["dat"])
+        #expect(descriptor.output == .lut3D)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let options = descriptor.defaultOptions?[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, "Resolve")
+        #expect(options?["fileTypeVariant"] as? String == "Resolve")
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterResolveDAT.formatterIdentifier)
     }
 
     @Test
     func testDescriptorsLookupByExtensionIncludesResolveDAT() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "DAT")
-        XCTAssertTrue(descriptors.contains { $0.id == LUTFormatterResolveDAT.formatterIdentifier })
+        #expect(descriptors.contains { $0.id == LUTFormatterResolveDAT.formatterIdentifier })
     }
 
     @Test
     func testDaVinciDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterDaVinciDAVLUT.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, LUTFormatterDaVinciDAVLUT.formatterName())
-        XCTAssertEqual(descriptor.fileExtensions, LUTFormatterDaVinciDAVLUT.fileExtensions())
-        XCTAssertEqual(descriptor.output, .lut3D)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == LUTFormatterDaVinciDAVLUT.formatterName())
+        #expect(descriptor.fileExtensions == LUTFormatterDaVinciDAVLUT.fileExtensions())
+        #expect(descriptor.output == .lut3D)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let resolveOptions = descriptor.defaultOptions?[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(resolveOptions?["fileTypeVariant"] as? String, "DaVinci")
+        #expect(resolveOptions?["fileTypeVariant"] as? String == "DaVinci")
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterDaVinciDAVLUT.formatterIdentifier)
     }
 
     @Test
     func testDescriptorsLookupByExtensionIncludesDaVinci() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "DAVLUT")
-        XCTAssertTrue(descriptors.contains { $0.id == LUTFormatterDaVinciDAVLUT.formatterIdentifier })
+        #expect(descriptors.contains { $0.id == LUTFormatterDaVinciDAVLUT.formatterIdentifier })
     }
 
     @Test
     func testMatchLightDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterMatchLight.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "LightIllusion MatchLight 3D LUT")
-        XCTAssertEqual(descriptor.fileExtensions, ["mlc"])
-        XCTAssertEqual(descriptor.output, .lut3D)
-        XCTAssertTrue(descriptor.roles.contains(.read))
-        XCTAssertFalse(descriptor.roles.contains(.write))
+        #expect(descriptor.name == "LightIllusion MatchLight 3D LUT")
+        #expect(descriptor.fileExtensions == ["mlc"])
+        #expect(descriptor.output == .lut3D)
+        #expect(descriptor.roles.contains(.read))
+        #expect(!descriptor.roles.contains(.write))
 
         let options = descriptor.defaultOptions?[LUTFormatterMatchLight.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, "MatchLight")
+        #expect(options?["fileTypeVariant"] as? String == "MatchLight")
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterMatchLight.formatterIdentifier)
     }
     
@@ -432,68 +427,68 @@ struct CocoaLUTFacadeTests {
     
     func testMatchLightAliasLookupResolvesDescriptor() throws {
         let camelCase = try CocoaLUT.descriptor(for: "MatchLight")
-        XCTAssertEqual(camelCase.id, LUTFormatterMatchLight.formatterIdentifier)
+        #expect(camelCase.id == LUTFormatterMatchLight.formatterIdentifier)
 
         let lowercase = try CocoaLUT.descriptor(for: "matchlight")
-        XCTAssertEqual(lowercase.id, LUTFormatterMatchLight.formatterIdentifier)
+        #expect(lowercase.id == LUTFormatterMatchLight.formatterIdentifier)
     }
 
     @Test
     func testDescriptorsLookupByExtensionIncludesMatchLight() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "MLC")
-        XCTAssertTrue(descriptors.contains { $0.id == LUTFormatterMatchLight.formatterIdentifier })
+        #expect(descriptors.contains { $0.id == LUTFormatterMatchLight.formatterIdentifier })
     }
 
     @Test
     func testHaldDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterHaldCLUT.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "Hald CLUT")
-        XCTAssertEqual(descriptor.fileExtensions, ["tiff", "tif"])
-        XCTAssertEqual(descriptor.output, .lut3D)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == "Hald CLUT")
+        #expect(descriptor.fileExtensions == ["tiff", "tif"])
+        #expect(descriptor.output == .lut3D)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let options = descriptor.defaultOptions?[LUTFormatterHaldCLUT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, ImageBasedFormatterVariant.tiff.rawValue)
-        XCTAssertEqual(integer(from: options?["bitDepth"]), 16)
-        XCTAssertEqual(integer(from: options?["lutSize"]), 36)
+        #expect(options?["fileTypeVariant"] as? String == ImageBasedFormatterVariant.tiff.rawValue)
+        #expect(integer(from: options?["bitDepth"]) == 16)
+        #expect(integer(from: options?["lutSize"]) == 36)
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterHaldCLUT.formatterIdentifier)
     }
 
     @Test
     func testDescriptorsLookupByExtensionIncludesHald() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "TIFF")
-        XCTAssertFalse(descriptors.isEmpty)
+        #expect(!descriptors.isEmpty)
         let identifiers = Set(descriptors.map { $0.id })
-        XCTAssertTrue(identifiers.contains(LUTFormatterHaldCLUT.formatterIdentifier))
+        #expect(identifiers.contains(LUTFormatterHaldCLUT.formatterIdentifier))
     }
 
     @Test
     func testUnwrappedDescriptorIsRegistered() throws {
         let descriptor = try CocoaLUT.descriptor(for: LUTFormatterUnwrappedTexture.formatterIdentifier)
-        XCTAssertEqual(descriptor.name, "Unwrapped Cube Image 3D LUT")
-        XCTAssertEqual(descriptor.fileExtensions, ["png", "tiff", "tif"])
-        XCTAssertEqual(descriptor.output, .lut3D)
-        XCTAssertTrue(descriptor.roles.contains([.read, .write]))
+        #expect(descriptor.name == "Unwrapped Cube Image 3D LUT")
+        #expect(descriptor.fileExtensions == ["png", "tiff", "tif"])
+        #expect(descriptor.output == .lut3D)
+        #expect(descriptor.roles.contains([.read, .write]))
 
         let options = descriptor.defaultOptions?[LUTFormatterUnwrappedTexture.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(integer(from: options?["bitDepth"]), 8)
-        XCTAssertEqual(options?["fileTypeVariant"] as? String, ImageBasedFormatterVariant.tiff.rawValue)
+        #expect(integer(from: options?["bitDepth"]) == 8)
+        #expect(options?["fileTypeVariant"] as? String == ImageBasedFormatterVariant.tiff.rawValue)
         assertDefaultOptionsIncludeLegacyAlias(descriptor, canonicalID: LUTFormatterUnwrappedTexture.formatterIdentifier)
     }
 
     @Test
     func testDescriptorsLookupByExtensionIncludesUnwrapped() {
         let descriptors = CocoaLUT.descriptors(forFileExtension: "PNG")
-        XCTAssertFalse(descriptors.isEmpty)
+        #expect(!descriptors.isEmpty)
         let identifiers = Set(descriptors.map { $0.id })
-        XCTAssertTrue(identifiers.contains(LUTFormatterUnwrappedTexture.formatterIdentifier))
+        #expect(identifiers.contains(LUTFormatterUnwrappedTexture.formatterIdentifier))
     }
 
     @Test
     func testReadCubeByIdentifier() throws {
         let payload = try CocoaLUT.read(from: cubeURL(), formatterIdentifier: "cube")
         guard case .lut1D(let lut) = payload else {
-            XCTFail("Expected LUT1D payload from cube file")
+            Issue.record("Expected LUT1D payload from cube file")
             return
         }
 
@@ -502,18 +497,18 @@ struct CocoaLUTFacadeTests {
         let legacyOptions = lut.passthroughFileOptions[legacyKey(for: canonicalKey)] as? [String: Any]
         let blackmagicOptions = lut.passthroughFileOptions["com.blackmagicdesign.cube"] as? [String: Any]
 
-        XCTAssertNotNil(formatterOptions)
-        XCTAssertNotNil(legacyOptions)
-        XCTAssertNotNil(blackmagicOptions)
-        XCTAssertEqual(formatterOptions?["fileTypeVariant"] as? String, legacyOptions?["fileTypeVariant"] as? String)
-        XCTAssertEqual(formatterOptions?["fileTypeVariant"] as? String, blackmagicOptions?["fileTypeVariant"] as? String)
+        #expect(formatterOptions != nil)
+        #expect(legacyOptions != nil)
+        #expect(blackmagicOptions != nil)
+        #expect(formatterOptions?["fileTypeVariant"] as? String == legacyOptions?["fileTypeVariant"] as? String)
+        #expect(formatterOptions?["fileTypeVariant"] as? String == blackmagicOptions?["fileTypeVariant"] as? String)
     }
 
     @Test
     func testReadCubeFallsBackToExtensionMatching() throws {
         let payload = try CocoaLUT.read(from: cubeURL())
         guard case .lut1D = payload else {
-            XCTFail("Expected LUT1D payload from cube file")
+            Issue.record("Expected LUT1D payload from cube file")
             return
         }
     }
@@ -528,16 +523,16 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterILUT.formatterIdentifier)
         guard case .lut1D(let lut) = payload else {
-            XCTFail("Expected LUT1D payload from ILUT file")
+            Issue.record("Expected LUT1D payload from ILUT file")
             return
         }
 
-        XCTAssertEqual(lut.size, 3)
-        XCTAssertEqual(lut.valueAtR(1), 8192.0 / 16383.0, accuracy: 1e-9)
+        #expect(lut.size == 3)
+        #expect(abs(lut.valueAtR(1) - (8192.0 / 16383.0)) < 1e-9)
         let passthrough = lut.passthroughFileOptions[LUTFormatterILUT.formatterIdentifier] as? [String: Any]
-        XCTAssertNotNil(passthrough)
+        #expect(passthrough != nil)
     let legacyOptions = lut.passthroughFileOptions[legacyKey(for: LUTFormatterILUT.formatterIdentifier)] as? [String: Any]
-    XCTAssertNotNil(legacyOptions)
+    #expect(legacyOptions != nil)
     }
 
     @Test
@@ -550,12 +545,12 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL)
         guard case .lut1D(let lut) = payload else {
-            XCTFail("Expected LUT1D payload from ILUT extension lookup")
+            Issue.record("Expected LUT1D payload from ILUT extension lookup")
             return
         }
 
-        XCTAssertEqual(lut.size, 3)
-        XCTAssertEqual(lut.valueAtB(2), 8192.0 / 16383.0, accuracy: 1e-9)
+        #expect(lut.size == 3)
+        #expect(abs(lut.valueAtB(2) - (8192.0 / 16383.0)) < 1e-9)
     }
 
     @Test
@@ -568,18 +563,18 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterOLUT.formatterIdentifier)
         guard case .lut1D(let lut) = payload else {
-            XCTFail("Expected LUT1D payload from OLUT file")
+            Issue.record("Expected LUT1D payload from OLUT file")
             return
         }
 
-        XCTAssertEqual(lut.size, 3)
-        XCTAssertEqual(lut.valueAtR(1), 2048.0 / 4095.0, accuracy: 1e-9)
-        XCTAssertEqual(lut.valueAtG(1), 1024.0 / 4095.0, accuracy: 1e-9)
-        XCTAssertEqual(lut.valueAtB(0), 0, accuracy: 1e-9)
+        #expect(lut.size == 3)
+        #expect(abs(lut.valueAtR(1) - (2048.0 / 4095.0)) < 1e-9)
+        #expect(abs(lut.valueAtG(1) - (1024.0 / 4095.0)) < 1e-9)
+        #expect(abs(lut.valueAtB(0) - 0) < 1e-9)
         let passthrough = lut.passthroughFileOptions[LUTFormatterOLUT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(integer(from: passthrough?["lutSize"]), 3)
+        #expect(integer(from: passthrough?["lutSize"]) == 3)
     let legacyOptions = lut.passthroughFileOptions[legacyKey(for: LUTFormatterOLUT.formatterIdentifier)] as? [String: Any]
-    XCTAssertNotNil(legacyOptions)
+    #expect(legacyOptions != nil)
     }
 
     @Test
@@ -592,12 +587,12 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL)
         guard case .lut1D(let lut) = payload else {
-            XCTFail("Expected LUT1D payload from OLUT extension lookup")
+            Issue.record("Expected LUT1D payload from OLUT extension lookup")
             return
         }
 
-        XCTAssertEqual(lut.size, 3)
-        XCTAssertEqual(lut.valueAtB(2), 1, accuracy: 1e-9)
+        #expect(lut.size == 3)
+        #expect(abs(lut.valueAtB(2) - 1) < 1e-9)
     }
 
     @Test
@@ -610,17 +605,17 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterQuantel.formatterIdentifier)
         guard case .lut3D(let lut) = payload else {
-            XCTFail("Expected LUT3D payload from Quantel file")
+            Issue.record("Expected LUT3D payload from Quantel file")
             return
         }
 
-        XCTAssertEqual(lut.size, 2)
-        XCTAssertEqual(lut.colorAt(r: 1, g: 1, b: 1).red, 1, accuracy: 1e-6)
+        #expect(lut.size == 2)
+        #expect(abs(lut.colorAt(r: 1, g: 1, b: 1).red - 1) < 1e-6)
         let passthrough = lut.passthroughFileOptions[LUTFormatterQuantel.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(integer(from: passthrough?["lutSize"]), 2)
-        XCTAssertEqual(integer(from: passthrough?["integerMaxOutput"]), 1023)
+        #expect(integer(from: passthrough?["lutSize"]) == 2)
+        #expect(integer(from: passthrough?["integerMaxOutput"]) == 1023)
     let legacyOptions = lut.passthroughFileOptions[legacyKey(for: LUTFormatterQuantel.formatterIdentifier)] as? [String: Any]
-    XCTAssertNotNil(legacyOptions)
+    #expect(legacyOptions != nil)
     }
 
     @Test
@@ -633,12 +628,12 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL)
         guard case .lut3D(let lut) = payload else {
-            XCTFail("Expected LUT3D payload from Quantel extension lookup")
+            Issue.record("Expected LUT3D payload from Quantel extension lookup")
             return
         }
 
-        XCTAssertEqual(lut.size, 2)
-        XCTAssertEqual(lut.colorAt(r: 0, g: 0, b: 1).blue, 1023.0 / 1023.0, accuracy: 1e-9)
+        #expect(lut.size == 2)
+        #expect(abs(lut.colorAt(r: 0, g: 0, b: 1).blue - (1023.0 / 1023.0)) < 1e-9)
     }
 
     @Test
@@ -651,14 +646,15 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterResolveDAT.formatterIdentifier)
         guard case .lut3D(let lut) = payload else {
-            return XCTFail("Expected LUT3D payload from Resolve DAT file")
+            Issue.record("Expected LUT3D payload from Resolve DAT file")
+            return
         }
 
-        XCTAssertEqual(lut.size, 2)
+        #expect(lut.size == 2)
         let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Resolve")
+        #expect(passthrough?["fileTypeVariant"] as? String == "Resolve")
         let legacyOptions = lut.passthroughFileOptions[legacyKey(for: LUTFormatterResolveDAT.formatterIdentifier)] as? [String: Any]
-        XCTAssertNotNil(legacyOptions)
+        #expect(legacyOptions != nil)
     }
 
     @Test
@@ -671,10 +667,11 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL)
         guard case .lut3D(let lut) = payload else {
-            return XCTFail("Expected LUT3D payload from Resolve DAT extension lookup")
+            Issue.record("Expected LUT3D payload from Resolve DAT extension lookup")
+            return
         }
 
-        XCTAssertEqual(lut.size, 2)
+        #expect(lut.size == 2)
     }
 
     @Test
@@ -687,16 +684,17 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterDaVinciDAVLUT.formatterIdentifier)
         guard case .lut3D(let lut) = payload else {
-            return XCTFail("Expected LUT3D payload from DaVinci DAVLUT file")
+            Issue.record("Expected LUT3D payload from DaVinci DAVLUT file")
+            return
         }
 
         let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "DaVinci")
+        #expect(passthrough?["fileTypeVariant"] as? String == "DaVinci")
         let canonicalKey = LUTFormatterDaVinciDAVLUT.formatterIdentifier
         let canonicalOptions = lut.passthroughFileOptions[canonicalKey] as? [String: Any]
-        XCTAssertNotNil(canonicalOptions)
+        #expect(canonicalOptions != nil)
         let legacyOptions = lut.passthroughFileOptions[legacyKey(for: canonicalKey)] as? [String: Any]
-        XCTAssertNotNil(legacyOptions)
+        #expect(legacyOptions != nil)
     }
 
     @Test
@@ -709,10 +707,11 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL)
         guard case .lut3D(let lut) = payload else {
-            return XCTFail("Expected LUT3D payload from DaVinci extension lookup")
+            Issue.record("Expected LUT3D payload from DaVinci extension lookup")
+            return
         }
 
-        XCTAssertEqual(lut.size, 2)
+        #expect(lut.size == 2)
     }
 
     @Test
@@ -725,17 +724,18 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterMatchLight.formatterIdentifier)
         guard case .lut3D(let lut) = payload else {
-            return XCTFail("Expected LUT3D payload from MatchLight file")
+            Issue.record("Expected LUT3D payload from MatchLight file")
+            return
         }
 
-        XCTAssertEqual(lut.size, 2)
-        XCTAssertEqual(lut.colorAt(r: 1, g: 1, b: 1).red, 1, accuracy: 1e-9)
+        #expect(lut.size == 2)
+        #expect(abs(lut.colorAt(r: 1, g: 1, b: 1).red - 1) < 1e-9)
         let passthrough = lut.passthroughFileOptions[LUTFormatterMatchLight.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "MatchLight")
-        XCTAssertEqual(integer(from: passthrough?["lut1DSize"]), 3)
-        XCTAssertEqual(integer(from: passthrough?["lut3DSize"]), 2)
+        #expect(passthrough?["fileTypeVariant"] as? String == "MatchLight")
+        #expect(integer(from: passthrough?["lut1DSize"]) == 3)
+        #expect(integer(from: passthrough?["lut3DSize"]) == 2)
         let legacyOptions = lut.passthroughFileOptions[legacyKey(for: LUTFormatterMatchLight.formatterIdentifier)] as? [String: Any]
-        XCTAssertNotNil(legacyOptions)
+        #expect(legacyOptions != nil)
     }
 
     @Test
@@ -748,18 +748,19 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL)
         guard case .lut3D(let lut) = payload else {
-            return XCTFail("Expected LUT3D payload from MatchLight extension lookup")
+            Issue.record("Expected LUT3D payload from MatchLight extension lookup")
+            return
         }
 
-        XCTAssertEqual(lut.size, 2)
-        XCTAssertEqual(lut.colorAt(r: 0, g: 0, b: 1).blue, 1, accuracy: 1e-9)
+        #expect(lut.size == 2)
+        #expect(abs(lut.colorAt(r: 0, g: 0, b: 1).blue - 1) < 1e-9)
     }
 
     @Test
     func testWriteCubeRoundTrip() throws {
         let originalPayload = try CocoaLUT.read(from: cubeURL())
         guard case .lut1D(let lut) = originalPayload else {
-            XCTFail("Expected LUT1D payload from cube file")
+            Issue.record("Expected LUT1D payload from cube file")
             return
         }
 
@@ -772,15 +773,15 @@ struct CocoaLUTFacadeTests {
 
         let roundTripped = try CocoaLUT.read(from: tempURL, formatterIdentifier: "cube")
         guard case .lut1D(let roundTripLUT) = roundTripped else {
-            XCTFail("Expected LUT1D payload from round-tripped file")
+            Issue.record("Expected LUT1D payload from round-tripped file")
             return
         }
 
-        XCTAssertEqual(roundTripLUT.size, lut.size)
-        XCTAssertEqual(roundTripLUT.inputLowerBound, lut.inputLowerBound, accuracy: 1e-9)
-        XCTAssertEqual(roundTripLUT.inputUpperBound, lut.inputUpperBound, accuracy: 1e-9)
-        XCTAssertEqual(roundTripLUT.valueAtR(0), lut.valueAtR(0), accuracy: 1e-9)
-        XCTAssertEqual(roundTripLUT.valueAtR(lut.size - 1), lut.valueAtR(lut.size - 1), accuracy: 1e-9)
+        #expect(roundTripLUT.size == lut.size)
+        #expect(abs(roundTripLUT.inputLowerBound - lut.inputLowerBound) < 1e-9)
+        #expect(abs(roundTripLUT.inputUpperBound - lut.inputUpperBound) < 1e-9)
+        #expect(abs(roundTripLUT.valueAtR(0) - lut.valueAtR(0)) < 1e-9)
+        #expect(abs(roundTripLUT.valueAtR(lut.size - 1) - lut.valueAtR(lut.size - 1)) < 1e-9)
     }
 
     @Test
@@ -798,15 +799,15 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterILUT.formatterIdentifier)
         guard case .lut1D(let lut) = payload else {
-            XCTFail("Expected LUT1D payload from round-tripped ILUT file")
+            Issue.record("Expected LUT1D payload from round-tripped ILUT file")
             return
         }
 
-        XCTAssertEqual(lut.size, 16384)
-        XCTAssertEqual(lut.valueAtR(0), 0, accuracy: 1e-9)
-        XCTAssertEqual(lut.valueAtR(lut.size - 1), 1, accuracy: 1e-9)
+        #expect(lut.size == 16384)
+        #expect(abs(lut.valueAtR(0) - 0) < 1e-9)
+        #expect(abs(lut.valueAtR(lut.size - 1) - 1) < 1e-9)
         let passthrough = lut.passthroughFileOptions[LUTFormatterILUT.formatterIdentifier] as? [String: Any]
-        XCTAssertNotNil(passthrough)
+        #expect(passthrough != nil)
     }
 
     @Test
@@ -831,17 +832,17 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterOLUT.formatterIdentifier)
         guard case .lut1D(let lut) = payload else {
-            XCTFail("Expected LUT1D payload from round-tripped OLUT file")
+            Issue.record("Expected LUT1D payload from round-tripped OLUT file")
             return
         }
 
-        XCTAssertEqual(lut.size, original.size)
-        XCTAssertEqual(lut.valueAtR(0), original.valueAtR(0), accuracy: 1e-9)
+        #expect(lut.size == original.size)
+        #expect(abs(lut.valueAtR(0) - original.valueAtR(0)) < 1e-9)
         let quantizedTolerance = (1.0 / 4095.0) + 1e-6
-        XCTAssertEqual(lut.valueAtG(1), original.valueAtG(1), accuracy: quantizedTolerance)
-        XCTAssertEqual(lut.valueAtB(lut.size - 1), original.valueAtB(original.size - 1), accuracy: quantizedTolerance)
+        #expect(abs(lut.valueAtG(1) - original.valueAtG(1)) < quantizedTolerance)
+        #expect(abs(lut.valueAtB(lut.size - 1) - original.valueAtB(original.size - 1)) < quantizedTolerance)
         let passthrough = lut.passthroughFileOptions[LUTFormatterOLUT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(integer(from: passthrough?["lutSize"]), original.size)
+        #expect(integer(from: passthrough?["lutSize"]) == original.size)
     }
 
     @Test
@@ -866,15 +867,15 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterQuantel.formatterIdentifier)
         guard case .lut3D(let lut) = payload else {
-            XCTFail("Expected LUT3D payload from round-tripped Quantel file")
+            Issue.record("Expected LUT3D payload from round-tripped Quantel file")
             return
         }
 
-        XCTAssertEqual(lut.size, original.size)
-        XCTAssertTrue(lut.equals(original, tolerance: 1e-6))
+        #expect(lut.size == original.size)
+        #expect(lut.equals(original, tolerance: 1e-6))
         let passthrough = lut.passthroughFileOptions[LUTFormatterQuantel.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(integer(from: passthrough?["lutSize"]), original.size)
-        XCTAssertEqual(integer(from: passthrough?["integerMaxOutput"]), LUTMath.maxInteger(bitDepth: 10))
+        #expect(integer(from: passthrough?["lutSize"]) == original.size)
+        #expect(integer(from: passthrough?["integerMaxOutput"]) == LUTMath.maxInteger(bitDepth: 10))
     }
 
     @Test
@@ -895,17 +896,18 @@ struct CocoaLUTFacadeTests {
                            formatterIdentifier: LUTFormatterQuantel.formatterIdentifier,
                            options: options)
 
-        XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path))
+        #expect(FileManager.default.fileExists(atPath: fileURL.path))
 
         let readPayload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterQuantel.formatterIdentifier)
         guard case .lut3D(let readLUT) = readPayload else {
-            return XCTFail("Expected LUT3D payload from Quantel file written with legacy options")
+            Issue.record("Expected LUT3D payload from Quantel file written with legacy options")
+            return
         }
 
         let canonicalOptions = readLUT.passthroughFileOptions[LUTFormatterQuantel.formatterIdentifier] as? [String: Any]
         let legacyOptions = readLUT.passthroughFileOptions[legacy] as? [String: Any]
-        XCTAssertNotNil(canonicalOptions)
-        XCTAssertNotNil(legacyOptions)
+        #expect(canonicalOptions != nil)
+        #expect(legacyOptions != nil)
     }
 
     @Test
@@ -928,12 +930,13 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterResolveDAT.formatterIdentifier)
         guard case .lut3D(let lut) = payload else {
-            return XCTFail("Expected LUT3D payload from round-tripped Resolve DAT file")
+            Issue.record("Expected LUT3D payload from round-tripped Resolve DAT file")
+            return
         }
 
-    XCTAssertTrue(lut.equals(original, tolerance: 1e-6))
+        #expect(lut.equals(original, tolerance: 1e-6))
         let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Resolve")
+        #expect(passthrough?["fileTypeVariant"] as? String == "Resolve")
     }
 
     @Test
@@ -956,12 +959,13 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterDaVinciDAVLUT.formatterIdentifier)
         guard case .lut3D(let lut) = payload else {
-            return XCTFail("Expected LUT3D payload from round-tripped DaVinci file")
+            Issue.record("Expected LUT3D payload from round-tripped DaVinci file")
+            return
         }
 
-    XCTAssertTrue(lut.equals(original, tolerance: 1e-6))
+        #expect(lut.equals(original, tolerance: 1e-6))
         let passthrough = lut.passthroughFileOptions[LUTFormatterResolveDAT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "DaVinci")
+        #expect(passthrough?["fileTypeVariant"] as? String == "DaVinci")
     }
 
     @Test
@@ -974,13 +978,13 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatter3DL.formatterIdentifier)
         guard case .lut3D(let lut) = payload else {
-            XCTFail("Expected LUT3D payload from 3DL file")
+            Issue.record("Expected LUT3D payload from 3DL file")
             return
         }
 
-        XCTAssertEqual(lut.size, 2)
+        #expect(lut.size == 2)
         let passthrough = lut.passthroughFileOptions[LUTFormatter3DL.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, LUTFormatter3DL.Variant.nuke.rawValue)
+        #expect(passthrough?["fileTypeVariant"] as? String == LUTFormatter3DL.Variant.nuke.rawValue)
     }
 
     @Test
@@ -997,15 +1001,15 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterHaldCLUT.formatterIdentifier)
         guard case .lut3D(let decoded) = payload else {
-            XCTFail("Expected LUT3D payload from Hald CLUT file")
+            Issue.record("Expected LUT3D payload from Hald CLUT file")
             return
         }
 
         let quantizedTolerance = (1.0 / 255.0) + 1e-6
-        XCTAssertTrue(decoded.equals(lut, tolerance: quantizedTolerance))
+        #expect(decoded.equals(lut, tolerance: quantizedTolerance))
         let passthrough = decoded.passthroughFileOptions[LUTFormatterHaldCLUT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(integer(from: passthrough?["bitDepth"]), 8)
-        XCTAssertEqual(integer(from: passthrough?["lutSize"]), 9)
+        #expect(integer(from: passthrough?["bitDepth"]) == 8)
+        #expect(integer(from: passthrough?["lutSize"]) == 9)
     }
 
     @Test
@@ -1018,11 +1022,11 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL)
         guard case .lut3D(let lut) = payload else {
-            XCTFail("Expected LUT3D payload from extension-based read")
+            Issue.record("Expected LUT3D payload from extension-based read")
             return
         }
 
-        XCTAssertEqual(lut.size, 2)
+        #expect(lut.size == 2)
     }
 
     @Test
@@ -1039,17 +1043,17 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterUnwrappedTexture.formatterIdentifier)
         guard case .lut3D(let decoded) = payload else {
-            XCTFail("Expected LUT3D payload from unwrapped texture file")
+            Issue.record("Expected LUT3D payload from unwrapped texture file")
             return
         }
 
         let quantizedTolerance = (1.0 / 255.0) + 1e-6
-        XCTAssertTrue(decoded.equals(lut, tolerance: quantizedTolerance))
+        #expect(decoded.equals(lut, tolerance: quantizedTolerance))
 
         let passthrough = decoded.passthroughFileOptions[LUTFormatterUnwrappedTexture.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(integer(from: passthrough?["bitDepth"]), 8)
-        XCTAssertEqual(integer(from: passthrough?["lutSize"]), size)
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, ImageBasedFormatterVariant.tiff.rawValue)
+        #expect(integer(from: passthrough?["bitDepth"]) == 8)
+        #expect(integer(from: passthrough?["lutSize"]) == size)
+        #expect(passthrough?["fileTypeVariant"] as? String == ImageBasedFormatterVariant.tiff.rawValue)
     }
 
     @Test
@@ -1067,12 +1071,12 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterUnwrappedTexture.formatterIdentifier)
         guard case .lut3D(let decoded) = payload else {
-            XCTFail("Expected LUT3D payload from round-tripped unwrapped texture file")
+            Issue.record("Expected LUT3D payload from round-tripped unwrapped texture file")
             return
         }
 
         let quantizedTolerance = (1.0 / 255.0) + 1e-6
-        XCTAssertTrue(decoded.equals(original, tolerance: quantizedTolerance))
+        #expect(decoded.equals(original, tolerance: quantizedTolerance))
     }
 
     @Test
@@ -1088,14 +1092,14 @@ struct CocoaLUTFacadeTests {
 
         let roundTripped = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatter3DL.formatterIdentifier)
         guard case .lut3D(let lut) = roundTripped else {
-            XCTFail("Expected LUT3D payload from round-tripped 3DL file")
+            Issue.record("Expected LUT3D payload from round-tripped 3DL file")
             return
         }
 
-        XCTAssertEqual(lut.size, original.size)
-        XCTAssertEqual(lut.colorAt(r: 1, g: 0, b: 1).red, original.colorAt(r: 1, g: 0, b: 1).red, accuracy: 1e-9)
+        #expect(lut.size == original.size)
+        #expect(abs(lut.colorAt(r: 1, g: 0, b: 1).red - original.colorAt(r: 1, g: 0, b: 1).red) < 1e-9)
         let passthrough = lut.passthroughFileOptions[LUTFormatter3DL.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, LUTFormatter3DL.Variant.nuke.rawValue)
+        #expect(passthrough?["fileTypeVariant"] as? String == LUTFormatter3DL.Variant.nuke.rawValue)
     }
 
     @Test
@@ -1113,12 +1117,12 @@ struct CocoaLUTFacadeTests {
 
         let payload = try CocoaLUT.read(from: fileURL, formatterIdentifier: LUTFormatterHaldCLUT.formatterIdentifier)
         guard case .lut3D(let lut) = payload else {
-            XCTFail("Expected LUT3D payload from round-tripped Hald CLUT file")
+            Issue.record("Expected LUT3D payload from round-tripped Hald CLUT file")
             return
         }
 
         let quantizedTolerance = (1.0 / 255.0) + 1e-6
-        XCTAssertTrue(lut.equals(original, tolerance: quantizedTolerance))
+        #expect(lut.equals(original, tolerance: quantizedTolerance))
     }
 
     private func integer(from value: Any?) -> Int? {

@@ -29,15 +29,15 @@ struct LUTFormatterNucodaCMSTests {
 
         let result = try LUTFormatterNucodaCMS.read(string: sample)
         guard case .lut3D(let lut) = result else {
-            XCTFail("Expected a 3D LUT result")
+            Issue.record("Expected a 3D LUT result")
             return
         }
 
-        XCTAssertEqual(lut.size, 2)
-        XCTAssertEqual(lut.colorAt(r: 1, g: 1, b: 1).red, 0.5, accuracy: 1e-6)
+        #expect(lut.size == 2)
+        #expect(abs(lut.colorAt(r: 1, g: 1, b: 1).red - 0.5) < 1e-6)
         let passthrough = lut.passthroughFileOptions["nucoda"] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Nucoda v3")
-        XCTAssertEqual(passthrough?["lutType"] as? String, "Pre-LUT and LUT")
+        #expect(passthrough?["fileTypeVariant"] as? String == "Nucoda v3")
+        #expect(passthrough?["lutType"] as? String == "Pre-LUT and LUT")
     }
 
     @Test
@@ -60,13 +60,13 @@ struct LUTFormatterNucodaCMSTests {
 
         let result = try LUTFormatterNucodaCMS.read(string: sample)
         guard case .lut3D(let lut) = result else {
-            XCTFail("Expected a 3D LUT result")
+            Issue.record("Expected a 3D LUT result")
             return
         }
 
-        XCTAssertEqual(lut.colorAt(r: 1, g: 1, b: 1).red, 1.0, accuracy: 1e-6)
+        #expect(abs(lut.colorAt(r: 1, g: 1, b: 1).red - 1.0) < 1e-6)
         let passthrough = lut.passthroughFileOptions["nucoda"] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Nucoda v1")
+        #expect(passthrough?["fileTypeVariant"] as? String == "Nucoda v1")
     }
 
     @Test
@@ -81,14 +81,14 @@ struct LUTFormatterNucodaCMSTests {
 
         let result = try LUTFormatterNucodaCMS.read(string: sample)
         guard case .lut1D(let lut) = result else {
-            XCTFail("Expected a 1D LUT result")
+            Issue.record("Expected a 1D LUT result")
             return
         }
 
-        XCTAssertEqual(lut.size, 2)
+        #expect(lut.size == 2)
         let passthrough = lut.passthroughFileOptions["nucoda"] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Nucoda v3")
-        XCTAssertEqual(passthrough?["lutType"] as? String, "No Pre-LUT")
+        #expect(passthrough?["fileTypeVariant"] as? String == "Nucoda v3")
+        #expect(passthrough?["lutType"] as? String == "No Pre-LUT")
     }
 
     @Test

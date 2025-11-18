@@ -22,10 +22,10 @@ struct LUTPreviewSceneTests {
         }
 
         let scene = LUTPreviewScene.scene(for: lut)
-        XCTAssertEqual(scene.dotGroup.childNodes.count, 27)
+        #expect(scene.dotGroup.childNodes.count == 27)
         scene.animationPercentage = 0.5
         for case let node as LUTPreviewScene.LUTColorNode in scene.dotGroup.childNodes {
-            XCTAssertEqual(node.animationPercentage, 0.5, accuracy: 1e-9)
+            #expect(abs(node.animationPercentage - 0.5) < 1e-9)
         }
     }
 
@@ -38,13 +38,13 @@ struct LUTPreviewSceneTests {
         modified.setColor(LUTColor.color(red: 0.2, green: 0.4, blue: 0.6), r: 1, g: 1, b: 1)
 
         let updatedScene = scene.sceneWithUpdated(lut: modified)
-        XCTAssertTrue(scene === updatedScene)
+        #expect(scene === updatedScene)
         let targetNode = updatedScene.dotGroup.childNodes.compactMap { $0 as? LUTPreviewScene.LUTColorNode }.first { node in
             node.r == 1 && node.g == 1 && node.b == 1
         }
-        XCTAssertNotNil(targetNode)
+        #expect(targetNode != nil)
         if let targetNode {
-            XCTAssertEqual(targetNode.transformedColor.red, 0.2, accuracy: 1e-6)
+            #expect(abs(targetNode.transformedColor.red - 0.2) < 1e-6)
         }
     }
 }

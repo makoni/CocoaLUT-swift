@@ -8,18 +8,18 @@ struct LUTFormatterOLUTTests {
         let payload = "0,2048,4095,0,2048,4095\n1024,3072,0,1024,3072,0\n"
         let lut = try LUTFormatterOLUT.read(string: payload)
 
-        XCTAssertEqual(lut.size, 2)
-        XCTAssertEqual(lut.valueAtR(0), 0)
-    XCTAssertEqual(lut.valueAtG(0), 2048.0 / 4095.0, accuracy: 1e-6)
-        XCTAssertEqual(lut.valueAtB(0), 1, accuracy: 1e-6)
+        #expect(lut.size == 2)
+        #expect(lut.valueAtR(0) == 0)
+        #expect(abs(lut.valueAtG(0) - (2048.0 / 4095.0)) < 1e-6)
+        #expect(abs(lut.valueAtB(0) - 1) < 1e-6)
 
-        XCTAssertEqual(lut.valueAtR(1), 1024.0 / 4095.0, accuracy: 1e-6)
-        XCTAssertEqual(lut.valueAtG(1), 3072.0 / 4095.0, accuracy: 1e-6)
-        XCTAssertEqual(lut.valueAtB(1), 0, accuracy: 1e-6)
+        #expect(abs(lut.valueAtR(1) - (1024.0 / 4095.0)) < 1e-6)
+        #expect(abs(lut.valueAtG(1) - (3072.0 / 4095.0)) < 1e-6)
+        #expect(abs(lut.valueAtB(1) - 0) < 1e-6)
 
         let passthrough = lut.passthroughFileOptions[LUTFormatterOLUT.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthrough?["lutSize"] as? Int, 2)
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "OLUT")
+        #expect(passthrough?["lutSize"] as? Int == 2)
+        #expect(passthrough?["fileTypeVariant"] as? String == "OLUT")
     }
 
     @Test
@@ -33,10 +33,10 @@ struct LUTFormatterOLUTTests {
 
         let output = try LUTFormatterOLUT.write(lut)
         let lines = output.components(separatedBy: "\n")
-        XCTAssertEqual(lines.count, 3)
-        XCTAssertEqual(lines[0], "0,0,4095,0,0,4095")
-        XCTAssertEqual(lines[1], "1023,2047,2047,1023,2047,2047")
-        XCTAssertEqual(lines[2], "2047,4095,0,2047,4095,0")
+        #expect(lines.count == 3)
+        #expect(lines[0] == "0,0,4095,0,0,4095")
+        #expect(lines[1] == "1023,2047,2047,1023,2047,2047")
+        #expect(lines[2] == "2047,4095,0,2047,4095,0")
     }
 
     @Test
@@ -49,8 +49,8 @@ struct LUTFormatterOLUTTests {
 
         let output = try LUTFormatterOLUT.write(lut, options: .init(lutSize: 4))
         let lines = output.components(separatedBy: "\n")
-        XCTAssertEqual(lines.count, 4)
-        XCTAssertEqual(lines.first, "0,0,0,0,0,0")
-        XCTAssertEqual(lines.last, "4095,4095,4095,4095,4095,4095")
+        #expect(lines.count == 4)
+        #expect(lines.first == "0,0,0,0,0,0")
+        #expect(lines.last == "4095,4095,4095,4095,4095,4095")
     }
 }

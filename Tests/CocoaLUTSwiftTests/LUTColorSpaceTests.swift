@@ -12,7 +12,7 @@ struct LUTColorSpaceTests {
                                                              destinationWhitePoint: .d65,
                                                              useBradfordMatrix: false)
         let identity = simd_double3x3(rows: [SIMD3(1, 0, 0), SIMD3(0, 1, 0), SIMD3(0, 0, 1)])
-        XCTAssertTrue(matrix.isApproximatelyEqual(to: identity, tolerance: 1e-9))
+        #expect(matrix.isApproximatelyEqual(to: identity, tolerance: 1e-9))
     }
 
     @Test
@@ -27,7 +27,7 @@ struct LUTColorSpaceTests {
                                                     destinationWhitePoint: .d65,
                                                     useBradfordMatrix: false)
 
-        XCTAssertTrue(transformed.equals(lut, tolerance: 1e-9))
+        #expect(transformed.equals(lut, tolerance: 1e-9))
     }
 
     @Test
@@ -50,9 +50,9 @@ struct LUTColorSpaceTests {
                                                   useBradfordMatrix: false)
 
         let convertedColor = converted.colorAt(r: 0, g: 0, b: 0)
-        XCTAssertEqual(convertedColor.red, 1.0, accuracy: 1e-9)
-        XCTAssertEqual(convertedColor.green, 1.0, accuracy: 1e-9)
-        XCTAssertEqual(convertedColor.blue, 1.0, accuracy: 1e-9)
+        #expect(abs(convertedColor.red - 1.0) < 1e-9)
+        #expect(abs(convertedColor.green - 1.0) < 1e-9)
+        #expect(abs(convertedColor.blue - 1.0) < 1e-9)
     }
 
     @Test
@@ -61,15 +61,15 @@ struct LUTColorSpaceTests {
                                              name: "Forced")
         let other = LUTColorSpace.rec709
 
-        XCTAssertThrowsError(
+        #expect {
             try LUTColorSpace.convert(.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1),
                                        from: forced,
                                        sourceWhitePoint: .d65,
                                        to: other,
                                        destinationWhitePoint: .d65,
                                        useBradfordMatrix: true)
-        ) { error in
-            XCTAssertEqual(error as? LUTColorSpace.Error, .bradfordMatrixUnsupportedForForcedNPM)
+        } throws: { error in
+            error as? LUTColorSpace.Error == .bradfordMatrixUnsupportedForForcedNPM
         }
     }
 
@@ -80,7 +80,7 @@ struct LUTColorSpaceTests {
 
         guard let sourceTemperature = LUTColorSpaceWhitePoint.fromColorTemperature(5600),
               let destinationTemperature = LUTColorSpaceWhitePoint.fromColorTemperature(3200) else {
-            XCTFail("Expected valid color temperatures")
+            Issue.record("Expected valid color temperatures")
             return
         }
 
@@ -106,7 +106,7 @@ struct LUTColorSpaceTests {
                                                                       sourceColorTemperature: sourceTemperature,
                                                                       destinationColorTemperature: destinationTemperature)
 
-        XCTAssertTrue(helperResult.equals(manualResult, tolerance: 1e-9))
+        #expect(helperResult.equals(manualResult, tolerance: 1e-9))
     }
 }
 

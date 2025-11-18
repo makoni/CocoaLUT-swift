@@ -4,27 +4,23 @@ import Testing
 @Suite
 struct LUTIdentityFixturesTests {
     @MainActor
-    @Test
-    func testLegacyIdentityFixturesDecodeToIdentity() throws {
-        for fixture in IdentityFixture.all {
-            try XCTContext.runActivity(named: fixture.displayName) { _ in
-                let payload = try FixtureLoader.payload(named: fixture.name,
-                                                         extension: fixture.fileExtension,
-                                                         subdirectory: IdentityFixture.subdirectory)
-                XCTAssertIdentity(payload, tolerance: fixture.tolerance)
-            }
-        }
+    @Test(arguments: IdentityFixture.all)
+    func testLegacyIdentityFixturesDecodeToIdentity(fixture: IdentityFixture) throws {
+        let payload = try FixtureLoader.payload(named: fixture.name,
+                                                 extension: fixture.fileExtension,
+                                                 subdirectory: IdentityFixture.subdirectory)
+        XCTAssertIdentity(payload, tolerance: fixture.tolerance)
     }
 }
 
-private struct IdentityFixture {
+struct IdentityFixture: CustomTestStringConvertible {
     static let subdirectory = "Test LUTs/identity"
 
     let name: String
     let fileExtension: String
     let tolerance: Double
 
-    var displayName: String { "\(name).\(fileExtension)" }
+    var testDescription: String { "\(name).\(fileExtension)" }
 
     init(_ name: String, _ fileExtension: String, tolerance: Double = 5e-4) {
         self.name = name

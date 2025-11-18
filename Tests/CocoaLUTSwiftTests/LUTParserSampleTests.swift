@@ -4,30 +4,26 @@ import Testing
 @Suite
 struct LUTParserSampleTests {
     @MainActor
-    @Test
-    func testSampleLUTsProduceExpectedSizes() throws {
-        for fixture in ParserFixture.all {
-            try XCTContext.runActivity(named: fixture.displayName) { _ in
-                let payload = try FixtureLoader.payload(named: fixture.name,
-                                                         extension: fixture.fileExtension,
-                                                         subdirectory: fixture.subdirectory)
-                guard case .lut3D(let lut) = payload else {
-                    XCTFail("Expected 3D LUT for \(fixture.displayName)")
-                    return
-                }
-                XCTAssertEqual(lut.size, fixture.expectedSize)
-            }
+    @Test(arguments: ParserFixture.all)
+    func testSampleLUTsProduceExpectedSizes(fixture: ParserFixture) throws {
+        let payload = try FixtureLoader.payload(named: fixture.name,
+                                                 extension: fixture.fileExtension,
+                                                 subdirectory: fixture.subdirectory)
+        guard case .lut3D(let lut) = payload else {
+            Issue.record("Expected 3D LUT for \(fixture.testDescription)")
+            return
         }
+        #expect(lut.size == fixture.expectedSize)
     }
 }
 
-private struct ParserFixture {
+struct ParserFixture: CustomTestStringConvertible {
     let name: String
     let fileExtension: String
     let subdirectory: String
     let expectedSize: Int
 
-    var displayName: String { "\(name).\(fileExtension)" }
+    var testDescription: String { "\(name).\(fileExtension)" }
 
     static let all: [ParserFixture] = [
         .cube("crosstalk", expectedSize: 17),

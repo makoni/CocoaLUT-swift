@@ -20,17 +20,17 @@ struct LUTPreviewImageGeneratorTests {
         }
 
         let generator = LUTPreviewImageGenerator(lut: lut)
-        let preview = try XCTUnwrap(generator.render(from: inputImage, targetSize: CGSize(width: 30, height: 30)))
-        XCTAssertEqual(preview.size.width, 30, accuracy: 0.5)
-        XCTAssertEqual(preview.size.height, 30, accuracy: 0.5)
+        let preview = try #require(generator.render(from: inputImage, targetSize: CGSize(width: 30, height: 30)))
+        #expect(abs(preview.size.width - 30) < 0.5)
+        #expect(abs(preview.size.height - 30) < 0.5)
 
-        let bitmap = try XCTUnwrap(preview.bitmapImageRep())
+        let bitmap = try #require(preview.bitmapImageRep())
         let lowerSample = bitmap.colorAt(x: 1, y: 1)
         let upperSample = bitmap.colorAt(x: bitmap.pixelsWide - 2, y: bitmap.pixelsHigh - 2)
-        XCTAssertNotNil(lowerSample)
-        XCTAssertNotNil(upperSample)
+        #expect(lowerSample != nil)
+        #expect(upperSample != nil)
         if let lower = lowerSample, let upper = upperSample {
-            XCTAssertNotEqual(lower, upper, "Masked region should differ from original content")
+            #expect(lower != upper, "Masked region should differ from original content")
         }
     }
 

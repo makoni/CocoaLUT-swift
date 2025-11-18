@@ -19,24 +19,24 @@ struct LUT1DGraphViewTests {
         view.lut = lut
         view.layoutSubtreeIfNeeded()
 
-        let representation = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+        let representation = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
         view.cacheDisplay(in: view.bounds, to: representation)
         let pngData = representation.representation(using: .png, properties: [:])
-        XCTAssertNotNil(pngData)
+        #expect(pngData != nil)
     }
 
     @Test
     func testRangeUpdatesWhenSettingLUT() {
         let view = LUT1DGraphView(frame: NSRect(x: 0, y: 0, width: 100, height: 100))
-        XCTAssertEqual(view.minimumOutputValue, 0)
-        XCTAssertEqual(view.maximumOutputValue, 1)
+        #expect(view.minimumOutputValue == 0)
+        #expect(view.maximumOutputValue == 1)
 
         var lut = LUT1D.uniformCurve(size: 4, inputLowerBound: -1, inputUpperBound: 2)
         lut.setColor(LUTColor.color(red: -0.5, green: 1.5, blue: 0.25), index: 0)
         view.lut = lut
 
-        XCTAssertLessThanOrEqual(view.minimumOutputValue, -0.5)
-        XCTAssertGreaterThanOrEqual(view.maximumOutputValue, 1.5)
+        #expect(view.minimumOutputValue <= -0.5)
+        #expect(view.maximumOutputValue >= 1.5)
     }
 }
 #endif

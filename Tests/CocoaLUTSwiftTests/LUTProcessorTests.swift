@@ -14,11 +14,11 @@ struct LUTProcessorTests {
         let lut = makeIdentityLUT()
         let processor = LUTProcessor.processor(for: lut, completionHandler: nil, cancelHandler: nil)
 
-        XCTAssertNotNil(processor.lut)
-        XCTAssertTrue(processor.lut?.equals(lut) ?? false)
-        XCTAssertEqual(processor.progress, 0)
-        XCTAssertFalse(processor.cancelled)
-        XCTAssertNil(processor.progressDescription)
+        #expect(processor.lut != nil)
+        #expect(processor.lut?.equals(lut) ?? false)
+        #expect(processor.progress == 0)
+        #expect(!processor.cancelled)
+        #expect(processor.progressDescription == nil)
     }
 
     @Test
@@ -27,9 +27,9 @@ struct LUTProcessorTests {
 
         processor.cancel()
 
-        XCTAssertTrue(processor.cancelled)
-        XCTAssertEqual(processor.progressDescription, "Canceling...")
-        XCTAssertEqual(processor.progress, 0)
+        #expect(processor.cancelled)
+        #expect(processor.progressDescription == "Canceling...")
+        #expect(processor.progress == 0)
     }
 
     @Test
@@ -41,11 +41,11 @@ struct LUTProcessorTests {
 
         processor.cancel()
 
-        XCTAssertTrue(processor.checkCancellation())
-        XCTAssertEqual(cancelCount, 1)
+        #expect(processor.checkCancellation())
+        #expect(cancelCount == 1)
 
-        XCTAssertTrue(processor.checkCancellation())
-        XCTAssertEqual(cancelCount, 1)
+        #expect(processor.checkCancellation())
+        #expect(cancelCount == 1)
     }
 
     @Test
@@ -59,8 +59,8 @@ struct LUTProcessorTests {
         processor.process()
         processor.completed(with: lut)
 
-        XCTAssertEqual(processor.progress, 1)
-        XCTAssertTrue(completionResult?.equals(lut) ?? false)
+        #expect(processor.progress == 1)
+        #expect(completionResult?.equals(lut) ?? false)
     }
 
     @Test
@@ -69,6 +69,6 @@ struct LUTProcessorTests {
 
         processor.setProgress(0.5, section: 2, of: 4)
 
-        XCTAssertEqual(processor.progress, 0.375, accuracy: 1e-6)
+        #expect(abs(processor.progress - 0.375) < 1e-6)
     }
 }
