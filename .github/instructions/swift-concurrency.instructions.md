@@ -1207,8 +1207,10 @@ func withTimeout<T>(
 }
 
 // Testing actor isolation
-final class ActorTests: XCTestCase {
-    func testActorIsolation() async throws {
+import Testing
+
+struct ActorTests {
+    @Test func actorIsolation() async throws {
         let actor = TestActor()
         
         // Verify isolation with multiple concurrent operations
@@ -1226,7 +1228,7 @@ final class ActorTests: XCTestCase {
             }
             
             // All results should be unique if properly isolated
-            XCTAssertEqual(results.count, 100)
+            #expect(results.count == 100)
         }
     }
 }

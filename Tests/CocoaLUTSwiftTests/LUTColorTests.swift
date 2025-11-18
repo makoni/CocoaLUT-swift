@@ -22,7 +22,7 @@ struct LUTColorTests {
         #expect(ones.blue == 1.0)
 
         let uniform = LUTColor.uniform(0.42)
-        let rgb = uniform.rgbArray() as! [Double]
+        let rgb = uniform.rgbArray()
         let expected = [0.42, 0.42, 0.42]
         for (val, exp) in zip(rgb, expected) {
             #expect(abs(val - exp) < 1e-12)
