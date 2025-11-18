@@ -29,10 +29,10 @@ struct LUTFormatterArriLookTests {
         """
 
         let lut = try LUTFormatterArriLook.read(string: xml)
-        XCTAssertEqual(lut.size, 33)
+        #expect(lut.size == 33)
         let passthrough = lut.passthroughFileOptions[LUTFormatterArriLook.formatterIdentifier] as? [String: Any]
-        XCTAssertEqual(passthrough?["fileTypeVariant"] as? String, "Arri")
-        XCTAssertEqual(passthrough?["lutSize"] as? Int, 4)
+        #expect(passthrough?["fileTypeVariant"] as? String == "Arri")
+        #expect(passthrough?["lutSize"] as? Int == 4)
 
         let sampleIndices = (r: 16, g: 8, b: 24)
         let resultColor = lut.colorAt(r: sampleIndices.r, g: sampleIndices.g, b: sampleIndices.b)
@@ -65,9 +65,9 @@ struct LUTFormatterArriLookTests {
                                                      blueOffset: -0.015,
                                                      bluePower: 1.1)
 
-        XCTAssertEqual(resultColor.red, expected.red, accuracy: 1e-6)
-        XCTAssertEqual(resultColor.green, expected.green, accuracy: 1e-6)
-        XCTAssertEqual(resultColor.blue, expected.blue, accuracy: 1e-6)
+        #expect(abs(resultColor.red - expected.red) <= 1e-6)
+        #expect(abs(resultColor.green - expected.green) <= 1e-6)
+        #expect(abs(resultColor.blue - expected.blue) <= 1e-6)
     }
 
     @Test
@@ -80,12 +80,12 @@ struct LUTFormatterArriLookTests {
                         inputUpperBound: 1)
 
         let output = try LUTFormatterArriLook.write(lut, options: .init(lutSize: 4))
-        XCTAssertTrue(output.contains("<ToneMapLut rows=\"4\" cols=\"1\">"))
+        #expect(output.contains("<ToneMapLut rows=\"4\" cols=\"1\">"))
         let lines = output.components(separatedBy: "\n")
-        XCTAssertTrue(lines.contains("\t0"))
-        XCTAssertTrue(lines.contains("\t1365"))
-    XCTAssertTrue(lines.contains("\t2730"))
-        XCTAssertTrue(lines.contains("\t4095"))
-        XCTAssertTrue(output.hasSuffix("</adicam>"))
+        #expect(lines.contains("\t0"))
+        #expect(lines.contains("\t1365"))
+        #expect(lines.contains("\t2730"))
+        #expect(lines.contains("\t4095"))
+        #expect(output.hasSuffix("</adicam>"))
     }
 }
