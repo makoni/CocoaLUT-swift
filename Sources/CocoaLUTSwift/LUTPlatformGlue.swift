@@ -144,27 +144,29 @@ extension LUT {
         guard let outputRep = NSBitmapImageRep(bitmapDataPlanes: nil,
                                                pixelsWide: width,
                                                pixelsHigh: height,
-                                               bitsPerSample: inputRep.bitsPerSample,
-                                               samplesPerPixel: inputRep.samplesPerPixel,
-                                               hasAlpha: inputRep.hasAlpha,
+                                               bitsPerSample: 16,
+                                               samplesPerPixel: 4,
+                                               hasAlpha: true,
                                                isPlanar: false,
-                                               colorSpaceName: NSColorSpaceName.calibratedRGB,
+                                               colorSpaceName: .deviceRGB,
                                                bytesPerRow: 0,
                                                bitsPerPixel: 0) else {
             return nil
         }
 
+        outputRep.size = NSSize(width: width, height: height)
+
         for x in 0..<width {
             for y in 0..<height {
-                guard let systemColor = inputRep.colorAt(x: x, y: y)?.usingColorSpace(NSColorSpace.genericRGB) else { continue }
-                let lutColor = LUTColor.color(red: Double(systemColor.redComponent),
-                                              green: Double(systemColor.greenComponent),
-                                              blue: Double(systemColor.blueComponent))
+                guard let rawColor = inputRep.colorAt(x: x, y: y),
+                      let deviceColor = rawColor.usingColorSpace(NSColorSpace.deviceRGB) else {
+                    continue
+                }
+
+                let lutColor = LUTColor.from(systemColor: deviceColor)
                 let transformed = self.color(at: lutColor).clamped01()
-                let outputColor = NSColor(calibratedRed: CGFloat(transformed.red),
-                                          green: CGFloat(transformed.green),
-                                          blue: CGFloat(transformed.blue),
-                                          alpha: systemColor.alphaComponent)
+                var outputColor = transformed.systemColor
+                outputColor = outputColor.withAlphaComponent(deviceColor.alphaComponent)
                 outputRep.setColor(outputColor, atX: x, y: y)
             }
         }
@@ -191,7 +193,7 @@ extension LUT {
                                               samplesPerPixel: 4,
                                               hasAlpha: true,
                                               isPlanar: false,
-                                              colorSpaceName: NSColorSpaceName.calibratedRGB,
+                                              colorSpaceName: NSColorSpaceName.deviceRGB,
                                               bytesPerRow: 0,
                                               bitsPerPixel: 0) else {
             return nil

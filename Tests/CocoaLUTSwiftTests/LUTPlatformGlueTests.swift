@@ -89,7 +89,7 @@ struct LUTPlatformGlueTests {
         let size = NSSize(width: 1, height: 1)
         let image = NSImage(size: size)
         image.lockFocus()
-        NSColor(calibratedRed: 0.2, green: 0.4, blue: 0.6, alpha: 1).setFill()
+        NSColor(deviceRed: 0.2, green: 0.4, blue: 0.6, alpha: 1).setFill()
         NSBezierPath(rect: NSRect(origin: .zero, size: size)).fill()
         image.unlockFocus()
 

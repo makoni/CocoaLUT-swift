@@ -26,7 +26,7 @@ public extension LUTColor {
     #if canImport(AppKit) || canImport(UIKit)
     var systemColor: SystemColor {
         #if canImport(AppKit)
-        return SystemColor(red: CGFloat(red), green: CGFloat(green), blue: CGFloat(blue), alpha: 1.0)
+        return SystemColor(deviceRed: CGFloat(red), green: CGFloat(green), blue: CGFloat(blue), alpha: 1.0)
         #else
         return SystemColor(red: CGFloat(red), green: CGFloat(green), blue: CGFloat(blue), alpha: 1.0)
         #endif
