@@ -123,8 +123,7 @@ extension LUT {
                 return nil
             }
 
-            let outputColorSpace = ciImage.colorSpace
-            guard let output = process(ciImage: ciImage, colorSpace: outputColorSpace) else { return nil }
+            guard let output = process(ciImage: ciImage) else { return nil }
             return NSImage.make(from: output,
                                 targetSize: targetSize,
                                 useSoftwareRenderer: renderPath == .coreImageSoftware)
