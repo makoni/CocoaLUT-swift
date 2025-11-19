@@ -23,16 +23,20 @@ extension ImageBasedFormatterPlatformBridge {
             return representation
         }
 
+        // Avoid logging "CGImageDestinationFinalize failed" for empty images
+        guard !nsImage.representations.isEmpty else {
+            return nil
+        }
+
         guard let data = nsImage.tiffRepresentation else {
             return nil
         }
 
-        let options = [kCGImageSourceShouldCache: true] as CFDictionary
-        guard let source = CGImageSourceCreateWithData(data as CFData, options) else {
-            return nil
+        if let imageRep = NSBitmapImageRep(data: data) {
+            return imageRep.cgImage
         }
 
-        return CGImageSourceCreateImageAtIndex(source, 0, options)
+        return nil
     }
 }
 #endif
