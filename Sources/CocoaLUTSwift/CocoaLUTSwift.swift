@@ -14,6 +14,7 @@ public enum CocoaLUT {
 		case readUnsupportedFormatter(String)
 		case writeUnsupportedFormatter(String)
 		case invalidPayload(expected: LUTFormatterOutputType, actual: LUTFormatterOutputType)
+        case invalidFormat(String)
 
 		public var errorDescription: String? {
 			switch self {
@@ -25,6 +26,8 @@ public enum CocoaLUT {
 				return "Formatter \(id) does not support writing."
 			case .invalidPayload(let expected, let actual):
 				return "Formatter expected payload type \(expected.rawValue) but received \(actual.rawValue)."
+            case .invalidFormat(let reason):
+                return "Invalid format: \(reason)"
 			}
 		}
 	}

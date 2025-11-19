@@ -192,3 +192,106 @@ public struct LUT3D {
         passthroughFileOptions = other.passthroughFileOptions
     }
 }
+
+extension LUT3D {
+    public var dataRepresentation: Data {
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        let helper = LUT3DArchivable(self)
+        archiver.encode(helper, forKey: NSKeyedArchiveRootObjectKey)
+        return archiver.encodedData
+    }
+
+    public init(fromDataRepresentation data: Data) throws {
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
+        unarchiver.requiresSecureCoding = false
+        // Register the helper class for "LUT3D" to support legacy data
+        NSKeyedUnarchiver.setClass(LUT3DArchivable.self, forClassName: "LUT3D")
+        
+        guard let helper = unarchiver.decodeObject(of: LUT3DArchivable.self, forKey: NSKeyedArchiveRootObjectKey) else {
+            throw CocoaLUT.Error.invalidFormat("Could not decode LUT3D data")
+        }
+        self = helper.lut3D
+    }
+}
+
+@objc(LUT3DArchivable)
+private class LUT3DArchivable: NSObject, NSCoding {
+    let lut3D: LUT3D
+    
+    init(_ lut3D: LUT3D) {
+        self.lut3D = lut3D
+    }
+    
+    required init?(coder: NSCoder) {
+        let size = coder.decodeInteger(forKey: "size")
+        let lower = coder.decodeDouble(forKey: "inputLowerBound")
+        let upper = coder.decodeDouble(forKey: "inputUpperBound")
+        
+        let metadata = coder.decodeObject(forKey: "metadata") as? [String: Any] ?? [:]
+        let options = coder.decodeObject(forKey: "passthroughFileOptions") as? [String: Any] ?? [:]
+        
+        guard let latticeData = coder.decodeObject(forKey: "latticeData") as? Data else {
+            return nil
+        }
+        
+        var lut = LUT(size: size, inputLowerBound: lower, inputUpperBound: upper)
+        lut.metadata = metadata
+        lut.passthroughFileOptions = options
+        
+        let count = size * size * size
+        let expectedBytes = count * 3 * MemoryLayout<Double>.size
+        
+        if latticeData.count == expectedBytes {
+            var colors = [LUTColor]()
+            colors.reserveCapacity(count)
+            
+            latticeData.withUnsafeBytes { buffer in
+                let doubles = buffer.bindMemory(to: Double.self)
+                for i in 0..<count {
+                    colors.append(LUTColor(red: doubles[i*3], green: doubles[i*3+1], blue: doubles[i*3+2]))
+                }
+            }
+            
+            var index = 0
+            for b in 0..<size {
+                for g in 0..<size {
+                    for r in 0..<size {
+                        if index < colors.count {
+                            lut.setColor(colors[index], r: r, g: g, b: b)
+                            index += 1
+                        }
+                    }
+                }
+            }
+        }
+        
+        self.lut3D = LUT3D(lattice: lut)
+    }
+    
+    func encode(with coder: NSCoder) {
+        coder.encode(lut3D.size, forKey: "size")
+        coder.encode(lut3D.inputLowerBound, forKey: "inputLowerBound")
+        coder.encode(lut3D.inputUpperBound, forKey: "inputUpperBound")
+        coder.encode(lut3D.metadata, forKey: "metadata")
+        coder.encode(lut3D.passthroughFileOptions, forKey: "passthroughFileOptions")
+        
+        let size = lut3D.size
+        let count = size * size * size
+        var doubles = [Double]()
+        doubles.reserveCapacity(count * 3)
+        
+        for b in 0..<size {
+            for g in 0..<size {
+                for r in 0..<size {
+                    let color = lut3D.colorAt(r: r, g: g, b: b)
+                    doubles.append(color.red)
+                    doubles.append(color.green)
+                    doubles.append(color.blue)
+                }
+            }
+        }
+        
+        let data = Data(bytes: doubles, count: doubles.count * MemoryLayout<Double>.size)
+        coder.encode(data, forKey: "latticeData")
+    }
+}

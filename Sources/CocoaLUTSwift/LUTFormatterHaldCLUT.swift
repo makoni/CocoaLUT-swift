@@ -29,7 +29,7 @@ enum LUTHaldCLUTFormatterError: Error, Equatable, LocalizedError {
     }
 }
 
-enum LUTFormatterHaldCLUT {
+public enum LUTFormatterHaldCLUT {
     static let formatterIdentifier = "haldCLUT"
 
     struct Options {
@@ -101,6 +101,11 @@ enum LUTFormatterHaldCLUT {
     }
 
     @MainActor
+    public static func lut(from image: NSImage) -> LUT? {
+        try? read(nsImage: image).asLUT()
+    }
+
+    @MainActor
     static func read(nsImage: NSImage) throws -> LUT3D {
         guard let cgImage = ImageBasedFormatterPlatformBridge.cgImage(from: nsImage) else {
             throw LUTHaldCLUTFormatterError.unsupportedImage
@@ -113,6 +118,10 @@ enum LUTFormatterHaldCLUT {
     static func uiImage(from lut: LUT3D, options: Options = Options()) throws -> UIImage {
         let cgImage = try image(from: lut, options: options)
         return ImageBasedFormatterPlatformBridge.uiImage(from: cgImage)
+    }
+
+    public static func lut(from image: UIImage) -> LUT? {
+        try? read(uiImage: image).asLUT()
     }
 
     static func read(uiImage: UIImage) throws -> LUT3D {

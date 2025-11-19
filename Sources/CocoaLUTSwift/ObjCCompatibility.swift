@@ -104,6 +104,14 @@ public final class LUTFormatterCube {
         guard let d = contents.data(using: .utf8) else { throw LUTCubeFormatterError.invalidData }
         return d
     }
+
+    public static func formatterID() -> String {
+        return "cube"
+    }
+
+    public static func defaultOptions() -> [String: Any] {
+        return ["variant": LUTCubeVariant.resolve.rawValue]
+    }
 }
 
 public enum LUTHaldCLUTCompat {
