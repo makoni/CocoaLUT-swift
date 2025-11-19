@@ -1,4 +1,3 @@
-
 #if canImport(AppKit)
 import AppKit
 #elseif canImport(UIKit)
@@ -46,4 +45,20 @@ public extension LUTColor {
         #endif
     }
     #endif
+    
+    static func + (lhs: LUTColor, rhs: LUTColor) -> LUTColor {
+        LUTColor(red: lhs.red + rhs.red, green: lhs.green + rhs.green, blue: lhs.blue + rhs.blue)
+    }
+    
+    static func - (lhs: LUTColor, rhs: LUTColor) -> LUTColor {
+        LUTColor(red: lhs.red - rhs.red, green: lhs.green - rhs.green, blue: lhs.blue - rhs.blue)
+    }
+    
+    static func * (lhs: LUTColor, rhs: Double) -> LUTColor {
+        LUTColor(red: lhs.red * rhs, green: lhs.green * rhs, blue: lhs.blue * rhs)
+    }
+    
+    func lerp(to other: LUTColor, amount: Double) -> LUTColor {
+        lerping(to: other, amount: amount)
+    }
 }

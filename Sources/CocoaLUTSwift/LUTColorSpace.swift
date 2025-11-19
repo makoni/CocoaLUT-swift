@@ -208,6 +208,16 @@ public extension LUTColorSpace {
 }
 
 public extension LUTColorSpace {
+    var npm: simd_double3x3? {
+        if let forced = forcedNPMMatrix {
+            return forced
+        }
+        guard let whitePoint = defaultWhitePoint else {
+            return nil
+        }
+        return try? npm(using: whitePoint)
+    }
+
     func npm(using whitePoint: LUTColorSpaceWhitePoint) throws -> simd_double3x3 {
         if let forced = forcedNPMMatrix {
             return forced

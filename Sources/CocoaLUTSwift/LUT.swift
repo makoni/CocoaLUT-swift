@@ -434,7 +434,7 @@ public struct LUT {
         return ((r * size) + g) * size + b
     }
 
-    private func mapColors(_ transform: (LUTColor) -> LUTColor) -> LUT {
+    func mapColors(_ transform: (LUTColor) -> LUTColor) -> LUT {
         var result = LUT(size: size, inputLowerBound: inputLowerBound, inputUpperBound: inputUpperBound)
         cloneMetadata(into: &result)
         result.storage = storage.map(transform)
@@ -466,7 +466,7 @@ public struct LUT {
         return result
     }
 
-    private func cloneMetadata(into result: inout LUT) {
+    func cloneMetadata(into result: inout LUT) {
         result.copyMetadata(from: self)
     }
 
