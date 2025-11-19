@@ -212,6 +212,10 @@ extension LUT3D {
         }
         self = helper.lut3D
     }
+
+    public func dataFromLUT(withFormatterID formatterID: String, options: [String: Any]? = nil) throws -> Data {
+        try lattice.dataFromLUT(withFormatterID: formatterID, options: options)
+    }
 }
 
 @objc(LUT3DArchivable)

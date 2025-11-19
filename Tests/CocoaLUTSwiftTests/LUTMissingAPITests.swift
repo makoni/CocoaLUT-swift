@@ -1,4 +1,3 @@
-
 import XCTest
 @testable import CocoaLUTSwift
 
@@ -35,7 +34,18 @@ final class LUTMissingAPITests: XCTestCase {
     @MainActor
     func testLUTFormatterHaldCLUTFromImage() {
         let image = PlatformImage() // Create a dummy image
-        let lut = LUTFormatterHaldCLUT.lut(from: image)
+        _ = LUTFormatterHaldCLUT.lut(from: image)
         // XCTAssertNotNil(lut) // This might fail if image is empty, but we just want to check API existence
+    }
+    
+    func testDataFromLUT() throws {
+        let lut = LUT3D(size: 2, inputLowerBound: 0, inputUpperBound: 1)
+        let options = LUTFormatterCube.defaultOptions()
+        let data = try lut.dataFromLUT(withFormatterID: LUTFormatterCube.formatterID(), options: options)
+        XCTAssertFalse(data.isEmpty)
+        
+        let string = String(data: data, encoding: .utf8)
+        XCTAssertNotNil(string)
+        XCTAssertTrue(string!.contains("LUT_3D_SIZE 2"))
     }
 }

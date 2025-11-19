@@ -108,4 +108,27 @@ extension LUT {
         let lut3d = LUT3D(lattice: self)
         try descriptor.write(.lut3D(lut3d), to: url, options: options)
     }
+
+    /// Returns the data representation of the LUT using the specified formatter.
+    ///
+    /// - Parameters:
+    ///   - formatterID: The identifier of the formatter to use.
+    ///   - options: Optional configuration dictionary for the formatter.
+    /// - Returns: The data representation of the LUT.
+    /// - Throws: `CocoaLUT.Error` if the formatter is not found or writing fails.
+    public func dataFromLUT(withFormatterID formatterID: String, options: [String: Any]? = nil) throws -> Data {
+        guard let descriptor = LUTFormatterRegistry.descriptor(for: formatterID) else {
+            throw CocoaLUT.Error.formatterNotFound(formatterID)
+        }
+        
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer {
+            try? FileManager.default.removeItem(at: tempURL)
+        }
+        
+        let payload = LUTFormatterPayload.lut3D(LUT3D(lattice: self))
+        try descriptor.write(payload, to: tempURL, options: options)
+        
+        return try Data(contentsOf: tempURL)
+    }
 }
