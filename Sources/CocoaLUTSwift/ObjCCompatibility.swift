@@ -9,6 +9,12 @@ public extension LUT {
     /// ObjC-style initializer: attempt to parse a LUT from raw data using known formatters.
     /// Returns nil if no formatter could parse the data.
     init?(fromDataRepresentation data: Data) {
+        // Try unarchiving first (legacy ObjC format)
+        if let lut3d = try? LUT3D(fromDataRepresentation: data) {
+            self = lut3d.asLUT()
+            return
+        }
+
         // Try cube (text) first
         if let string = String(data: data, encoding: .utf8) {
             if let result = try? LUTCubeFormatter.read(string: string) {

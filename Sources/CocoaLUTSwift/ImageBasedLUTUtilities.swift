@@ -94,8 +94,16 @@ enum ImageBasedLUTUtilities {
     }
 
     static func image(from data: Data) throws -> CGImage {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+        // Check for bplist header to avoid CGImageSource noise
+        if data.count >= 8, let prefix = String(data: data.prefix(8), encoding: .ascii), prefix == "bplist00" {
+             throw ImageBasedLUTUtilitiesError.unsupportedImage
+        }
+
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+            throw ImageBasedLUTUtilitiesError.unsupportedImage
+        }
+
+        guard let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
             throw ImageBasedLUTUtilitiesError.unsupportedImage
         }
         return image
