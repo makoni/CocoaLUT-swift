@@ -56,11 +56,14 @@ public extension LUT {
             return
         }
 
-        // As a last resort, try parsing as an ICC profile LUT
+        // As a last resort, try parsing as an ICC profile LUT — macOS-only,
+        // because the formatter relies on NSColorSpace from AppKit.
+        #if canImport(AppKit)
         if let lut = try? LUTFormatterICCProfile.read(data: data) {
             self = lut.asLUT()
             return
         }
+        #endif
 
         return nil
     }
