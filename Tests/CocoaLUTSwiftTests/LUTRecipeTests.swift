@@ -2,7 +2,7 @@ import CocoaLUTSwift
 import Foundation
 import Testing
 
-@Suite
+@Suite(.serialized)
 struct LUTRecipeTests {
     @Test
     func testSerializedRecipeProducesExpectedJSON() throws {

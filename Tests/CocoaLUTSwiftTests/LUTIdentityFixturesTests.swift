@@ -1,7 +1,7 @@
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTIdentityFixturesTests {
     @MainActor
     @Test(arguments: IdentityFixture.all)

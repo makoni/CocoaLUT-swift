@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct CocoaLUTFacadeTests {
     private func cubeURL() throws -> URL {
         try #require(Bundle.module.url(

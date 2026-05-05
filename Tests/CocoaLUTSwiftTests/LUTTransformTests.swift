@@ -1,7 +1,7 @@
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTTransformTests {
     private func makeNonUniformLUT() -> LUT {
         var lut = LUT(size: 2, inputLowerBound: -1, inputUpperBound: 2)

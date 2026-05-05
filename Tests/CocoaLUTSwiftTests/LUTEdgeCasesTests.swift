@@ -4,7 +4,7 @@ import Testing
 // Boundary-condition coverage for the core types: minimum sizes,
 // non-reversible curves, sanitization of pathological numeric inputs,
 // and fast-vs-slow paths in combined().
-@Suite
+@Suite(.serialized)
 struct LUTEdgeCasesTests {
 
     // MARK: - LUTColor sanitization

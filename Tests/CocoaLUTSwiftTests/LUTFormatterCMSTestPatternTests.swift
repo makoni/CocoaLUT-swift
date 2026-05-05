@@ -5,7 +5,7 @@ import ImageIO
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite final class LUTFormatterCMSTestPatternTests {
+@Suite(.serialized) final class LUTFormatterCMSTestPatternTests {
     @Test func imageLayoutMatchesSpecification() throws {
         let size = 9
         let lut = LUT3D.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)

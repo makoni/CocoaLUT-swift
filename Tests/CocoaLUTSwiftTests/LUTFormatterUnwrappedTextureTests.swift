@@ -4,7 +4,7 @@ import ImageIO
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite final class LUTFormatterUnwrappedTextureTests {
+@Suite(.serialized) final class LUTFormatterUnwrappedTextureTests {
     @Test func roundTripIdentityLUT() throws {
         let size = 16
         let lut = LUT3D.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)

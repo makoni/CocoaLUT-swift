@@ -5,7 +5,7 @@ import simd
 // Smoke + round-trip coverage that iterates every predefined color space,
 // transfer function, and white point so any new entry inherits these checks
 // for free.
-@Suite
+@Suite(.serialized)
 struct LUTColorScienceCoverageTests {
 
     // MARK: - Color spaces

@@ -5,7 +5,7 @@ import Testing
 
 @MainActor
 
-@Suite
+@Suite(.serialized)
 struct LUTFormatterICCProfileTests {
     @Test
     func testReadGenericRGBProfileProducesIdentityTransform() throws {

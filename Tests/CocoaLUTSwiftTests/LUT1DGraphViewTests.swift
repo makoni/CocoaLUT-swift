@@ -5,7 +5,7 @@ import Testing
 
 @MainActor
 
-@Suite
+@Suite(.serialized)
 struct LUT1DGraphViewTests {
     @Test
     func testGraphViewProducesDrawableOutput() throws {

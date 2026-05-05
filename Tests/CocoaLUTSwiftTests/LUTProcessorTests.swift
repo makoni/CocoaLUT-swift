@@ -3,7 +3,7 @@ import Testing
 
 @MainActor
 
-@Suite
+@Suite(.serialized)
 struct LUTProcessorTests {
     private func makeIdentityLUT(size: Int = 2) -> LUT {
         LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)

@@ -11,7 +11,7 @@ import AppKit
 
 @MainActor
 
-@Suite
+@Suite(.serialized)
 struct LUTPlatformGlueTests {
     #if canImport(CoreImage)
     @Test

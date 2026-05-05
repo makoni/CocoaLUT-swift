@@ -1,7 +1,7 @@
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTFormatterClipsterTests {
     private let sampleXML = """
     <LUT3D name='Sample' N='2' BitDepth='10'>

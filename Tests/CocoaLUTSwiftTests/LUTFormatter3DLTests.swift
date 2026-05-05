@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTFormatter3DLTests {
     @Test
     func testReadNuke3DL() throws {

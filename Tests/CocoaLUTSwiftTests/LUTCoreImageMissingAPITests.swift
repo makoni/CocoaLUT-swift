@@ -7,7 +7,7 @@ import AppKit
 import UIKit
 #endif
 
-@Suite struct LUTCoreImageMissingAPITests {
+@Suite(.serialized) struct LUTCoreImageMissingAPITests {
     
     @Test func testCoreImageFilter() throws {
         let lut = LUT.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)

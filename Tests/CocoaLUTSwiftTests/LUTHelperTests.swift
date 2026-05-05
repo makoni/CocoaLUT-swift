@@ -3,7 +3,7 @@ import Foundation
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTHelperTests {
     @Test
     func testClampVariants() {

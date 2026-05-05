@@ -5,7 +5,7 @@ import Testing
 
 @MainActor
 
-@Suite
+@Suite(.serialized)
 struct LUTPreviewViewTests {
     @Test
     func testMaskAmountClampsAndUpdatesLayout() throws {

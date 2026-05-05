@@ -5,7 +5,7 @@ import Testing
 import CoreGraphics
 #endif
 
-@Suite
+@Suite(.serialized)
 struct GPUImageCocoaLUTFilterTests {
     @Test
     func testLookupImageDimensionsMatchUnwrappedTextureLayout() throws {

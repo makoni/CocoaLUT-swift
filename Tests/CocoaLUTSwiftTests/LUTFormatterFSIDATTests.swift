@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTFormatterFSIDATTests {
     @Test
     func testVariantV2RoundTripPreservesMetadata() throws {

@@ -2,7 +2,7 @@ import Testing
 import Foundation
 @testable import CocoaLUTSwift
 
-@Suite struct LUTIOMissingAPITests {
+@Suite(.serialized) struct LUTIOMissingAPITests {
     
     @Test func testLUTFromURL() throws {
         // Debug resource path

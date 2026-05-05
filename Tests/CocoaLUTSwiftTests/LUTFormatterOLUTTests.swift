@@ -1,7 +1,7 @@
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTFormatterOLUTTests {
     @Test
     func testReadParsesCurves() throws {

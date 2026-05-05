@@ -5,7 +5,7 @@ import Testing
 
 @MainActor
 
-@Suite
+@Suite(.serialized)
 struct LUTPreviewImageGeneratorTests {
     @Test
     func testGeneratesMaskedPreviewImage() throws {

@@ -8,7 +8,7 @@ import Testing
 import AppKit
 #endif
 
-@Suite final class LUTFormatterHaldCLUTTests {
+@Suite(.serialized) final class LUTFormatterHaldCLUTTests {
     @Test func eightBitRoundTripMatchesIdentity() throws {
         let lut = LUT3D.identity(size: 4, inputLowerBound: 0, inputUpperBound: 1)
         let image = try LUTFormatterHaldCLUT.image(from: lut)

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTActionTests {
     private func identityLUT(size: Int = 2) -> LUT {
         LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)

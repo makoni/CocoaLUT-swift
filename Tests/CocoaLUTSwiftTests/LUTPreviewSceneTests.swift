@@ -6,7 +6,7 @@ import Testing
 
 @MainActor
 
-@Suite
+@Suite(.serialized)
 struct LUTPreviewSceneTests {
     @Test
     func testSceneBuildsExpectedDotCount() {

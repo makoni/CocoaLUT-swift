@@ -1,7 +1,7 @@
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTFormatterMatchLightTests {
     @Test
     func testReadCombines1DAnd3DLUT() throws {

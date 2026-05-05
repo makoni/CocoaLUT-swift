@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTCubeFormatterTests {
     @Test
     func testReadLinearToBMDFilmCube() throws {

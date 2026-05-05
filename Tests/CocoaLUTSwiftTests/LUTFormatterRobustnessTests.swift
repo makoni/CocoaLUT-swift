@@ -4,7 +4,7 @@ import Testing
 
 // Robustness coverage: malformed inputs, registry lookup edges, and formatter
 // variants that lacked dedicated test files.
-@Suite
+@Suite(.serialized)
 struct LUTFormatterRobustnessTests {
 
     // MARK: - DaVinciDAVLUT (had no dedicated test file)

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUT1DTests {
     @Test
     func testInitializationStoresCurves() {
@@ -136,7 +136,7 @@ struct LUT1DTests {
     }
 }
 
-@Suite
+@Suite(.serialized)
 struct LUT3DTests {
     @Test
     func testIdentityMatchesUnderlyingLUT() {

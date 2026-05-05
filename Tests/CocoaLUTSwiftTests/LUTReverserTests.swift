@@ -2,7 +2,7 @@ import Testing
 @testable import CocoaLUTSwift
 
 @MainActor
-@Suite
+@Suite(.serialized)
 struct LUTReverserTests {
     @Test
     func testProcessReturnsInputWhenNoReversalLogicProvided() async {

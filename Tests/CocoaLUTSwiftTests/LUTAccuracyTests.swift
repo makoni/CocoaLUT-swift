@@ -3,7 +3,7 @@ import simd
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTAccuracyTests {
     @Test
     func testResizeAccuracy1DIdentity() {

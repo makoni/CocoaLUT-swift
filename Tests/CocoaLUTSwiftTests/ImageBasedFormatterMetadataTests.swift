@@ -3,7 +3,7 @@ import CoreGraphics
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite final class ImageBasedFormatterMetadataTests {
+@Suite(.serialized) final class ImageBasedFormatterMetadataTests {
     @Test func passthroughRoundTrip() throws {
         let options = try #require(ImageBasedFormatterOptions(variant: .tiff, bitDepth: 16))
         let metadata = ImageBasedFormatterMetadata(options: options, lutSize: 31)

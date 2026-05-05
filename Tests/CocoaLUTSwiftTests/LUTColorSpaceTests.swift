@@ -2,7 +2,7 @@ import Testing
 import simd
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTColorSpaceTests {
     @Test
     func testTransformationMatrixWithIdenticalColorSpacesIsIdentity() throws {

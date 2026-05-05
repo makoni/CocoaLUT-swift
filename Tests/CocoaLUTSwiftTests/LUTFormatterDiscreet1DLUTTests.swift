@@ -1,7 +1,7 @@
 import Testing
 @testable import CocoaLUTSwift
 
-@Suite
+@Suite(.serialized)
 struct LUTFormatterDiscreet1DLUTTests {
     @Test
     func testReadDiscreet1DLUT() throws {
