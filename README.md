@@ -1,13 +1,13 @@
 # CocoaLUT
 
-A Swift 6-first library for reading, writing, and manipulating 1D and 3D look up tables (LUTs). CocoaLUT began as an Objective-C project; the Swift package in `Sources/CocoaLUT-swift` is now the primary implementation and exposes the full formatter registry, Core Image helpers, and preview utilities.
+A Swift 6-first library for reading, writing, and manipulating 1D and 3D look up tables (LUTs). CocoaLUT began as an Objective-C project; the Swift package in `Sources/CocoaLUTSwift` now provides full feature parity and exposes the formatter registry, Core Image helpers, AVFoundation video preview, and SceneKit/AppKit preview utilities.
 
 ![Lattice preview](lattice.png)
 
 ## Project status
 
-- **Swift package:** `CocoaLUT-swift` library builds with Swift 6 and strict concurrency checking.
-- **Platforms:** macOS (AppKit + SceneKit), macCatalyst, iOS, tvOS, watchOS, and visionOS targets are available via SwiftPM resources.
+- **Swift package:** `CocoaLUTSwift` library builds with Swift 6 and strict concurrency checking. 100% ObjC parity (254 tests / 46 suites passing under `-strict-concurrency=complete`).
+- **Platforms:** macOS (AppKit + SceneKit + AVFoundation), macCatalyst, iOS, tvOS, watchOS, and visionOS targets are available via SwiftPM resources.
 - **Optional GPUImage:** GPUImage helpers compile when the dependency is supplied (`canImport(GPUImage)` guards remain in place).
 
 ## Installation
@@ -29,7 +29,7 @@ let package = Package(
         .target(
             name: "MyApp",
             dependencies: [
-                .product(name: "CocoaLUT-swift", package: "CocoaLUT-swift")
+                .product(name: "CocoaLUTSwift", package: "CocoaLUT-swift")
             ])
     ]
 )
@@ -74,14 +74,10 @@ All formatters are registered through `LUTFormatterRegistry`, so facade calls su
 ## More capabilities
 
 - Apply LUTs to `CIImage`, `NSImage`, and `UIImage` with built-in color space handling.
-- Generate `CIColorCube` filters and platform preview images (SceneKit point clouds, 1D curve graphs).
-- Resize, combine, clamp, and otherwise transform LUTs in-memory.
-- Reverse monotonic 1D LUTs and extract contrast or color-shift components from 3D LUTs.
-- Convert LUT color spaces and color temperatures using the ported color science utilities.
-
-## Documentation
-
-The active migration checklist and contributor instructions live in [`PORT_TO_SWIFT_PLAN.md`](PORT_TO_SWIFT_PLAN.md). That document now tracks packaging, concurrency, and documentation follow-ups for the Swift-only implementation.
+- Generate `CIColorCube` filters and platform preview helpers — SceneKit point clouds with cube outline and R/G/B axes (`LUTPreviewScene`), AVPlayer-backed video preview with masked LUT comparison (`LUTPreviewView`), and a 1D curve graph with mouse-tracking overlay and `LUT1DGraphViewController` (`LUT1DGraphView`).
+- Resize, combine, clamp, remap, offset, and otherwise transform LUTs in-memory.
+- Reverse monotonic 1D LUTs and apply LUT3D transformations: `applyingFalseColor()`, `extractingContrastOnly()`, `extractingColorShift(strictness:)`, `convertingToMono(method:)` with five Rec.709-aware methods, `applyingColorMatrix(columnMajor:)`, and `swizzling1DChannels(method:strictness:)`.
+- Convert LUT color spaces and color temperatures using the ported color science utilities (21 predefined color spaces, 17 transfer functions, Bradford adaptation, Robertson-approximation white points).
 
 ## Contributing
 
