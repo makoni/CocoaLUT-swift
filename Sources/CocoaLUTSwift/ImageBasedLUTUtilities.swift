@@ -1,14 +1,7 @@
 import CoreGraphics
 import Foundation
 import ImageIO
-#if canImport(UniformTypeIdentifiers)
 import UniformTypeIdentifiers
-#endif
-#if canImport(MobileCoreServices)
-import MobileCoreServices
-#elseif canImport(CoreServices)
-import CoreServices
-#endif
 import simd
 
 enum ImageBasedLUTUtilitiesError: Error, Equatable, LocalizedError {
@@ -255,21 +248,14 @@ enum ImageBasedLUTUtilities {
         case tiff
 
         var uti: CFString {
-            #if canImport(UniformTypeIdentifiers)
-            if #available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
-                switch self {
-                case .png:
-                    return UTType.png.identifier as CFString
-                case .tiff:
-                    return UTType.tiff.identifier as CFString
-                }
-            }
-            #endif
+            // Package minimum platforms (macOS 12 / iOS 15) already guarantee
+            // UniformTypeIdentifiers is available, so we don't need the legacy
+            // kUTType* constants and their deprecation warnings.
             switch self {
             case .png:
-                return kUTTypePNG
+                return UTType.png.identifier as CFString
             case .tiff:
-                return kUTTypeTIFF
+                return UTType.tiff.identifier as CFString
             }
         }
     }
