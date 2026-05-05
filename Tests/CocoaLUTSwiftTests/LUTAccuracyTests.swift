@@ -125,7 +125,7 @@ private extension LUTAccuracyTests {
         let url = try #require(Bundle.module.url(
             forResource: resourceName,
             withExtension: "cube",
-            subdirectory: "Test LUTs"
+            subdirectory: "TestLUTs"
         ), "Missing cube resource: \(resourceName)")
 
         let result = try LUTCubeFormatter.read(url: url)

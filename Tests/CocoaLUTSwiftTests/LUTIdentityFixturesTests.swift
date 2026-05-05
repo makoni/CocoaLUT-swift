@@ -14,7 +14,7 @@ struct LUTIdentityFixturesTests {
 }
 
 struct IdentityFixture: CustomTestStringConvertible {
-    static let subdirectory = "Test LUTs/identity"
+    static let subdirectory = "TestLUTs/identity"
 
     let name: String
     let fileExtension: String

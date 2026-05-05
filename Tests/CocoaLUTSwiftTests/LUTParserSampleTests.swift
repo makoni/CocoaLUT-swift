@@ -37,14 +37,14 @@ struct ParserFixture: CustomTestStringConvertible {
     private static func cube(_ name: String, expectedSize: Int) -> ParserFixture {
         ParserFixture(name: name,
                       fileExtension: "cube",
-                      subdirectory: "Test LUTs/OpenColorIO/cube",
+                      subdirectory: "TestLUTs/OpenColorIO/cube",
                       expectedSize: expectedSize)
     }
 
     private static func threeDL(_ name: String, expectedSize: Int) -> ParserFixture {
         ParserFixture(name: name,
                       fileExtension: "3dl",
-                      subdirectory: "Test LUTs/OpenColorIO/3dl",
+                      subdirectory: "TestLUTs/OpenColorIO/3dl",
                       expectedSize: expectedSize)
     }
 }

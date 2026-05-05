@@ -23,7 +23,9 @@ let package = Package(
         .target(
             name: "CocoaLUTSwift",
             resources: [
-                .process("../../Assets/TransferFunctionLUTs")
+                // .copy preserves the on-disk hierarchy so subdirectory: lookups
+                // via Bundle.module.url(...) match the file tree.
+                .copy("TransferFunctionLUTs")
             ]
         ),
         .testTarget(
@@ -31,7 +33,7 @@ let package = Package(
             dependencies: ["CocoaLUTSwift"],
             resources: [
                 .process("Resources"),
-                .process("../Test LUTs")
+                .copy("TestLUTs")
             ]
         ),
     ]
