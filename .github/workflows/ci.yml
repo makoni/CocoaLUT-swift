@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# A new push to a PR cancels in-flight runs for the same ref so we don't
+# burn minutes on outdated commits.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test-macos:
+    name: Test (macOS, Swift 6)
+    runs-on: macos-26
+    # Hard cap so a hang fails fast instead of burning a full hour.
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.4.1
+        # macos-26 ships several Xcode 26.x versions; pin to 26.4.1 — the
+        # newest non-beta and the toolchain we develop against locally.
+        run: sudo xcode-select -s /Applications/Xcode_26.4.1.app
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Resolve packages
+        run: swift package resolve
+
+      - name: Build
+        run: swift build -Xswiftc -strict-concurrency=complete
+
+      - name: Test
+        run: swift test -Xswiftc -strict-concurrency=complete
+
+  test-ios:
+    name: Test (iOS Simulator)
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.4.1
+        # Same toolchain as the macOS job for consistency.
+        run: sudo xcode-select -s /Applications/Xcode_26.4.1.app
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes | grep -E "^iOS" || true
+
+      - name: Test on iOS Simulator
+        # OS=latest picks whichever iOS runtime ships with the active Xcode.
+        # iPhone 17 is present on Xcode 26.x; older Xcodes have iPhone 16.
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme CocoaLUTSwift \
+            -destination "platform=iOS Simulator,name=iPhone 17,OS=latest" \
+            -derivedDataPath .build-ios

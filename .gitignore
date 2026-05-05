@@ -16,5 +16,12 @@ DerivedData
 .idea/
 *.hmap
 
+.build/
+.swiftpm/
+objc/
+
+# Local debug binary — ad-hoc NSBitmapImageRep/CGImageSource probe.
+debug_nsimage
+
 #CocoaPods
 Pods

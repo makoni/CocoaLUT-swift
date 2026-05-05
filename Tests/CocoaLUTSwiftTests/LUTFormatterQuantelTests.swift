@@ -1,0 +1,49 @@
+import Testing
+@testable import CocoaLUTSwift
+
+@Suite(.serialized)
+struct LUTFormatterQuantelTests {
+    @Test
+    func testReadQuantelLUT() throws {
+        let sample = """
+        max value 1023
+        vertices 2
+        cube data
+        R G B
+        0 0 0
+        0 0 1023
+        0 1023 0
+        0 1023 1023
+        1023 0 0
+        1023 0 1023
+        1023 1023 0
+        1023 1023 1023
+        """
+
+        let lut = try LUTFormatterQuantel.read(string: sample)
+    #expect(lut.size == 2)
+    #expect(abs(lut.colorAt(r: 1, g: 1, b: 1).red - 1.0) < 1e-6)
+    #expect(abs(lut.colorAt(r: 0, g: 1, b: 0).green - 1.0) < 1e-6)
+    let passthrough = lut.passthroughFileOptions["quantel"] as? [String: Any]
+    #expect(passthrough?["fileTypeVariant"] as? String == "Quantel")
+    #expect(passthrough?["integerMaxOutput"] as? Int == 1023)
+    #expect(passthrough?["lutSize"] as? Int == 2)
+    }
+
+    @Test
+    func testWriteQuantelLUT() throws {
+        var lut = LUT3D(size: 2, inputLowerBound: 0, inputUpperBound: 1)
+        for r in 0..<2 {
+            for g in 0..<2 {
+                for b in 0..<2 {
+                    let color = LUTColor.color(red: Double(r), green: Double(g), blue: Double(b))
+                    lut.setColor(color, r: r, g: g, b: b)
+                }
+            }
+        }
+
+        let string = try LUTFormatterQuantel.write(lut, options: .init(integerMaxOutput: 1023, lutSize: 2))
+        #expect(string.contains("max value 1023"))
+        #expect(string.contains("vertices 2"))
+    }
+}

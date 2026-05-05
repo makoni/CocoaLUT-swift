@@ -1,71 +1,97 @@
 # CocoaLUT
 
-[![Build Status](http://img.shields.io/travis/videovillage/CocoaLUT.svg?style=flat)](https://travis-ci.org/videovillage/CocoaLUT)
-[![Coverage Status](https://img.shields.io/coveralls/videovillage/CocoaLUT.svg?style=flat)](https://coveralls.io/r/videovillage/CocoaLUT?branch=master)
-[![Version](https://img.shields.io/cocoapods/v/CocoaLUT.svg?style=flat)](http://cocoadocs.org/docsets/CocoaLUT)
-[![Platform](https://img.shields.io/cocoapods/p/CocoaLUT.svg?style=flat)](http://cocoadocs.org/docsets/CocoaLUT)
-[![License](https://img.shields.io/cocoapods/l/CocoaLUT.svg?style=flat)](http://cocoadocs.org/docsets/CocoaLUT)
+A Swift 6-first library for reading, writing, and manipulating 1D and 3D look up tables (LUTs). CocoaLUT began as an Objective-C project; the Swift package in `Sources/CocoaLUTSwift` now provides full feature parity and exposes the formatter registry, Core Image helpers, AVFoundation video preview, and SceneKit/AppKit preview utilities.
 
-CocoaLUT is a tool for importing, exporting, and manipulating [3D look up tables](https://en.wikipedia.org/wiki/3D_lookup_table) (3D LUTs) and 1D look up tables (1D LUTs) for colors. LUTs are often used in film and video finishing, graphics, video games, and rendering.
+![Lattice preview](lattice.png)
 
-The goal of this project is to have a fast, modern Objective-C (and soon, Swift) library that works on both iOS and OS X.
+## Project status
 
-[![Lattice](lattice.png)](http://lattice.videovillage.co)
-
-## Features
-
-- Reads and writes 3D LUTs
-  - DaVinci Resolve Cube LUT (.cube)
-  - Autodesk 3D LUT (.3dl)
-  - Quantel 3D LUT (.txt)
-  - FSI DAT 3D LUT (.dat)
-  - DVS Clipster 3D LUT (.xml, .txt)
-  - Nucoda CMS LUT (.cms)
-  - Resolve DAT 3D LUT (.dat)
-  - DaVinci 3D LUT (.davlut)
-  - Unwrapped Texture LUT Image (.tiff, .dpx, .png)
-  - CMS Test Pattern LUT Image (.tiff, .dpx, .png)
-  - Hald CLUT Image (.tiff, .dpx, .png)
-- Reads and writes 1D LUTs
-  - DaVinci Resolve Cube LUT (.cube)
-  - Nucoda CMS LUT (.cms)
-  - DaVinci Resolve 1D LUT (.ilut, .olut)
-  - Discreet 1D LUT (.lut)
-  - Arri Look 1D tone map only (.xml) 
-- Reads non-LUT formats as LUTs
-  - Arri Look (.xml) as a 3D LUT
-  - ICC/ColorSync Profiles (.icc, .icm, .pf, .prof) as a 3D LUT *(OS X only)*
-- Has a format-independent internal data structure. You can create LUTs and use them in-memory.
-- Apply LUTs to NSImage, CIImage, and UIImage
-- Generate Core Image Filters ([VVLUT1DFilter](https://github.com/videovillage/VVLUT1DFilter) / CIColorCube) from LUTs
-- Generate visualizations for LUTs with Scene Kit
-- Resize LUTs
-- Reverse 1D LUTs
-- Extract the color shift from a 3D LUT
-- Extract the contrast shift from a 3D LUT
-- Convert the color space or color temperature of a LUT
+- **Swift package:** `CocoaLUTSwift` library builds with Swift 6 and strict concurrency checking. 100% ObjC parity (254 tests / 46 suites passing under `-strict-concurrency=complete`).
+- **Platforms:** macOS (AppKit + SceneKit + AVFoundation), macCatalyst, iOS, tvOS, watchOS, and visionOS targets are available via SwiftPM resources.
+- **Optional GPUImage:** GPUImage helpers compile when the dependency is supplied (`canImport(GPUImage)` guards remain in place).
 
 ## Installation
 
-CocoaLUT is available through [CocoaPods](http://cocoapods.org), to install
-it simply add the following line to your Podfile:
+### Swift Package Manager (recommended)
 
-    pod 'CocoaLUT'
+Add CocoaLUT to your `Package.swift`:
 
-## Related
+```swift
+// swift-tools-version: 6.0
+import PackageDescription
 
-This project uses [LUTSpec](http://github.com/wilg/LUTSpec) for UTI standardization.
+let package = Package(
+    name: "MyApp",
+    dependencies: [
+        .package(url: "https://github.com/makoni/CocoaLUT-swift.git", branch: "swift")
+    ],
+    targets: [
+        .target(
+            name: "MyApp",
+            dependencies: [
+                .product(name: "CocoaLUTSwift", package: "CocoaLUT-swift")
+            ])
+    ]
+)
+```
 
-Do you need something like this in Python? Try [pylut](http://github.com/gregcotten/pylut).
+Then fetch dependencies and run the test suite:
 
+```bash
+swift build
+swift test -Xswiftc -strict-concurrency=complete
+```
+
+## Quick start
+
+```swift
+import CocoaLUTSwift
+import CoreImage
+
+let cubeURL = Bundle.main.url(forResource: "Linear_to_BMDFilm", withExtension: "cube")!
+let lut = try CocoaLUT.readLUT(from: cubeURL)
+
+// Apply to a CIImage using the Core Image pipeline
+let context = CIContext()
+if let output = lut.process(ciImage: inputImage) {
+    let rendered = context.createCGImage(output, from: output.extent)
+    // use rendered image
+}
+
+// Write the LUT back out as a Resolve-compatible cube file
+let outputURL = FileManager.default.temporaryDirectory.appendingPathComponent("custom.cube")
+try CocoaLUT.write(lut: lut, to: outputURL, formatterID: LUTFormatterIdentifier.cube)
+```
+
+## Format support
+| Type | Formats |
+| ---- | --------|
+| 3D LUT | Cube (`.cube`), Autodesk (`.3dl`), Quantel (`.txt`), FSI DAT (`.dat`), Clipster (`.xml`, `.txt`), Nucoda CMS (`.cms`), Resolve DAT (`.dat`), DaVinci (`.davlut`), Unwrapped texture images (`.tiff`, `.dpx`, `.png`), CMS test pattern images (`.tiff`, `.dpx`, `.png`), Hald CLUT images (`.tiff`, `.dpx`, `.png`), ICC profiles (`.icc`, `.icm`, `.pf`, `.prof` on macOS)
+| 1D LUT | Cube (`.cube`), Nucoda CMS (`.cms`), DaVinci ILUT/OLUT (`.ilut`, `.olut`), Discreet (`.lut`), Arri Look tone map (`.xml`)
+
+All formatters are registered through `LUTFormatterRegistry`, so facade calls such as `CocoaLUT.readLUT` automatically pick the correct reader based on file extension or identifier.
+
+## More capabilities
+
+- Apply LUTs to `CIImage`, `NSImage`, and `UIImage` with built-in color space handling.
+- Generate `CIColorCube` filters and platform preview helpers — SceneKit point clouds with cube outline and R/G/B axes (`LUTPreviewScene`), AVPlayer-backed video preview with masked LUT comparison (`LUTPreviewView`), and a 1D curve graph with mouse-tracking overlay and `LUT1DGraphViewController` (`LUT1DGraphView`).
+- Resize, combine, clamp, remap, offset, and otherwise transform LUTs in-memory.
+- Reverse monotonic 1D LUTs and apply LUT3D transformations: `applyingFalseColor()`, `extractingContrastOnly()`, `extractingColorShift(strictness:)`, `convertingToMono(method:)` with five Rec.709-aware methods, `applyingColorMatrix(columnMajor:)`, and `swizzling1DChannels(method:strictness:)`.
+- Convert LUT color spaces and color temperatures using the ported color science utilities (21 predefined color spaces, 17 transfer functions, Bradford adaptation, Robertson-approximation white points).
+
+## Contributing
+
+- Use `swift test -Xswiftc -strict-concurrency=complete` before opening PRs.
+- Follow the modern Swift guidelines documented in `.github/instructions`.
 
 ## Authors
 
-- [Wil Gieseler](https://github.com/wilg) (@wilg)
-- [Greg Cotten](https://github.com/gregcotten) (@gregcotten)
-- [Tashi Trieu](https://github.com/tashdor) (@tashitrieu) - Additional Color Science
+- [Wil Gieseler](https://github.com/wilg)
+- [Greg Cotten](https://github.com/gregcotten)
+- [Tashi Trieu](https://github.com/tashdor) — Color science
+- [Various contributors](https://github.com/makoni/CocoaLUT-swift/graphs/contributors)
 
 ## License
 
-CocoaLUT is available under the MIT license. See the LICENSE file for more info.
+CocoaLUT is available under the MIT license. See [LICENSE](LICENSE) for details.
 
