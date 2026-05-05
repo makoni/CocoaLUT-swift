@@ -5,17 +5,27 @@
 // environment variable. When the variable is unset or the directory is
 // missing the suite no-ops, so this file is safe to ship in CI.
 //
+// macOS exercises the NSImage path (which is what generated the goldens).
+// iOS exercises the same Core Image filter via process(ciImage:) directly,
+// because UIImage(ciImage:) round-trips need an extra render pass — going
+// CIImage→CIImage avoids that and still asserts the LUT maths match.
+//
 // Goal: catch any pixel drift between ports while we audit colour parity.
 // Once we're confident the port matches, this suite can be commented out
 // or removed.
 
-#if canImport(AppKit) && canImport(CoreImage)
-import AppKit
+#if canImport(CoreImage)
 import CoreGraphics
 import CoreImage
 import Foundation
 import Testing
 @testable import CocoaLUTSwift
+
+#if canImport(AppKit) && !targetEnvironment(macCatalyst)
+import AppKit
+#elseif canImport(UIKit)
+import UIKit
+#endif
 
 @Suite(.serialized)
 struct LUTGoldenIntegrationTests {
@@ -104,19 +114,34 @@ struct LUTGoldenIntegrationTests {
 
     @MainActor
     private func renderFiltered(input inputURL: URL, lut: LUT) throws -> [UInt8] {
+        #if canImport(AppKit) && !targetEnvironment(macCatalyst)
         let nsImage = try #require(NSImage(contentsOf: inputURL), "could not load input PNG")
         guard let processed = lut.process(nsImage: nsImage, renderPath: .coreImage) else {
             Issue.record("process(nsImage:) returned nil")
             return []
         }
         return try bytes(of: processed)
+        #elseif canImport(UIKit)
+        let inputCIImage = try #require(CIImage(contentsOf: inputURL), "could not load input PNG")
+        guard let outputCIImage = lut.process(ciImage: inputCIImage) else {
+            Issue.record("process(ciImage:) returned nil")
+            return []
+        }
+        return try ciImageBytes(outputCIImage, extent: inputCIImage.extent)
+        #endif
     }
 
     private func loadDeviceRGBA8(url: URL) throws -> [UInt8] {
+        #if canImport(AppKit) && !targetEnvironment(macCatalyst)
         let image = try #require(NSImage(contentsOf: url))
         return try bytes(of: image)
+        #elseif canImport(UIKit)
+        let ciImage = try #require(CIImage(contentsOf: url))
+        return try ciImageBytes(ciImage, extent: ciImage.extent)
+        #endif
     }
 
+    #if canImport(AppKit) && !targetEnvironment(macCatalyst)
     /// Renders an NSImage into a deviceRGB / RGBA8 buffer with origin at
     /// (0,0). All goldens and Swift outputs flow through this same path so
     /// PNG decoding quirks (gAMA chunks, color-profile reinterpretation)
@@ -146,5 +171,40 @@ struct LUTGoldenIntegrationTests {
         }
         return data
     }
+    #endif
+
+    #if canImport(UIKit)
+    /// Renders a CIImage into a deviceRGB / RGBA8 buffer with origin at
+    /// (0,0). Used on iOS where round-tripping through UIImage(ciImage:)
+    /// would require an extra render pass before `cgImage` becomes
+    /// non-nil — going CIImage → CIContext → CGImage avoids that without
+    /// changing what's being asserted (the LUT's Core Image filter output).
+    private func ciImageBytes(_ ciImage: CIImage, extent: CGRect) throws -> [UInt8] {
+        let width = Int(round(extent.width))
+        let height = Int(round(extent.height))
+        let bytesPerRow = width * 4
+        var data = [UInt8](repeating: 0, count: bytesPerRow * height)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let info = CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+        try data.withUnsafeMutableBufferPointer { buffer in
+            guard let ctx = CGContext(data: buffer.baseAddress,
+                                       width: width,
+                                       height: height,
+                                       bitsPerComponent: 8,
+                                       bytesPerRow: bytesPerRow,
+                                       space: colorSpace,
+                                       bitmapInfo: info) else {
+                throw NSError(domain: "Goldens", code: 1, userInfo: nil)
+            }
+            let ciContext = CIContext(options: [.workingColorSpace: colorSpace,
+                                                .outputColorSpace: colorSpace])
+            guard let cgImage = ciContext.createCGImage(ciImage, from: extent) else {
+                throw NSError(domain: "Goldens", code: 2, userInfo: nil)
+            }
+            ctx.draw(cgImage, in: CGRect(origin: .zero, size: extent.size))
+        }
+        return data
+    }
+    #endif
 }
 #endif
