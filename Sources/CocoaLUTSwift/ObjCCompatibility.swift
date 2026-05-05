@@ -83,9 +83,15 @@ public extension LUT {
     }
 
     /// ObjC-style compatibility method for Core Image filter creation.
+    /// Mirrors `-[LUT coreImageFilterWithCurrentColorSpace]` (LUT.m:659-672) which
+    /// always feeds `CGColorSpaceCreateDeviceRGB()` into the filter so the LUT is
+    /// looked up in gamma-encoded device RGB. Passing `nil` instead would build a
+    /// plain `CIColorCube` that operates in Core Image's linear working space —
+    /// the same input then samples the LUT in linear coordinates and the visible
+    /// effect comes out dramatically weaker than the ObjC original.
     #if canImport(CoreImage)
     func coreImageFilterWithCurrentColorSpace() throws -> CIFilter {
-        try coreImageFilter(colorSpace: nil)
+        try coreImageFilter(colorSpace: CGColorSpaceCreateDeviceRGB())
     }
     #endif
 }
