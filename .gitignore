@@ -20,8 +20,8 @@ DerivedData
 .swiftpm/
 objc/
 
-# Local-only port tracking — see PORT_TODO.md.
-PORT_TODO.md
+# Local debug binary — ad-hoc NSBitmapImageRep/CGImageSource probe.
+debug_nsimage
 
 #CocoaPods
 Pods
