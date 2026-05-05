@@ -1,8 +1,28 @@
 import Testing
+#if canImport(CoreImage)
+import CoreImage
+import CoreGraphics
+#endif
 @testable import CocoaLUTSwift
 
 @Suite(.serialized)
 struct ObjCCompatibilityTests {
+#if canImport(CoreImage)
+    @Test
+    func testCoreImageFilterWithCurrentColorSpaceMatchesObjCBehaviour() throws {
+        // ObjC `-coreImageFilterWithCurrentColorSpace` always builds a
+        // CIColorCubeWithColorSpace filter using deviceRGB. A previous version of
+        // this Swift shim passed `nil` here, which silently downgraded the filter
+        // to a plain CIColorCube and produced visibly weaker LUT effects in
+        // hosting apps (Camo Studio's BACK_MACHINE filter looked desaturated).
+        let lut = LUT.identity(size: 4, inputLowerBound: 0, inputUpperBound: 1)
+        let filter = try lut.coreImageFilterWithCurrentColorSpace()
+        #expect(filter.name == "CIColorCubeWithColorSpace")
+        #expect(filter.value(forKey: "inputColorSpace") != nil)
+    }
+#endif
+
+
     @Test
     func testLUTDataRepresentationRoundTrip3D() throws {
         let identity = LUT.identity(size: 17,
