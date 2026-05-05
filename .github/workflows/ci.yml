@@ -14,19 +14,17 @@ concurrency:
 jobs:
   test-macos:
     name: Test (macOS, Swift 6)
-    runs-on: macos-15
+    runs-on: macos-26
     # Hard cap so a hang fails fast instead of burning a full hour.
     timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode 26.3
-        # macos-15's default Xcode 16.4 ships Swift 6.1.2, whose Swift Testing
-        # console reporter hangs indefinitely on this suite in CI. Pin to
-        # Xcode 26.3 (Swift 6.x latest) which matches the local toolchain
-        # the package is developed against.
-        run: sudo xcode-select -s /Applications/Xcode_26.3.app
+      - name: Select Xcode 26.4.1
+        # macos-26 ships several Xcode 26.x versions; pin to 26.4.1 — the
+        # newest non-beta and the toolchain we develop against locally.
+        run: sudo xcode-select -s /Applications/Xcode_26.4.1.app
 
       - name: Show toolchain
         run: |
@@ -44,14 +42,15 @@ jobs:
 
   test-ios:
     name: Test (iOS Simulator)
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode 26.3
-        run: sudo xcode-select -s /Applications/Xcode_26.3.app
+      - name: Select Xcode 26.4.1
+        # Same toolchain as the macOS job for consistency.
+        run: sudo xcode-select -s /Applications/Xcode_26.4.1.app
 
       - name: Show toolchain
         run: |
