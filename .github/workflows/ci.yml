@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
+  test-macos:
     name: Test (macOS, Swift 6)
     runs-on: macos-15
     steps:
@@ -34,3 +34,27 @@ jobs:
 
       - name: Test
         run: swift test -Xswiftc -strict-concurrency=complete
+
+  test-ios:
+    name: Test (iOS Simulator)
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes | grep -E "^iOS" || true
+
+      - name: Test on iOS Simulator
+        # `name=iPhone 16` is the most recent simulator commonly present in
+        # the macos-15 image; `OS=latest` lets the runner pick whichever
+        # iOS runtime ships with its Xcode without us having to track point
+        # releases.
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme CocoaLUTSwift \
+            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" \
+            -derivedDataPath .build-ios
