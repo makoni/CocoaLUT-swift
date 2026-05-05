@@ -72,6 +72,47 @@ struct LUTPreviewImageGeneratorTests {
         #expect(abs(unmasked.blueComponent - 0.5) < 0.15)
     }
 
+    @Test
+    func testRenderReturnsNilForZeroTargetSize() {
+        let lut = LUT3D.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
+        let generator = LUTPreviewImageGenerator(lut: lut)
+        let image = Self.makeSolidImage(color: .red, size: NSSize(width: 32, height: 32))
+        // Zero target ⇒ scaled size is 0×0 ⇒ guard returns nil rather than
+        // throwing or rendering an empty bitmap that would crash downstream.
+        #expect(generator.render(from: image, targetSize: CGSize(width: 0, height: 0)) == nil)
+    }
+
+    @Test
+    func testRenderHandlesNonSquareAspectRatio() throws {
+        let lut = LUT3D.identity(size: 2, inputLowerBound: 0, inputUpperBound: 1)
+        let generator = LUTPreviewImageGenerator(lut: lut)
+        let image = Self.makeSolidImage(color: NSColor(calibratedWhite: 0.5, alpha: 1),
+                                         size: NSSize(width: 320, height: 90))
+        let preview = try #require(generator.render(from: image, targetSize: CGSize(width: 64, height: 64)))
+        // Aspect-fit scaling should preserve 32:9 ratio inside a 64-square box —
+        // a square output would mean we overflowed onto the unused area.
+        #expect(preview.size.width >= preview.size.height)
+        #expect(abs(preview.size.width / preview.size.height - 320.0 / 90.0) < 0.05)
+    }
+
+    @Test
+    func testIdentityLUTRenderProducesSymmetricSplit() throws {
+        // Identity LUT means processed = base, so both halves of the diagonal
+        // mask should be visually identical (modulo the 50% alpha diagonal
+        // stroke that overdraws the line itself).
+        let identityLUT = LUT3D.identity(size: 4, inputLowerBound: 0, inputUpperBound: 1)
+        let generator = LUTPreviewImageGenerator(lut: identityLUT)
+        let image = Self.makeSolidImage(color: NSColor(calibratedWhite: 0.5, alpha: 1),
+                                         size: NSSize(width: 40, height: 40))
+        let preview = try #require(generator.render(from: image, targetSize: CGSize(width: 40, height: 40)))
+        let bitmap = try #require(preview.bitmapImageRep())
+        let masked = try #require(bitmap.colorAt(x: 4, y: 4))
+        let unmasked = try #require(bitmap.colorAt(x: bitmap.pixelsWide - 4, y: bitmap.pixelsHigh - 4))
+        #expect(abs(masked.redComponent - unmasked.redComponent) < 0.05)
+        #expect(abs(masked.greenComponent - unmasked.greenComponent) < 0.05)
+        #expect(abs(masked.blueComponent - unmasked.blueComponent) < 0.05)
+    }
+
     private static func makeSolidImage(color: NSColor, size: NSSize) -> NSImage {
         let image = NSImage(size: size)
         image.lockFocus()
