@@ -23,5 +23,11 @@ objc/
 # Local debug binary — ad-hoc NSBitmapImageRep/CGImageSource probe.
 debug_nsimage
 
+# One-shot ObjC golden generator and its outputs. The script depends on
+# the git-ignored objc/ tree and a developer-supplied filter checkout, so
+# it isn't usable from a fresh clone.
+scripts/
+Tests/CocoaLUTSwiftTests/Goldens/
+
 #CocoaPods
 Pods

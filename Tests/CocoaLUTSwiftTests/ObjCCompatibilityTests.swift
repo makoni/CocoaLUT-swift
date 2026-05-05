@@ -14,7 +14,7 @@ struct ObjCCompatibilityTests {
         // CIColorCubeWithColorSpace filter using deviceRGB. A previous version of
         // this Swift shim passed `nil` here, which silently downgraded the filter
         // to a plain CIColorCube and produced visibly weaker LUT effects in
-        // hosting apps (Camo Studio's BACK_MACHINE filter looked desaturated).
+        // hosting apps that rely on this shim.
         let lut = LUT.identity(size: 4, inputLowerBound: 0, inputUpperBound: 1)
         let filter = try lut.coreImageFilterWithCurrentColorSpace()
         #expect(filter.name == "CIColorCubeWithColorSpace")
