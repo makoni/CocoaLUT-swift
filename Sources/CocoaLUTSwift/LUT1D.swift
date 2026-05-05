@@ -8,7 +8,7 @@ public struct LUT1D {
         case greenCopiedToRGB
         case blueCopiedToRGB
 
-        var displayName: String {
+        public var displayName: String {
             switch self {
             case .averageRGB:
                 return "Averaged RGB"
@@ -89,6 +89,28 @@ public struct LUT1D {
         let green = evaluateCurve(greenCurve, for: color.green)
         let blue = evaluateCurve(blueCurve, for: color.blue)
         return LUTColor.color(red: red, green: green, blue: blue)
+    }
+
+    /// Sample each channel curve at a continuous index in the range `[0, size-1]`.
+    /// Mirrors ObjC `-colorAtInterpolatedR:g:b:` for a LUT1D.
+    public func colorAtInterpolated(red r: Double, green g: Double, blue b: Double) -> LUTColor {
+        let red = evaluateCurve(redCurve, atNormalizedIndex: clampedIndex(r))
+        let green = evaluateCurve(greenCurve, atNormalizedIndex: clampedIndex(g))
+        let blue = evaluateCurve(blueCurve, atNormalizedIndex: clampedIndex(b))
+        return LUTColor.color(red: red, green: green, blue: blue)
+    }
+
+    /// Identity colour at a continuous index — mirrors ObjC `-identityColorAtR:g:b:`.
+    public func identityColorAtInterpolated(red r: Double, green g: Double, blue b: Double) -> LUTColor {
+        let span = inputUpperBound - inputLowerBound
+        let denominator = max(Double(size - 1), 1)
+        return LUTColor.color(red: inputLowerBound + clampedIndex(r) / denominator * span,
+                              green: inputLowerBound + clampedIndex(g) / denominator * span,
+                              blue: inputLowerBound + clampedIndex(b) / denominator * span)
+    }
+
+    private func clampedIndex(_ index: Double) -> Double {
+        LUTMath.clamp(index, lower: 0, upper: Double(size - 1))
     }
 
     public func resized(to newSize: Int) -> LUT1D {

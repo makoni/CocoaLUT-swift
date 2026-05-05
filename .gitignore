@@ -18,6 +18,10 @@ DerivedData
 
 .build/
 .swiftpm/
+objc/
+
+# Local-only port tracking — see PORT_TODO.md.
+PORT_TODO.md
 
 #CocoaPods
 Pods

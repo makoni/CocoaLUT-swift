@@ -30,6 +30,45 @@ struct LUTPreviewSceneTests {
     }
 
     @Test
+    func testSceneHasAxesAndCubeOutlineAfterBuild() {
+        let lut = LUT3D.identity(size: 3, inputLowerBound: 0, inputUpperBound: 1)
+        let scene = LUTPreviewScene.scene(for: lut)
+        #expect(scene.axes != nil)
+        #expect(scene.cubeOutline != nil)
+        // Both nodes are attached to root.
+        #expect(scene.axes?.parent === scene.rootNode)
+        #expect(scene.cubeOutline?.parent === scene.rootNode)
+    }
+
+    @Test
+    func testCubeOutlineHasTwelveEdges() {
+        let lut = LUT3D.identity(size: 3, inputLowerBound: 0, inputUpperBound: 1)
+        let scene = LUTPreviewScene.scene(for: lut)
+        // 12 edges (4 along X, 4 along Y, 4 along Z).
+        #expect(scene.cubeOutline?.childNodes.count == 12)
+    }
+
+    @Test
+    func testAxesHasSixChildren() {
+        let lut = LUT3D.identity(size: 3, inputLowerBound: 0, inputUpperBound: 1)
+        let scene = LUTPreviewScene.scene(for: lut)
+        // 3 axis cylinders + 3 cone pointers.
+        #expect(scene.axes?.childNodes.count == 6)
+    }
+
+    @Test
+    func testCubeAndAxesOpacityMatchObjC() {
+        let lut = LUT3D.identity(size: 3, inputLowerBound: 0, inputUpperBound: 1)
+        let scene = LUTPreviewScene.scene(for: lut)
+        if let cube = scene.cubeOutline {
+            #expect(abs(Double(cube.opacity) - 0.3) < 1e-6)
+        }
+        if let axes = scene.axes {
+            #expect(abs(Double(axes.opacity) - 0.5) < 1e-6)
+        }
+    }
+
+    @Test
     func testSceneWithUpdatedLUTReusesExistingNodes() {
         let original = LUT3D.identity(size: 4, inputLowerBound: 0, inputUpperBound: 1)
         let scene = LUTPreviewScene.scene(for: original)

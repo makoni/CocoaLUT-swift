@@ -1,6 +1,24 @@
 import Foundation
 
 public struct LUT3D {
+    public enum MonoConversionMethod: CaseIterable, Sendable {
+        case averageRGB
+        case rec709WeightedRGB
+        case redCopiedToRGB
+        case greenCopiedToRGB
+        case blueCopiedToRGB
+
+        public var displayName: String {
+            switch self {
+            case .averageRGB: return "Averaged RGB"
+            case .rec709WeightedRGB: return "Rec. 709 Weighted RGB"
+            case .redCopiedToRGB: return "Copy Red Channel"
+            case .greenCopiedToRGB: return "Copy Green Channel"
+            case .blueCopiedToRGB: return "Copy Blue Channel"
+            }
+        }
+    }
+
     private var lattice: LUT
 
     public init(size: Int,
@@ -23,6 +41,112 @@ public struct LUT3D {
         LUT3D(lattice: LUT.identity(size: size,
                                      inputLowerBound: inputLowerBound,
                                      inputUpperBound: inputUpperBound))
+    }
+
+    public static func falseColor(size: Int) -> LUT3D {
+        // Mirrors ObjC `+[LUT3D LUT3DFromFalseColorWithSize:]` (LUT3D.m:80-119).
+        // Values resolve [NSColor purpleColor]/etc to their deviceRGB components.
+        let purple = LUTColor.color(red: 0.5, green: 0, blue: 0.5)
+        let blue = LUTColor.color(red: 0, green: 0, blue: 1)
+        let green = LUTColor.color(red: 0, green: 1, blue: 0)
+        let pink = LUTColor.color(red: 1, green: 0.753, blue: 0.796)
+        let yellow = LUTColor.color(red: 1, green: 1, blue: 0)
+        let red = LUTColor.color(red: 1, green: 0, blue: 0)
+
+        var lattice = LUT.identity(size: size, inputLowerBound: 0, inputUpperBound: 1)
+        for r in 0..<size {
+            for g in 0..<size {
+                for b in 0..<size {
+                    let identityColor = lattice.identityColorAt(r: Double(r), g: Double(g), b: Double(b))
+                    let lum = identityColor.luminanceRec709()
+                    let bucket: LUTColor
+                    if lum <= 0.025 {
+                        bucket = purple
+                    } else if lum <= 0.04 {
+                        bucket = blue
+                    } else if lum >= 0.38 && lum <= 0.42 {
+                        bucket = green
+                    } else if lum >= 0.52 && lum <= 0.56 {
+                        bucket = pink
+                    } else if lum >= 0.97 && lum <= 0.99 {
+                        bucket = yellow
+                    } else if lum > 0.99 && lum <= 0.100 {
+                        // Mirrors ObjC bug at LUT3D.m:111 (`lum > .99 && lum <= .100`)
+                        // — never fires because 0.100 == 0.1. Kept for parity.
+                        bucket = red
+                    } else {
+                        bucket = LUTColor.uniform(lum)
+                    }
+                    lattice.setColor(bucket, r: r, g: g, b: b)
+                }
+            }
+        }
+        return LUT3D(lattice: lattice)
+    }
+
+    public func applyingColorMatrix(columnMajor matrix: (Double, Double, Double, Double, Double, Double, Double, Double, Double)) -> LUT3D {
+        // Mirrors `-LUT3DByApplyingColorMatrixColumnMajorM00:..M22:` (LUT3D.m:221-249).
+        var newLattice = lattice
+        for r in 0..<size {
+            for g in 0..<size {
+                for b in 0..<size {
+                    let transformed = lattice.colorAt(r: r, g: g, b: b)
+                        .applyingColorMatrix(columnMajor: matrix)
+                    newLattice.setColor(transformed, r: r, g: g, b: b)
+                }
+            }
+        }
+        return LUT3D(lattice: newLattice)
+    }
+
+    public func convertingToMono(method: MonoConversionMethod) -> LUT3D {
+        // Mirrors `-LUT3DByConvertingToMonoWithConversionMethod:` (LUT3D.m:263-298).
+        let convert: (LUTColor) -> LUTColor = {
+            switch method {
+            case .averageRGB:
+                return { color in
+                    let avg = (color.red + color.green + color.blue) / 3.0
+                    return LUTColor.uniform(avg)
+                }
+            case .rec709WeightedRGB:
+                return { color in
+                    color.changingSaturation(0, lumaR: 0.2126, lumaG: 0.7152, lumaB: 0.0722)
+                }
+            case .redCopiedToRGB:
+                return { color in LUTColor.uniform(color.red) }
+            case .greenCopiedToRGB:
+                return { color in LUTColor.uniform(color.green) }
+            case .blueCopiedToRGB:
+                return { color in LUTColor.uniform(color.blue) }
+            }
+        }()
+
+        var newLattice = lattice
+        for r in 0..<size {
+            for g in 0..<size {
+                for b in 0..<size {
+                    newLattice.setColor(convert(lattice.colorAt(r: r, g: g, b: b)), r: r, g: g, b: b)
+                }
+            }
+        }
+        return LUT3D(lattice: newLattice)
+    }
+
+    public func extractingContrastOnly() -> LUT3D {
+        // Mirrors `-LUT3DByExtractingContrastOnly` (LUT3D.m:205-207):
+        // collapse to diagonal 1D curves and re-expand into a 3D lattice.
+        toLUT1D().toLUT3D(size: size)
+    }
+
+    public func applyingFalseColor() -> LUT3D {
+        let falseColorLUT = LUT3D.falseColor(size: size).asLUT()
+        var combined = lattice.combined(with: falseColorLUT)
+        // `combined(with:)` copies the source's metadata; ensure title/desc forwards.
+        combined.title = title
+        combined.descriptionText = descriptionText
+        combined.metadata = metadata
+        combined.passthroughFileOptions = passthroughFileOptions
+        return LUT3D(lattice: combined)
     }
 
     public var title: String? {

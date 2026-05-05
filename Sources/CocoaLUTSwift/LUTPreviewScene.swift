@@ -124,6 +124,7 @@ public final class LUTPreviewScene: SCNScene {
         let range = (base.minimumOutputValue(), base.maximumOutputValue())
         let scene = LUTPreviewScene(lut: prepared, outputRange: range)
         scene.buildNodes(for: prepared)
+        scene.buildOverlay(for: prepared)
         return scene
     }
 
@@ -155,6 +156,140 @@ public final class LUTPreviewScene: SCNScene {
         self.dotGroup.removeFromParentNode()
         self.dotGroup = dotGroup
         rootNode.addChildNode(dotGroup)
+    }
+
+    private func buildOverlay(for lut: LUT3D) {
+        // Mirrors ObjC `+sceneForLUT:` (LUTPreviewScene.m:127-194) — match the radius
+        // formula and add the cube grid + axes node.
+        let span = max(lut.inputUpperBound - lut.inputLowerBound, 1)
+        let outputSpan = max(outputRange.max - outputRange.min, 1)
+        let dominantSpan = outputSpan > span ? outputSpan : span
+        let radius = 0.013 * dominantSpan
+        let axisLength = 1.2 * dominantSpan
+
+        let cube = Self.cubeOutline(inputLowerBound: lut.inputLowerBound,
+                                    inputUpperBound: lut.inputUpperBound,
+                                    radius: radius / 2.0)
+        cube.opacity = 0.3
+        cubeOutline?.removeFromParentNode()
+        cubeOutline = cube
+        rootNode.addChildNode(cube)
+
+        let axesNode = Self.axes(origin: SCNVector3Zero,
+                                 length: axisLength,
+                                 radius: radius / 2.0)
+        axesNode.opacity = 0.5
+        axes?.removeFromParentNode()
+        axes = axesNode
+        rootNode.addChildNode(axesNode)
+    }
+
+    /// Mirrors ObjC `+axesWithOrigin:length:radius:` (LUTPreviewScene.m:197-258).
+    /// Three coloured cylinders aligned to X/Y/Z plus three cone pointers at the tips.
+    private static func axes(origin: SCNVector3, length: Double, radius: Double) -> SCNNode {
+        let parent = SCNNode()
+        let pointerHeight = radius * 4.0
+        let pointerOffset = pointerHeight / 2.0
+        let halfPi = Double.pi / 2.0
+        let pi = Double.pi
+
+        func cylinder(color: NSColor) -> SCNCylinder {
+            let geo = SCNCylinder(radius: CGFloat(radius), height: CGFloat(length))
+            geo.firstMaterial?.diffuse.contents = color
+            return geo
+        }
+
+        func cone(color: NSColor) -> SCNCone {
+            let geo = SCNCone(topRadius: 0,
+                              bottomRadius: CGFloat(radius * 4.0),
+                              height: CGFloat(pointerHeight))
+            geo.firstMaterial?.diffuse.contents = color
+            return geo
+        }
+
+        let xAxis = SCNNode(geometry: cylinder(color: .red))
+        xAxis.position = SCNVector3(origin.x + CGFloat(length / 2.0), origin.y, origin.z)
+        xAxis.rotation = SCNVector4(0, 0, 1, CGFloat(halfPi))
+
+        let xPointer = SCNNode(geometry: cone(color: .red))
+        xPointer.position = SCNVector3(origin.x + CGFloat(length + pointerOffset),
+                                       origin.y,
+                                       origin.z)
+        xPointer.rotation = SCNVector4(0, 0, 1, CGFloat(halfPi))
+
+        let yAxis = SCNNode(geometry: cylinder(color: .green))
+        yAxis.position = SCNVector3(origin.x, origin.y + CGFloat(length / 2.0), origin.z)
+        // Cylinders default to vertical; rotation kept for parity with ObjC.
+        yAxis.rotation = SCNVector4(0, 1, 0, CGFloat(halfPi))
+
+        let yPointer = SCNNode(geometry: cone(color: .green))
+        yPointer.position = SCNVector3(origin.x,
+                                       origin.y + CGFloat(length + pointerOffset),
+                                       origin.z)
+        yPointer.rotation = SCNVector4(1, 0, 0, CGFloat(pi))
+
+        let zAxis = SCNNode(geometry: cylinder(color: .blue))
+        zAxis.position = SCNVector3(origin.x, origin.y, origin.z + CGFloat(length / 2.0))
+        zAxis.rotation = SCNVector4(1, 0, 0, CGFloat(halfPi))
+
+        let zPointer = SCNNode(geometry: cone(color: .blue))
+        zPointer.position = SCNVector3(origin.x,
+                                       origin.y,
+                                       origin.z + CGFloat(length + pointerOffset))
+        zPointer.rotation = SCNVector4(1, 0, 0, CGFloat(-halfPi))
+
+        parent.addChildNode(xAxis)
+        parent.addChildNode(xPointer)
+        parent.addChildNode(yAxis)
+        parent.addChildNode(yPointer)
+        parent.addChildNode(zAxis)
+        parent.addChildNode(zPointer)
+        return parent
+    }
+
+    /// Mirrors ObjC `+cubeOutlineWithInputLowerBound:inputUpperBound:radius:`
+    /// (LUTPreviewScene.m:260-343). 12 cylinders (4 along X, 4 along Y, 4 along Z).
+    private static func cubeOutline(inputLowerBound: Double,
+                                     inputUpperBound: Double,
+                                     radius: Double) -> SCNNode {
+        let parent = SCNNode()
+        let length = inputUpperBound - inputLowerBound
+        let mid = inputLowerBound + length / 2.0
+
+        let geometry = SCNCylinder(radius: CGFloat(radius / 2.0), height: CGFloat(length))
+        geometry.firstMaterial?.diffuse.contents = NSColor.black
+
+        func node(at position: SCNVector3, rotation: SCNVector4? = nil) -> SCNNode {
+            let n = SCNNode(geometry: geometry)
+            n.position = position
+            if let rotation = rotation {
+                n.rotation = rotation
+            }
+            return n
+        }
+
+        let xRotation = SCNVector4(0, 0, 1, CGFloat(Double.pi / 2.0))
+        let zRotation = SCNVector4(1, 0, 0, CGFloat(Double.pi / 2.0))
+
+        // X-axis edges (lying along X, rotated 90° around Z).
+        parent.addChildNode(node(at: SCNVector3(mid, inputLowerBound, inputLowerBound), rotation: xRotation))
+        parent.addChildNode(node(at: SCNVector3(mid, inputUpperBound, inputLowerBound), rotation: xRotation))
+        parent.addChildNode(node(at: SCNVector3(mid, inputLowerBound, inputUpperBound), rotation: xRotation))
+        parent.addChildNode(node(at: SCNVector3(mid, inputUpperBound, inputUpperBound), rotation: xRotation))
+
+        // Y-axis edges (default cylinder orientation is along Y).
+        parent.addChildNode(node(at: SCNVector3(inputLowerBound, mid, inputLowerBound)))
+        parent.addChildNode(node(at: SCNVector3(inputUpperBound, mid, inputLowerBound)))
+        parent.addChildNode(node(at: SCNVector3(inputLowerBound, mid, inputUpperBound)))
+        parent.addChildNode(node(at: SCNVector3(inputUpperBound, mid, inputUpperBound)))
+
+        // Z-axis edges (rotated 90° around X).
+        parent.addChildNode(node(at: SCNVector3(inputLowerBound, inputLowerBound, mid), rotation: zRotation))
+        parent.addChildNode(node(at: SCNVector3(inputUpperBound, inputLowerBound, mid), rotation: zRotation))
+        parent.addChildNode(node(at: SCNVector3(inputLowerBound, inputUpperBound, mid), rotation: zRotation))
+        parent.addChildNode(node(at: SCNVector3(inputUpperBound, inputUpperBound, mid), rotation: zRotation))
+
+        return parent
     }
 
     private static func prepare(_ lut: LUT3D) -> LUT3D {

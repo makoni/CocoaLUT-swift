@@ -3,24 +3,48 @@ import AppKit
 
 @MainActor
 public final class LUT1DGraphView: NSView {
-    public enum Interpolation: Int {
+    public enum Interpolation: Int, CaseIterable, Sendable {
         case linear
+
+        public var displayName: String {
+            switch self {
+            case .linear: return "Linear"
+            }
+        }
     }
 
     public var lut: LUT1D? {
         didSet {
             cachedRange = computeRange(for: lut)
+            if let lut {
+                onLUTDidChange?(lut)
+            }
             needsDisplay = true
         }
     }
 
     public var interpolation: Interpolation = .linear {
-        didSet { needsDisplay = true }
+        didSet {
+            if interpolation != oldValue {
+                needsDisplay = true
+            }
+        }
     }
 
     public private(set) var minimumOutputValue: Double = 0
     public private(set) var maximumOutputValue: Double = 1
 
+    /// Mirrors ObjC `LUT1DGraphView.mousePoint` (LUT1DGraphView.h:20).
+    /// Position in window coordinates as delivered by `mouseMoved:`.
+    public var mousePoint: NSPoint = .zero {
+        didSet { needsDisplay = true }
+    }
+    public private(set) var mouseIsIn: Bool = false
+
+    /// Fires whenever a non-nil LUT is assigned. Mirrors ObjC `lutDidChange`.
+    public var onLUTDidChange: ((LUT1D) -> Void)?
+
+    private var trackingArea: NSTrackingArea?
     private var cachedRange: (min: Double, max: Double) = (0, 1) {
         didSet {
             minimumOutputValue = cachedRange.min
@@ -43,6 +67,62 @@ public final class LUT1DGraphView: NSView {
     private func commonInit() {
         wantsLayer = true
         layer?.backgroundColor = NSColor.white.cgColor
+        installTrackingArea()
+    }
+
+    public override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        installTrackingArea()
+    }
+
+    private func installTrackingArea() {
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        let area = NSTrackingArea(rect: bounds,
+                                  options: [.mouseEnteredAndExited, .mouseMoved, .activeInKeyWindow, .inVisibleRect],
+                                  owner: self,
+                                  userInfo: nil)
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    public override func mouseMoved(with event: NSEvent) {
+        let local = convert(event.locationInWindow, from: nil)
+        mousePoint = local
+    }
+
+    public override func mouseEntered(with event: NSEvent) {
+        mouseIsIn = true
+        needsDisplay = true
+    }
+
+    public override func mouseExited(with event: NSEvent) {
+        mouseIsIn = false
+        needsDisplay = true
+    }
+
+    /// Mirrors ObjC `-indexLUTColorAndIdentityLUTColorFromCurrentMousePoint`
+    /// but returns a typed tuple. Returns `nil` when no LUT is set.
+    public func lookupColors(at point: NSPoint) -> (output: LUTColor, identity: LUTColor)? {
+        guard let lut else { return nil }
+        let xOrigin = bounds.origin.x
+        let pixelWidth = bounds.size.width
+        guard pixelWidth > 0 else { return nil }
+
+        let xPosition = LUTMath.clamp(Double(point.x), lower: 0, upper: Double(pixelWidth))
+        let interpolatedIndex = LUTMath.remapNoError(xPosition,
+                                                     inputLow: Double(xOrigin),
+                                                     inputHigh: Double(pixelWidth - xOrigin),
+                                                     outputLow: 0,
+                                                     outputHigh: Double(lut.size - 1))
+        let output = lut.colorAtInterpolated(red: interpolatedIndex,
+                                             green: interpolatedIndex,
+                                             blue: interpolatedIndex)
+        let identity = lut.identityColorAtInterpolated(red: interpolatedIndex,
+                                                       green: interpolatedIndex,
+                                                       blue: interpolatedIndex)
+        return (output, identity)
     }
 
     public override func draw(_ dirtyRect: NSRect) {
@@ -60,6 +140,71 @@ public final class LUT1DGraphView: NSView {
         if interpolation == .linear {
             drawCurves(for: lut, in: context)
         }
+
+        if mouseIsIn {
+            drawOverlay(for: lut, in: context, at: mousePoint, thickness: 2.0, opacity: 0.8)
+        }
+    }
+
+    /// Mirrors ObjC `-drawOverlayInContext:inRect:withPoint:thickness:opacity:`
+    /// (LUT1DGraphView.m:179-251).
+    private func drawOverlay(for lut: LUT1D,
+                             in context: CGContext,
+                             at point: NSPoint,
+                             thickness: CGFloat,
+                             opacity: CGFloat) {
+        let xOrigin = bounds.origin.x
+        let yOrigin = bounds.origin.y
+        let pixelWidth = bounds.size.width
+        let pixelHeight = bounds.size.height
+        let xPosition = round(point.x)
+        if xPosition < xOrigin || xPosition > xOrigin + pixelWidth {
+            return
+        }
+
+        let interpolatedIndex = LUTMath.remapNoError(Double(xPosition),
+                                                     inputLow: Double(xOrigin),
+                                                     inputHigh: Double(pixelWidth - xOrigin),
+                                                     outputLow: 0,
+                                                     outputHigh: Double(lut.size - 1))
+        let color = lut.colorAtInterpolated(red: interpolatedIndex,
+                                            green: interpolatedIndex,
+                                            blue: interpolatedIndex)
+        let lower = min(cachedRange.min, 0)
+        let upper = max(cachedRange.max, 1)
+        let yMin = Double(yOrigin)
+        let yMax = Double(yOrigin + pixelHeight)
+        let redY = round(LUTMath.remapNoError(color.red, inputLow: lower, inputHigh: upper, outputLow: yMin, outputHigh: yMax))
+        let greenY = round(LUTMath.remapNoError(color.green, inputLow: lower, inputHigh: upper, outputLow: yMin, outputHigh: yMax))
+        let blueY = round(LUTMath.remapNoError(color.blue, inputLow: lower, inputHigh: upper, outputLow: yMin, outputHigh: yMax))
+
+        context.saveGState()
+        defer { context.restoreGState() }
+        context.setLineWidth(thickness)
+
+        context.setStrokeColor(red: 0, green: 0, blue: 0, alpha: opacity * 0.5)
+        context.beginPath()
+        context.move(to: CGPoint(x: xPosition, y: yOrigin))
+        context.addLine(to: CGPoint(x: xPosition, y: yOrigin + pixelHeight))
+        context.strokePath()
+
+        context.setStrokeColor(red: 1, green: 0, blue: 0, alpha: opacity)
+        context.beginPath()
+        context.move(to: CGPoint(x: xOrigin, y: redY))
+        context.addLine(to: CGPoint(x: xOrigin + pixelWidth, y: redY))
+        context.strokePath()
+
+        context.setStrokeColor(red: 0, green: 1, blue: 0, alpha: opacity)
+        context.beginPath()
+        context.move(to: CGPoint(x: xOrigin, y: greenY))
+        context.addLine(to: CGPoint(x: xOrigin + pixelWidth, y: greenY))
+        context.strokePath()
+
+        context.setStrokeColor(red: 0, green: 0, blue: 1, alpha: opacity)
+        context.beginPath()
+        context.move(to: CGPoint(x: xOrigin, y: blueY))
+        context.addLine(to: CGPoint(x: xOrigin + pixelWidth, y: blueY))
+        context.strokePath()
     }
 
     private func computeRange(for lut: LUT1D?) -> (Double, Double) {
@@ -195,6 +340,67 @@ public final class LUT1DGraphView: NSView {
         } else {
             path.line(to: point)
         }
+    }
+}
+
+/// Mirrors ObjC `LUT1DGraphViewController` (LUT1DGraphView.h:33-45).
+/// Shows the LUT in an embedded `LUT1DGraphView` and exposes input/output colors
+/// at the current mouse position via callback bindings.
+@MainActor
+public final class LUT1DGraphViewController: NSViewController {
+    public private(set) var graphView: LUT1DGraphView
+
+    /// Identity colour at the current mouse position. Updated on every mouse move.
+    public private(set) var inputColor: NSColor?
+
+    /// Transformed (LUT) colour at the current mouse position.
+    public private(set) var outputColor: NSColor?
+
+    /// Fired whenever the mouse moves and `inputColor`/`outputColor` change.
+    public var onColorsAtMousePointChanged: ((_ input: NSColor?, _ output: NSColor?) -> Void)?
+
+    public init(graphView: LUT1DGraphView = LUT1DGraphView(frame: NSRect(x: 0, y: 0, width: 320, height: 240))) {
+        self.graphView = graphView
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    public required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    public override func loadView() {
+        view = graphView
+    }
+
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        graphView.onLUTDidChange = { [weak self] _ in
+            self?.refreshColorsAtMousePoint()
+        }
+    }
+
+    public func setLUT(_ lut: LUT1D) {
+        graphView.lut = lut
+    }
+
+    public func setInterpolation(_ interpolation: LUT1DGraphView.Interpolation) {
+        graphView.interpolation = interpolation
+    }
+
+    /// Recomputes `inputColor`/`outputColor` for the graph view's current mouse point.
+    /// Mirrors ObjC `-mouseMoved` (LUT1DGraphView.m:41-49) — typically invoked on a
+    /// mouse-move callback wired from outside.
+    public func refreshColorsAtMousePoint() {
+        guard let lookup = graphView.lookupColors(at: graphView.mousePoint) else {
+            inputColor = nil
+            outputColor = nil
+            onColorsAtMousePointChanged?(nil, nil)
+            return
+        }
+        inputColor = lookup.identity.systemColor
+        outputColor = lookup.output.systemColor
+        onColorsAtMousePointChanged?(inputColor, outputColor)
     }
 }
 #endif
